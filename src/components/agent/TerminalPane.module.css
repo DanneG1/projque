@@ -25,9 +25,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 6px 12px;
+  padding: 7px 13px;
   border-bottom: 1px solid var(--border);
-  background: var(--bg-raised);
+  background: linear-gradient(var(--tb-top), color-mix(in srgb, var(--tb-bot) 50%, var(--tb-top)));
+  box-shadow: inset 0 1px 0 var(--inset-hi);
 }
 
 .headerLabel {

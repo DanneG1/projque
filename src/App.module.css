@@ -2,35 +2,65 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  background: var(--bg);
 }
 
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-raised);
+  gap: 8px;
+  padding: 9px 14px;
+  background: linear-gradient(var(--tb-top), var(--tb-bot));
+  border-bottom: 1px solid var(--tb-border);
+  box-shadow: inset 0 1px 0 var(--inset-hi);
 }
 
 .brand {
-  font-size: 15px;
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   background: none;
   border: none;
   padding: 0;
+  color: var(--text);
+}
+
+.glyph {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  background: linear-gradient(var(--accent-top), var(--accent-bot));
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.15);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.sessionDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-faint);
+}
+
+.sessionDot[data-live] {
+  background: radial-gradient(circle at 35% 30%, #7fe08f, var(--status-active));
+}
+
+.sessionDot[data-attn] {
+  background: radial-gradient(circle at 35% 30%, #ffcf6b, var(--status-paused));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--status-paused) 30%, transparent);
 }
 
 .main {
   flex: 1;
   overflow-y: auto;
-}
-
-.attentionDot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--status-paused);
-  margin-right: 6px;
 }

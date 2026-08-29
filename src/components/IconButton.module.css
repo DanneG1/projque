@@ -1,0 +1,57 @@
+.btn {
+  position: relative;
+  width: 29px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--btn-border);
+  background: linear-gradient(var(--btn-top), var(--btn-bot));
+  color: var(--text-muted);
+  border-radius: var(--radius-xs);
+  box-shadow: inset 0 1px 0 var(--inset-hi), 0 1px 1px rgba(0, 0, 0, 0.04);
+  transition: filter 0.1s;
+}
+
+.btn:hover {
+  filter: brightness(1.03);
+  color: var(--text);
+}
+
+.btn:active {
+  background: linear-gradient(var(--btn-bot), var(--btn-top));
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.14);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.btn[data-accent] {
+  color: var(--accent);
+}
+
+.btn::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%) translateY(3px);
+  white-space: nowrap;
+  background: rgba(40, 40, 44, 0.94);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 7px;
+  border-radius: 5px;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.12s;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28);
+  z-index: 30;
+}
+
+.btn:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}

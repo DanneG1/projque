@@ -1,31 +1,41 @@
 .sidebar {
-  width: 220px;
+  width: 224px;
   flex-shrink: 0;
   border-right: 1px solid var(--border);
-  background: var(--bg-raised);
+  background: linear-gradient(var(--bg-raised-2), var(--bg-sunken));
   overflow-y: auto;
-  padding: 8px;
+  padding: 7px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 8px;
-  border-radius: var(--radius-sm);
+  padding: 7px 9px;
+  border-radius: var(--radius-xs);
   border: 1px solid transparent;
 }
 
 .item:hover {
-  background: var(--bg-sunken);
+  background: rgba(120, 130, 150, 0.12);
 }
 
 .item[data-active] {
-  background: var(--bg-sunken);
-  border-color: var(--border);
+  background: linear-gradient(var(--accent-top), var(--accent-bot));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 1px 1px rgba(0, 0, 0, 0.12);
+  border-color: transparent;
+}
+
+.item[data-active] .project,
+.item[data-active] .meta {
+  color: #fff;
+}
+
+.item[data-active] .meta {
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .dot {
@@ -34,10 +44,17 @@
   border-radius: 50%;
   background: var(--text-faint);
   flex-shrink: 0;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.2);
 }
 
 .dot[data-running] {
-  background: var(--status-active);
+  background: radial-gradient(circle at 35% 30%, #7fe08f, var(--status-active));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--status-active) 22%, transparent);
+}
+
+.dot[data-attention] {
+  background: radial-gradient(circle at 35% 30%, #ffcf6b, var(--status-paused));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--status-paused) 30%, transparent);
 }
 
 .itemBody {
@@ -47,36 +64,45 @@
 
 .project {
   font-weight: 600;
-  font-size: 13px;
+  font-size: 12.5px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .meta {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--text-muted);
+  font-family: var(--font-mono);
 }
 
 .itemAction {
   background: none;
-  border: none;
+  border: 0;
   padding: 2px;
   color: var(--text-faint);
   font-size: 12px;
+  cursor: pointer;
+}
+
+.item[data-active] .itemAction {
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .itemAction:hover {
   color: var(--text);
 }
 
+.item[data-active] .itemAction:hover {
+  color: #fff;
+}
+
 .kindGlyph {
   font-size: 10px;
-  color: var(--text-muted);
+  color: var(--text-faint);
   flex-shrink: 0;
 }
 
-.dot[data-attention] {
-  background: var(--status-paused);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-paused) 30%, transparent);
+.item[data-active] .kindGlyph {
+  color: rgba(255, 255, 255, 0.8);
 }

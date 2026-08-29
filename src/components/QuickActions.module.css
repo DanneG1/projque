@@ -1,10 +1,16 @@
 .row {
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
 }
 
-.row .btn {
-  font-size: 12px;
-  padding: 3px 10px;
+.div {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  margin: 0 3px;
+}
+
+.grow {
+  flex: 1;
 }

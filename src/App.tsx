@@ -8,6 +8,7 @@ import { ImportPage } from "./pages/ImportPage";
 import { ProjectDetailPage } from "./pages/ProjectDetailPage";
 import { QuitConfirmDialog } from "./components/agent/QuitConfirmDialog";
 import { NewProjectDialog } from "./components/NewProjectDialog";
+import { Icon } from "./components/Icon";
 import type { AgentSessionView } from "./models";
 
 const AgentsPage = lazy(() =>
@@ -122,36 +123,33 @@ export default function App() {
   return (
     <div className={styles.app}>
       <header className={styles.header}>
-        <button
-          className={styles.brand}
-          onClick={() => setRoute({ page: "list" })}
-        >
-          Projque
+        <button className={styles.brand} onClick={() => setRoute({ page: "list" })}>
+          <span className={styles.glyph} aria-hidden>◧</span> ProjQue
         </button>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className={styles.spacer} />
         <button
-          className="btn"
+          className="btn btn-primary"
           onClick={() => useAppStore.getState().setNewProjectOpen(true)}
         >
-          New
+          <Icon name="plus" size={14} /> New
+        </button>
+        <button className="btn" onClick={() => setRoute({ page: "agents" })}>
+          <span
+            className={styles.sessionDot}
+            data-attn={attentionCount > 0 || undefined}
+            data-live={runningSessions > 0 || undefined}
+          />
+          Sessions{runningSessions > 0 ? ` ${runningSessions}` : ""}
         </button>
         <button
-          className="btn"
-          onClick={() => setRoute({ page: "agents" })}
-        >
-          {attentionCount > 0 && <span className={styles.attentionDot} />}
-          Sessions{runningSessions > 0 ? ` (${runningSessions})` : ""}
-        </button>
-        <button
-          className="btn"
+          className="btn btn-ghost"
           aria-label="Settings"
           onClick={() =>
             setRoute(route.page === "settings" ? { page: "list" } : { page: "settings" })
           }
         >
-          {route.page === "settings" ? "Back" : "Settings"}
+          {route.page === "settings" ? "Back" : <Icon name="settings" size={16} />}
         </button>
-        </div>
       </header>
       <ConfigRecoveryBanner />
       <main className={styles.main}>

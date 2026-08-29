@@ -29,7 +29,7 @@ export function SettingsPage() {
         <h2>Project folders</h2>
         {settings.projectRoots.length === 0 && (
           <p className={styles.hint}>
-            No folders configured yet. These are the folders Projque scans for
+            No folders configured yet. These are the folders ProjQue scans for
             repositories.
           </p>
         )}
@@ -82,7 +82,7 @@ export function SettingsPage() {
           onChange={(kind) => void setTool("agent", kind)}
         />
         <p className={styles.hint}>
-          Tools are chosen from a fixed, audited list — Projque never runs
+          Tools are chosen from a fixed, audited list — ProjQue never runs
           arbitrary commands. Greyed-out entries were not found on this
           machine.
         </p>

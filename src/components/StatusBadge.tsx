@@ -3,7 +3,8 @@ import styles from "./StatusBadge.module.css";
 
 export function StatusBadge({ status }: { status: ProjectStatus }) {
   return (
-    <span className={styles.badge} data-status={status}>
+    <span className={styles.chip} data-status={status}>
+      <span className={styles.dot} />
       {STATUS_LABELS[status]}
     </span>
   );

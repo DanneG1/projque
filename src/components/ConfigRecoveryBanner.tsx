@@ -24,7 +24,7 @@ export function ConfigRecoveryBanner() {
     return (
       <div className={styles.banner}>
         <span>
-          <strong>Settings were written by a newer Projque</strong> (config version{" "}
+          <strong>Settings were written by a newer ProjQue</strong> (config version{" "}
           {fileState.found}). Settings are read-only until you update the app.
         </span>
       </div>

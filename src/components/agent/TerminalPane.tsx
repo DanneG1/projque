@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { AgentSessionView } from "../../models";
 import { useAppStore } from "../../store/useAppStore";
+import { Icon } from "../Icon";
 import { fitTerminal, mountTerminal, unmountTerminal } from "../../terminal/manager";
 import styles from "./TerminalPane.module.css";
 
@@ -37,7 +38,7 @@ export function TerminalPane({ session }: { session: AgentSessionView }) {
             title={session.detectedUrl}
             onClick={() => void openSessionUrl(session.sessionId)}
           >
-            Open in browser
+            <Icon name="external" size={14} /> Open in browser
           </button>
         )}
       </div>

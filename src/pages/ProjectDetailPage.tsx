@@ -211,7 +211,7 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
 
       <section className={styles.section}>
         <button className="btn" onClick={() => void removeProject(project.id)}>
-          Remove from Projque
+          Remove from ProjQue
         </button>
         <p className={styles.faint}>Removing a project never touches its files.</p>
       </section>

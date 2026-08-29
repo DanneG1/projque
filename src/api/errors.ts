@@ -60,7 +60,7 @@ export function userMessage(err: AppError): UserMessage {
     case "configVersionUnsupported":
       return {
         title: "Configuration is from a newer version",
-        detail: `${err.file} was written by a newer Projque (version ${err.found}). Update the app to make changes.`,
+        detail: `${err.file} was written by a newer ProjQue (version ${err.found}). Update the app to make changes.`,
       };
     case "gitUnavailable":
       return { title: "Git is not installed", detail: "Git information is hidden until git is available." };

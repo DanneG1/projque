@@ -11,7 +11,7 @@ export function QuitConfirmDialog() {
   return (
     <div className={styles.backdrop} onClick={() => setQuitPrompt(null)}>
       <div className={styles.dialog} onClick={(e) => e.stopPropagation()}>
-        <h2 className={styles.title}>Quit Projque?</h2>
+        <h2 className={styles.title}>Quit ProjQue?</h2>
         <p>
           {quitPrompt} agent {quitPrompt === 1 ? "session is" : "sessions are"} still
           running and will be stopped.

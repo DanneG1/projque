@@ -1,44 +1,35 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 11px;
   color: var(--text-muted);
-  min-height: 18px;
-  overflow: hidden;
+  min-height: 17px;
+  flex-wrap: wrap;
 }
 
 .branch {
-  font-family: var(--font-mono);
-  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   background: var(--bg-sunken);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 0 8px;
+  border: 1px solid var(--border-soft);
+  padding: 1px 7px;
+  border-radius: 4px;
   white-space: nowrap;
 }
 
-.sep {
-  color: var(--text-faint);
-}
-
-.tree[data-dirty] {
-  color: var(--status-paused);
-}
-
-.sync {
-  font-family: var(--font-mono);
-  font-size: 11px;
-}
-
+.branch svg { color: var(--text-faint); }
+.dirty { color: var(--status-paused); }
+.clean { color: var(--status-active); }
+.sync { color: var(--text-muted); }
+.sep { color: var(--text-faint); }
 .commit {
+  color: var(--text-faint);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 340px;
+  max-width: 360px;
 }
-
-.time {
-  color: var(--text-faint);
-  white-space: nowrap;
-}
+.faint { color: var(--text-faint); font-style: italic; }

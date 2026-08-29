@@ -1,8 +1,8 @@
-# Projque
+# ProjQue
 
 > **Your local project shelf.** Keep track of what you're building, see where you left off, and jump back into any project instantly.
 
-Projque is a local-first, fully offline desktop app for developers juggling many local projects. It shows every project in one place — status, description, current branch, working-tree state, last commit, roadmap — with quick actions to jump back in, plus safe git controls (fetch, fast-forward pull, branch switching — never anything destructive):
+ProjQue is a local-first, fully offline desktop app for developers juggling many local projects. It shows every project in one place — status, description, current branch, working-tree state, last commit, roadmap — with quick actions to jump back in, plus safe git controls (fetch, fast-forward pull, branch switching — never anything destructive):
 
 - **Folder** — open the project in your file manager
 - **Editor** — open it in your configured editor

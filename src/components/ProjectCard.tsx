@@ -1,8 +1,8 @@
 import { useState } from "react";
 import type { ProjectView } from "../models";
 import { useAppStore } from "../store/useAppStore";
+import { Icon } from "./Icon";
 import { StatusBadge } from "./StatusBadge";
-import { StatusSelect } from "./StatusSelect";
 import { QuickActions } from "./QuickActions";
 import { GitSummary } from "./GitSummary";
 import styles from "./ProjectCard.module.css";
@@ -19,25 +19,22 @@ export function ProjectCard({
   const relocateProject = useAppStore((s) => s.relocateProject);
   const gitInfo = useAppStore((s) => s.git[project.id]);
   const setRoute = useAppStore((s) => s.setRoute);
-  const runningAgents = useAppStore(
-    (s) =>
-      s.sessions.filter(
-        (v) => v.projectId === project.id && v.status.state === "running",
-      ).length,
+  const sessions = useAppStore((s) =>
+    s.sessions.filter((v) => v.projectId === project.id && v.status.state === "running"),
   );
-  const projectAttention = useAppStore((s) =>
-    s.sessions.some((v) => v.projectId === project.id && v.needsAttention),
-  );
-  const [editingDescription, setEditingDescription] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
 
-  const startEditDescription = () => {
-    setDraft(project.description ?? "");
-    setEditingDescription(true);
-  };
+  const attention = sessions.some((v) => v.needsAttention);
+  const runSession = sessions.find((v) => v.kind === "run");
+  const agentCount = sessions.filter((v) => v.kind === "agent").length;
 
-  const commitDescription = () => {
-    setEditingDescription(false);
+  const startEdit = () => {
+    setDraft(project.description ?? "");
+    setEditing(true);
+  };
+  const commit = () => {
+    setEditing(false);
     void updateProject(project.id, {
       description: draft,
       descriptionSource: draft.trim() ? "custom" : "none",
@@ -50,15 +47,16 @@ export function ProjectCard({
       data-missing={!project.pathExists || undefined}
       data-selected={selected || undefined}
     >
-      <div className={styles.topRow}>
-        <button
-          className={styles.star}
-          data-active={project.favorite || undefined}
-          aria-label={project.favorite ? "Remove favorite" : "Mark as favorite"}
-          onClick={() => void updateProject(project.id, { favorite: !project.favorite })}
-        >
-          ★
-        </button>
+      <button
+        className={styles.star}
+        data-on={project.favorite || undefined}
+        aria-label={project.favorite ? "Remove favorite" : "Mark as favorite"}
+        onClick={() => void updateProject(project.id, { favorite: !project.favorite })}
+      >
+        <Icon name="star" size={15} style={{ fill: project.favorite ? "currentColor" : "none" }} />
+      </button>
+
+      <div className={styles.row1}>
         <h3
           className={styles.name}
           onClick={() => setRoute({ page: "detail", projectId: project.id })}
@@ -67,45 +65,39 @@ export function ProjectCard({
           {project.name}
         </h3>
         <StatusBadge status={project.status} />
-        {runningAgents > 0 && (
-          <span
-            className={styles.agentBadge}
-            data-attention={projectAttention || undefined}
-            title={
-              projectAttention
-                ? "A session needs your attention"
-                : `${runningAgents} session(s) running`
-            }
-            onClick={() => setRoute({ page: "agents" })}
-          >
-            ⚡ {runningAgents}
+        {attention ? (
+          <span className={styles.badge} data-attn onClick={() => setRoute({ page: "agents" })}>
+            ⚡ needs you
           </span>
-        )}
-        <div className={styles.spacer} />
-        <StatusSelect
-          value={project.status}
-          onChange={(status) => void updateProject(project.id, { status })}
-        />
+        ) : runSession ? (
+          <span className={styles.badge} onClick={() => setRoute({ page: "agents", sessionId: runSession.sessionId })}>
+            ▶ running{runSession.detectedUrl ? ` · ${portOf(runSession.detectedUrl)}` : ""}
+          </span>
+        ) : agentCount > 0 ? (
+          <span className={styles.badge} onClick={() => setRoute({ page: "agents" })}>
+            ⚡ {agentCount}
+          </span>
+        ) : null}
       </div>
 
-      {editingDescription ? (
+      {editing ? (
         <input
-          className={styles.descriptionInput}
+          className={styles.descInput}
           value={draft}
           autoFocus
           placeholder="Short description"
           onChange={(e) => setDraft(e.target.value)}
-          onBlur={commitDescription}
+          onBlur={commit}
           onKeyDown={(e) => {
-            if (e.key === "Enter") commitDescription();
-            if (e.key === "Escape") setEditingDescription(false);
+            if (e.key === "Enter") commit();
+            if (e.key === "Escape") setEditing(false);
           }}
         />
       ) : (
         <p
-          className={styles.description}
+          className={styles.desc}
           data-placeholder={!project.resolvedDescription || undefined}
-          onClick={startEditDescription}
+          onClick={startEdit}
           title="Click to edit description"
         >
           {project.resolvedDescription ?? "Add a description…"}
@@ -114,23 +106,28 @@ export function ProjectCard({
 
       {project.isGitRepo && <GitSummary info={gitInfo} />}
 
-      <div className={styles.pathRow}>
-        <code className={styles.path}>{project.path}</code>
-      </div>
-
-      <QuickActions project={project} gitInfo={gitInfo} />
-
-      {!project.pathExists && (
+      {!project.pathExists ? (
         <div className={styles.missing}>
-          Project folder could not be found.
-          <button className="btn" onClick={() => void relocateProject(project.id)}>
-            Locate folder
-          </button>
-          <button className="btn" onClick={() => void removeProject(project.id)}>
-            Remove project
-          </button>
+          <Icon name="locate" size={14} /> Project folder could not be found.
+          <button className="btn" onClick={() => void relocateProject(project.id)}>Locate</button>
+          <button className="btn" onClick={() => void removeProject(project.id)}>Remove</button>
         </div>
+      ) : (
+        <QuickActions project={project} gitInfo={gitInfo} />
       )}
+
+      <button
+        className={styles.open}
+        aria-label="Open details"
+        onClick={() => setRoute({ page: "detail", projectId: project.id })}
+      >
+        <Icon name="chevron" size={16} />
+      </button>
     </article>
   );
+}
+
+function portOf(url: string): string {
+  const m = url.match(/:(\d+)/);
+  return m ? `:${m[1]}` : "open";
 }

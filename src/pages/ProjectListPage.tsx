@@ -3,6 +3,7 @@ import { EmptyState } from "../components/EmptyState";
 import { FilterTabs } from "../components/FilterTabs";
 import { ProjectCard } from "../components/ProjectCard";
 import { SearchBar } from "../components/SearchBar";
+import { Icon } from "../components/Icon";
 import { useSortedProjects } from "../hooks/useSortedProjects";
 import { useAppStore } from "../store/useAppStore";
 import styles from "./ProjectListPage.module.css";
@@ -70,7 +71,7 @@ export function ProjectListPage() {
     return (
       <EmptyState title="Where do you keep your projects?">
         <p>
-          Point Projque at a folder that contains your repositories, or add a
+          Point ProjQue at a folder that contains your repositories, or add a
           single project manually.
         </p>
         <div style={{ display: "flex", gap: 8 }}>
@@ -95,11 +96,12 @@ export function ProjectListPage() {
         <FilterTabs />
         <div className={styles.spacer} />
         <button
-          className="btn"
+          className="btn btn-ghost"
           title="Refresh git information"
+          aria-label="Refresh"
           onClick={() => void refreshGit({ force: true })}
         >
-          Refresh
+          <Icon name="refresh" size={15} />
         </button>
         <button
           className="btn"
@@ -108,10 +110,7 @@ export function ProjectListPage() {
             void runScan();
           }}
         >
-          Scan folders
-        </button>
-        <button className="btn" onClick={() => void addProjectManual()}>
-          Add project
+          <Icon name="search" size={14} /> Scan folders
         </button>
       </div>
 

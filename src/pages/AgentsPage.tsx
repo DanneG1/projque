@@ -14,7 +14,7 @@ export function AgentsPage({ sessionId }: { sessionId?: string }) {
         <p>
           Use the <strong>Agent</strong> button on any project to start a coding
           agent, or <strong>▶ Run</strong> to start the application itself —
-          both run right here inside Projque.
+          both run right here inside ProjQue.
         </p>
         <button className="btn" onClick={() => setRoute({ page: "list" })}>
           Back to projects

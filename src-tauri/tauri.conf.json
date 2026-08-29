@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Projque",
+  "productName": "ProjQue",
   "version": "0.1.0",
   "identifier": "com.projque.app",
   "build": {
@@ -13,7 +13,7 @@
     "withGlobalTauri": false,
     "windows": [
       {
-        "title": "Projque",
+        "title": "ProjQue",
         "width": 1100,
         "height": 760,
         "minWidth": 720,
