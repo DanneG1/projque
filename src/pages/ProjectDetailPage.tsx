@@ -18,6 +18,7 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
   const relocateProject = useAppStore((s) => s.relocateProject);
   const setRoute = useAppStore((s) => s.setRoute);
   const reportError = useAppStore((s) => s.reportError);
+  const launch = useAppStore((s) => s.launch);
 
   const [roadmap, setRoadmap] = useState<ProjectDocument | null>(null);
   const [readme, setReadme] = useState<ProjectDocument | null>(null);
@@ -141,6 +142,15 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
           </div>
         )}
         <QuickActions project={project} gitInfo={gitInfo} />
+        {project.pathExists && (
+          <button
+            className={`btn ${styles.secondaryAction}`}
+            title="Run the agent in your external terminal instead"
+            onClick={() => void launch(project.id, "openAgent")}
+          >
+            Agent in external terminal
+          </button>
+        )}
         {!project.pathExists && (
           <div className={styles.missing}>
             Project folder could not be found.

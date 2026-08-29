@@ -2,9 +2,10 @@
 // the store goes through here. No paths or shell strings ever leave the
 // frontend — commands take opaque IDs and typed enum values only.
 
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, type Channel } from "@tauri-apps/api/core";
 import type {
   AddRootResult,
+  AgentSessionView,
   BranchList,
   ConfigStatus,
   DocKind,
@@ -64,4 +65,24 @@ export const api = {
   projectDocument: (id: string, kind: DocKind) =>
     invoke<ProjectDocument | null>("project_document", { id, kind }),
   openExternalUrl: (url: string) => invoke<void>("open_external_url", { url }),
+
+  agentSessionStart: (
+    projectId: string,
+    agentKind: string | null,
+    rows: number,
+    cols: number,
+  ) =>
+    invoke<AgentSessionView>("agent_session_start", { projectId, agentKind, rows, cols }),
+  agentSessionsList: () => invoke<AgentSessionView[]>("agent_sessions_list"),
+  agentSessionAttach: (sessionId: string, channel: Channel<unknown>) =>
+    invoke<void>("agent_session_attach", { sessionId, channel }),
+  agentSessionWrite: (sessionId: string, data: string) =>
+    invoke<void>("agent_session_write", { sessionId, data }),
+  agentSessionResize: (sessionId: string, rows: number, cols: number) =>
+    invoke<void>("agent_session_resize", { sessionId, rows, cols }),
+  agentSessionKill: (sessionId: string) =>
+    invoke<void>("agent_session_kill", { sessionId }),
+  agentSessionRemove: (sessionId: string) =>
+    invoke<void>("agent_session_remove", { sessionId }),
+  appConfirmQuit: () => invoke<void>("app_confirm_quit"),
 };

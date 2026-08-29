@@ -32,6 +32,10 @@ pub enum AppError {
     GitFailed { detail: String },
     #[error("branch not found: {branch}")]
     BranchNotFound { branch: String },
+    #[error("agent session not found: {id}")]
+    SessionNotFound { id: String },
+    #[error("agent session has exited: {id}")]
+    SessionExited { id: String },
     #[error("program not found: {program}")]
     ProgramNotFound { program: String },
     #[error("failed to launch {program}: {detail}")]

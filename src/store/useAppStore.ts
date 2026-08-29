@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { api } from "../api/ipc";
 import { parseAppError, userMessage, type AppError } from "../api/errors";
 import type {
+  AgentSessionView,
   ConfigStatus,
   ProjectStatus,
   GitInfo,
@@ -18,7 +19,8 @@ export type Route =
   | { page: "list" }
   | { page: "settings" }
   | { page: "import" }
-  | { page: "detail"; projectId: string };
+  | { page: "detail"; projectId: string }
+  | { page: "agents"; sessionId?: string };
 
 export type ProjectFilter = "all" | "favorites" | ProjectStatus;
 
@@ -40,6 +42,8 @@ interface AppStore {
   filter: ProjectFilter;
   query: string;
   gitBusy: Record<string, boolean>;
+  sessions: AgentSessionView[];
+  quitPrompt: number | null;
   toasts: Toast[];
   initialized: boolean;
   scan: {
@@ -70,6 +74,13 @@ interface AppStore {
   fetchRemote: (id: string) => Promise<void>;
   pullFf: (id: string) => Promise<void>;
   switchBranch: (id: string, branch: string) => Promise<boolean>;
+  refreshSessions: () => Promise<void>;
+  startAgentSession: (projectId: string, agentKind?: string) => Promise<void>;
+  killSession: (sessionId: string) => Promise<void>;
+  removeSession: (sessionId: string) => Promise<void>;
+  sessionExited: (view: AgentSessionView) => void;
+  setQuitPrompt: (count: number | null) => void;
+  confirmQuit: () => Promise<void>;
   setRoute: (route: Route) => void;
   setDisplay: (patch: { showArchived?: boolean; theme?: Theme }) => Promise<void>;
   openConfigDir: () => Promise<void>;
@@ -91,19 +102,22 @@ export const useAppStore = create<AppStore>((set, get) => ({
   filter: "all",
   query: "",
   gitBusy: {},
+  sessions: [],
+  quitPrompt: null,
   toasts: [],
   initialized: false,
   scan: { result: null, selected: new Set<string>(), scanning: false, importing: false },
 
   init: async () => {
     try {
-      const [settings, configStatus, projects, catalog] = await Promise.all([
+      const [settings, configStatus, projects, catalog, sessions] = await Promise.all([
         api.settingsGet(),
         api.appConfigStatus(),
         api.projectsList(),
         api.launcherCatalog(),
+        api.agentSessionsList(),
       ]);
-      set({ settings, configStatus, projects, catalog, initialized: true });
+      set({ settings, configStatus, projects, catalog, sessions, initialized: true });
       void get().refreshGit();
     } catch (err) {
       get().reportError(err);
@@ -376,6 +390,75 @@ export const useAppStore = create<AppStore>((set, get) => ({
       return false;
     } finally {
       set((s) => ({ gitBusy: { ...s.gitBusy, [id]: false } }));
+    }
+  },
+
+  refreshSessions: async () => {
+    try {
+      const sessions = await api.agentSessionsList();
+      set({ sessions });
+    } catch (err) {
+      get().reportError(err);
+    }
+  },
+
+  startAgentSession: async (projectId, agentKind) => {
+    try {
+      const pane = document.querySelector("[data-terminal-pane]");
+      const { probeSize } = await import("../terminal/manager");
+      const { rows, cols } = probeSize(pane as HTMLElement | null);
+      const session = await api.agentSessionStart(projectId, agentKind ?? null, rows, cols);
+      set((s) => ({
+        sessions: [...s.sessions, session],
+        route: { page: "agents", sessionId: session.sessionId },
+      }));
+    } catch (err) {
+      get().reportError(err);
+    }
+  },
+
+  killSession: async (sessionId) => {
+    try {
+      await api.agentSessionKill(sessionId);
+    } catch (err) {
+      get().reportError(err);
+    }
+  },
+
+  removeSession: async (sessionId) => {
+    try {
+      await api.agentSessionRemove(sessionId);
+      const { disposeTerminal } = await import("../terminal/manager");
+      disposeTerminal(sessionId);
+      set((s) => ({
+        sessions: s.sessions.filter((v) => v.sessionId !== sessionId),
+        route:
+          s.route.page === "agents" && s.route.sessionId === sessionId
+            ? { page: "agents" }
+            : s.route,
+      }));
+    } catch (err) {
+      get().reportError(err);
+    }
+  },
+
+  sessionExited: (view) => {
+    set((s) => ({
+      sessions: s.sessions.map((v) => (v.sessionId === view.sessionId ? view : v)),
+    }));
+    const code = view.status.state === "exited" ? view.status.code : null;
+    if (code !== null && code !== 0) {
+      get().notify(`${view.agentLabel} exited (code ${code})`);
+    }
+  },
+
+  setQuitPrompt: (count) => set({ quitPrompt: count }),
+
+  confirmQuit: async () => {
+    try {
+      await api.appConfirmQuit();
+    } catch (err) {
+      get().reportError(err);
     }
   },
 

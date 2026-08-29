@@ -1,3 +1,4 @@
+mod agent;
 mod commands;
 mod config;
 mod discovery;
@@ -10,7 +11,7 @@ mod state;
 
 use std::sync::Arc;
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -21,6 +22,22 @@ pub fn run() {
             let config_dir = app.path().app_config_dir()?;
             app.manage(Arc::new(state::AppState::new(config_dir)));
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            // Warn before quitting while agent sessions are running; the
+            // frontend shows a confirm dialog and calls app_confirm_quit.
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let state = window.state::<Arc<state::AppState>>();
+                let running = state.agents.running_count();
+                let confirmed = state
+                    .agents
+                    .quit_confirmed
+                    .load(std::sync::atomic::Ordering::SeqCst);
+                if running > 0 && !confirmed {
+                    api.prevent_close();
+                    let _ = window.app_handle().emit("app:confirm-quit", running);
+                }
+            }
         })
         .invoke_handler(tauri::generate_handler![
             commands::app_config_status,
@@ -50,6 +67,14 @@ pub fn run() {
             commands::git_fetch,
             commands::git_pull_ff,
             commands::git_switch,
+            commands::agent_session_start,
+            commands::agent_sessions_list,
+            commands::agent_session_attach,
+            commands::agent_session_write,
+            commands::agent_session_resize,
+            commands::agent_session_kill,
+            commands::agent_session_remove,
+            commands::app_confirm_quit,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

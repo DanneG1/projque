@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
+use crate::agent::Registry;
 use crate::git::GitInfo;
 
 use crate::config::{self, FileState};
@@ -21,6 +22,7 @@ pub struct AppState {
     pub last_scan: Mutex<HashMap<String, PathBuf>>,
     git_cache: Mutex<HashMap<String, (GitInfo, Instant)>>,
     git_version: Mutex<Option<Option<String>>>,
+    pub agents: Registry,
 }
 
 const GIT_CACHE_TTL: Duration = Duration::from_secs(30);
@@ -34,6 +36,7 @@ impl AppState {
             last_scan: Mutex::new(HashMap::new()),
             git_cache: Mutex::new(HashMap::new()),
             git_version: Mutex::new(None),
+            agents: Registry::default(),
         }
     }
 

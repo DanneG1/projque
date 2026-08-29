@@ -734,3 +734,119 @@ pub async fn git_switch(
     })
     .await
 }
+
+// ---------------------------------------------------------------------------
+// Embedded agent sessions
+
+use tauri::ipc::{Channel, InvokeResponseBody};
+
+use crate::agent::{AgentSessionView, StartSpec};
+use crate::launcher::which;
+
+#[tauri::command]
+pub async fn agent_session_start(
+    app: AppHandle,
+    state: State<'_, Arc<AppState>>,
+    project_id: String,
+    agent_kind: Option<String>,
+    rows: u16,
+    cols: u16,
+) -> Result<AgentSessionView, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&project_id)?;
+        let (settings, _) = state.settings();
+        let agent = launcher::resolve_agent(&settings, agent_kind.as_deref())?;
+        let path_env = which::augmented_path(&settings.path_additions);
+        state.agents.start(
+            app,
+            StartSpec {
+                project_id: &project_id,
+                agent_kind: &agent.kind,
+                agent_label: &agent.label,
+                program: &agent.program,
+                args: &agent.args,
+                cwd: &dir,
+                path_env: &path_env,
+                rows,
+                cols,
+            },
+        )
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn agent_sessions_list(
+    state: State<'_, Arc<AppState>>,
+) -> Result<Vec<AgentSessionView>, AppError> {
+    Ok(state.agents.list())
+}
+
+#[tauri::command]
+pub async fn agent_session_attach(
+    state: State<'_, Arc<AppState>>,
+    session_id: String,
+    channel: Channel<InvokeResponseBody>,
+) -> Result<(), AppError> {
+    state.agents.attach(&session_id, channel)
+}
+
+/// Keystrokes into a PTY the user started, running an allowlisted agent in
+/// their own project directory — the trust level of typing in Terminal.app.
+#[tauri::command]
+pub async fn agent_session_write(
+    state: State<'_, Arc<AppState>>,
+    session_id: String,
+    data: String,
+) -> Result<(), AppError> {
+    if data.len() > 64 * 1024 {
+        return Err(AppError::InvalidInput { detail: "input too large".into() });
+    }
+    state.agents.write(&session_id, &data)
+}
+
+#[tauri::command]
+pub async fn agent_session_resize(
+    state: State<'_, Arc<AppState>>,
+    session_id: String,
+    rows: u16,
+    cols: u16,
+) -> Result<(), AppError> {
+    state.agents.resize(&session_id, rows, cols)
+}
+
+#[tauri::command]
+pub async fn agent_session_kill(
+    state: State<'_, Arc<AppState>>,
+    session_id: String,
+) -> Result<(), AppError> {
+    state.agents.kill(&session_id)
+}
+
+#[tauri::command]
+pub async fn agent_session_remove(
+    state: State<'_, Arc<AppState>>,
+    session_id: String,
+) -> Result<(), AppError> {
+    state.agents.remove(&session_id)
+}
+
+/// Confirm quitting while agent sessions are running: kill them all, mark
+/// the quit confirmed, and close the main window (the CloseRequested guard
+/// in lib.rs then lets it through).
+#[tauri::command]
+pub async fn app_confirm_quit(
+    app: AppHandle,
+    state: State<'_, Arc<AppState>>,
+) -> Result<(), AppError> {
+    state
+        .agents
+        .quit_confirmed
+        .store(true, std::sync::atomic::Ordering::SeqCst);
+    state.agents.kill_all();
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.close();
+    }
+    Ok(())
+}

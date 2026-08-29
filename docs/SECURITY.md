@@ -23,6 +23,7 @@ Every command takes opaque IDs (`project_launch(id, action)`) or closed enums. F
 - `tauri-plugin-shell` and `tauri-plugin-fs` are not present.
 - All processes are spawned with `std::process::Command` and argv arrays — no shell interpretation anywhere, so file names with `;`, `$()`, quotes etc. are inert.
 - Launchable programs come from the static allowlist in `launcher/catalog.rs`. The frontend can only select a `kind` from it.
+- Embedded agent sessions run the allowlisted agent binary **directly on a PTY — never through a shell**; cwd is the resolved project directory, and the environment is the app's own plus an augmented PATH. Session IDs are opaque backend-generated tokens.
 - The one place a shell script is *generated* (not fed user input from the frontend): the macOS `.command` file used to run an agent in Terminal.app/iTerm2, because those apps have no "run command" flag. It is written with mode 0700 into the app's own cache directory, contains only Rust-canonicalized, single-quote-escaped values from the catalog, and is pruned after an hour. The alternative (AppleScript) needs the Automation permission and double escaping — strictly worse.
 
 ### 3. No automatic network
@@ -55,9 +56,14 @@ A small number of commands accept more than IDs/enums, on purpose, and are the p
 
 - **`open_external_url(url)`** — free-form string, validated in Rust: ≤ 2048 chars, scheme must be `http`/`https` (allowlist, not denylist), no whitespace/control chars, then handed to the OS browser. It can only ever cause a browser navigation.
 - **`git_switch(id, branch)`** — the branch name is a frontend-supplied string, validated by exact byte match against a fresh enumeration of the repository's own `refs/heads`, re-run backend-side at call time — the value provably names an existing local ref, so option/command injection is impossible (leading `-` and control characters are rejected as defence in depth). `git switch` itself refuses to clobber uncommitted changes; the app never passes `-f`, `--discard-changes`, or `-m`. The mutating git verbs are limited to `fetch`, `pull --ff-only`, and `switch` — push, merge, rebase, reset, clean, stash, and forced anything are excluded by design.
+- **`agent_session_write(sessionId, data)`** — free-form bytes, but they can only reach the stdin of a PTY the user themselves started, running an allowlisted agent in their own project directory — exactly the trust level of typing into Terminal.app. Input is capped at 64 KB per call.
 - **Hand-edited `command`/`args`/`pathAdditions` in `settings.json`** — honored, exec'd as argv without any shell. Reachable only by editing a local file, never from the UI or webview.
 
-### 7. No telemetry
+### 7. Child processes
+
+Embedded agent sessions are child processes of Projque: closing the app closes the PTY, which delivers SIGHUP and ends them (the app warns before quitting while sessions run). Residual risk: a child that ignores SIGHUP could outlive an app *crash*; there is no daemon or pidfile reaper in this version.
+
+### 8. No telemetry
 
 There is no analytics or telemetry code of any kind.
 

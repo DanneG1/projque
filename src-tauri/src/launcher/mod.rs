@@ -1,6 +1,6 @@
 pub mod catalog;
 mod terminal;
-mod which;
+pub(crate) mod which;
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -124,6 +124,43 @@ pub fn open_agent(settings: &Settings, dir: &Path, cache_dir: &Path) -> Result<(
     let spec = catalog::find_agent(&settings.agent.kind);
     let (program, args) = resolve_tool(&settings.agent, spec, settings)?;
     terminal::open(settings, dir, Some(terminal::AgentCommand { program, args, cache_dir }))
+}
+
+pub struct ResolvedAgent {
+    pub kind: String,
+    pub label: String,
+    pub program: PathBuf,
+    pub args: Vec<String>,
+}
+
+/// Resolve an agent for an embedded session. `kind: None` means the
+/// configured default (including any hand-edited settings override);
+/// an explicit kind must exist in the static catalog for this platform.
+pub fn resolve_agent(settings: &Settings, kind: Option<&str>) -> Result<ResolvedAgent, AppError> {
+    let effective_kind = kind.unwrap_or(&settings.agent.kind);
+    let spec = catalog::find_agent(effective_kind);
+    if kind.is_some() && spec.is_none() {
+        return Err(AppError::InvalidInput {
+            detail: format!("unknown agent kind '{effective_kind}'"),
+        });
+    }
+    // The settings override applies only when launching the configured kind.
+    let config = if effective_kind == settings.agent.kind {
+        settings.agent.clone()
+    } else {
+        crate::settings::ToolConfig {
+            kind: effective_kind.to_string(),
+            command: None,
+            args: Vec::new(),
+        }
+    };
+    let (program, args) = resolve_tool(&config, spec, settings)?;
+    Ok(ResolvedAgent {
+        kind: effective_kind.to_string(),
+        label: spec.map(|s| s.label.to_string()).unwrap_or_else(|| effective_kind.to_string()),
+        program,
+        args,
+    })
 }
 
 /// Spawn a process detached from the app, with no shell involvement.

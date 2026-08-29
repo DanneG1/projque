@@ -10,6 +10,7 @@ export function QuickActions({
   gitInfo?: GitInfo;
 }) {
   const launch = useAppStore((s) => s.launch);
+  const startAgentSession = useAppStore((s) => s.startAgentSession);
   const disabled = !project.pathExists;
 
   return (
@@ -38,8 +39,8 @@ export function QuickActions({
       <button
         className="btn"
         disabled={disabled}
-        title="Open the configured coding agent in a terminal here"
-        onClick={() => void launch(project.id, "openAgent")}
+        title="Start the configured coding agent in an embedded terminal"
+        onClick={() => void startAgentSession(project.id)}
       >
         Agent
       </button>

@@ -2,12 +2,12 @@
 
 > **Your local project shelf.** Keep track of what you're building, see where you left off, and jump back into any project instantly.
 
-Projque is a local-first, fully offline desktop app for developers juggling many local projects. It shows every project in one place — status, description, current branch, working-tree state, last commit, roadmap — with quick actions to jump back in:
+Projque is a local-first, fully offline desktop app for developers juggling many local projects. It shows every project in one place — status, description, current branch, working-tree state, last commit, roadmap — with quick actions to jump back in, plus safe git controls (fetch, fast-forward pull, branch switching — never anything destructive):
 
 - **Folder** — open the project in your file manager
 - **Editor** — open it in your configured editor
 - **Terminal** — open a terminal at the project directory
-- **Agent** — open a terminal running your configured LLM coding agent (Claude Code, Codex, Aider, …) in the project
+- **Agent** — run your configured LLM coding agent (Claude Code, Codex, Aider, …) in an embedded terminal inside Projque — manage several agents across different projects at once from the Agents view (external-terminal launch is still available from the project detail page)
 - **Repository** — open the GitHub remote in your browser
 
 ## What this app does not do

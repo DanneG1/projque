@@ -1,0 +1,21 @@
+.pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-sunken);
+}
+
+.mount {
+  flex: 1;
+  min-height: 0;
+  padding: 6px;
+}
+
+.exitedBar {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--warning-bg);
+  border-top: 1px solid var(--warning-border);
+}

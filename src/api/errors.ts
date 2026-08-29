@@ -12,6 +12,8 @@ export type AppError =
   | { kind: "gitUnavailable" }
   | { kind: "gitFailed"; detail: string }
   | { kind: "branchNotFound"; branch: string }
+  | { kind: "sessionNotFound"; id: string }
+  | { kind: "sessionExited"; id: string }
   | { kind: "programNotFound"; program: string }
   | { kind: "launchFailed"; program: string; detail: string }
   | { kind: "unsupportedPlatform"; detail: string }
@@ -64,6 +66,10 @@ export function userMessage(err: AppError): UserMessage {
         title: `Branch "${err.branch}" not found`,
         detail: "It may have been deleted — refresh and try again.",
       };
+    case "sessionNotFound":
+      return { title: "Agent session not found", detail: "It may have been removed." };
+    case "sessionExited":
+      return { title: "Agent session has ended" };
     case "programNotFound":
       return {
         title: `${err.program} not found`,

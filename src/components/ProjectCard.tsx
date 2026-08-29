@@ -19,6 +19,12 @@ export function ProjectCard({
   const relocateProject = useAppStore((s) => s.relocateProject);
   const gitInfo = useAppStore((s) => s.git[project.id]);
   const setRoute = useAppStore((s) => s.setRoute);
+  const runningAgents = useAppStore(
+    (s) =>
+      s.sessions.filter(
+        (v) => v.projectId === project.id && v.status.state === "running",
+      ).length,
+  );
   const [editingDescription, setEditingDescription] = useState(false);
   const [draft, setDraft] = useState("");
 
@@ -58,6 +64,15 @@ export function ProjectCard({
           {project.name}
         </h3>
         <StatusBadge status={project.status} />
+        {runningAgents > 0 && (
+          <span
+            className={styles.agentBadge}
+            title={`${runningAgents} agent session(s) running`}
+            onClick={() => setRoute({ page: "agents" })}
+          >
+            ⚡ {runningAgents}
+          </span>
+        )}
         <div className={styles.spacer} />
         <StatusSelect
           value={project.status}
