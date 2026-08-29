@@ -31,4 +31,5 @@ export type FileState =
 export interface ConfigStatus {
   configDir: string;
   settings: FileState;
+  projects: FileState;
 }

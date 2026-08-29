@@ -1,6 +1,7 @@
 mod commands;
 mod config;
 mod error;
+mod project;
 mod settings;
 mod state;
 
@@ -23,6 +24,11 @@ pub fn run() {
             commands::app_open_config_dir,
             commands::settings_get,
             commands::settings_set_display,
+            commands::projects_list,
+            commands::project_add_manual,
+            commands::project_update,
+            commands::project_remove,
+            commands::project_relocate,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

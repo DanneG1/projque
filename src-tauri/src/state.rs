@@ -3,6 +3,7 @@ use std::sync::Mutex;
 
 use crate::config::{self, FileState};
 use crate::error::AppError;
+use crate::project::Project;
 use crate::settings::Settings;
 
 /// All mutable application state. Config is loaded lazily on first access
@@ -10,6 +11,7 @@ use crate::settings::Settings;
 pub struct AppState {
     pub config_dir: PathBuf,
     settings: Mutex<Option<(Settings, FileState)>>,
+    projects: Mutex<Option<(Vec<Project>, FileState)>>,
 }
 
 impl AppState {
@@ -17,11 +19,16 @@ impl AppState {
         Self {
             config_dir,
             settings: Mutex::new(None),
+            projects: Mutex::new(None),
         }
     }
 
     fn settings_path(&self) -> PathBuf {
         self.config_dir.join("settings.json")
+    }
+
+    fn projects_path(&self) -> PathBuf {
+        self.config_dir.join("projects.json")
     }
 
     /// Load (or lazily initialize) settings. Never fails hard on a bad file:
@@ -53,5 +60,44 @@ impl AppState {
         config::save_json(&self.settings_path(), settings)?;
         *file_state = FileState::Ok;
         Ok(settings.clone())
+    }
+
+    pub fn projects(&self) -> (Vec<Project>, FileState) {
+        let mut guard = self.projects.lock().unwrap();
+        guard
+            .get_or_insert_with(|| config::load_or_recover::<Vec<Project>>(&self.projects_path()))
+            .clone()
+    }
+
+    /// Apply a mutation to the project list and persist atomically. The
+    /// closure may fail (e.g. duplicate detection); nothing is written then.
+    pub fn update_projects<R>(
+        &self,
+        f: impl FnOnce(&mut Vec<Project>) -> Result<R, AppError>,
+    ) -> Result<R, AppError> {
+        let mut guard = self.projects.lock().unwrap();
+        let (projects, file_state) = guard
+            .get_or_insert_with(|| config::load_or_recover::<Vec<Project>>(&self.projects_path()));
+        let result = f(projects)?;
+        config::save_json(&self.projects_path(), projects)?;
+        *file_state = FileState::Ok;
+        Ok(result)
+    }
+
+    /// The single ID -> path resolution point. Every command that touches a
+    /// project directory goes through here: unknown IDs and dangling paths
+    /// are rejected, and the returned path is canonicalized.
+    pub fn resolve_dir(&self, id: &str) -> Result<PathBuf, AppError> {
+        let (projects, _) = self.projects();
+        let project = projects
+            .iter()
+            .find(|p| p.id == id)
+            .ok_or_else(|| AppError::ProjectNotFound { id: id.to_string() })?;
+        let canon = std::fs::canonicalize(&project.path)
+            .map_err(|_| AppError::PathMissing { path: project.path.display().to_string() })?;
+        if !canon.is_dir() {
+            return Err(AppError::NotADirectory { path: canon.display().to_string() });
+        }
+        Ok(canon)
     }
 }

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { api } from "../api/ipc";
 import { parseAppError, userMessage, type AppError } from "../api/errors";
-import type { ConfigStatus, Settings, Theme } from "../models";
+import type { ConfigStatus, ProjectPatch, ProjectView, Settings, Theme } from "../models";
 
 export type Route =
   | { page: "list" }
@@ -17,10 +17,15 @@ interface AppStore {
   route: Route;
   settings: Settings | null;
   configStatus: ConfigStatus | null;
+  projects: ProjectView[];
   toasts: Toast[];
   initialized: boolean;
 
   init: () => Promise<void>;
+  addProjectManual: () => Promise<void>;
+  updateProject: (id: string, patch: ProjectPatch) => Promise<void>;
+  removeProject: (id: string) => Promise<void>;
+  relocateProject: (id: string) => Promise<void>;
   setRoute: (route: Route) => void;
   setDisplay: (patch: { showArchived?: boolean; theme?: Theme }) => Promise<void>;
   openConfigDir: () => Promise<void>;
@@ -34,19 +39,59 @@ export const useAppStore = create<AppStore>((set, get) => ({
   route: { page: "list" },
   settings: null,
   configStatus: null,
+  projects: [],
   toasts: [],
   initialized: false,
 
   init: async () => {
     try {
-      const [settings, configStatus] = await Promise.all([
+      const [settings, configStatus, projects] = await Promise.all([
         api.settingsGet(),
         api.appConfigStatus(),
+        api.projectsList(),
       ]);
-      set({ settings, configStatus, initialized: true });
+      set({ settings, configStatus, projects, initialized: true });
     } catch (err) {
       get().reportError(err);
       set({ initialized: true });
+    }
+  },
+
+  addProjectManual: async () => {
+    try {
+      const added = await api.projectAddManual();
+      if (added) set((s) => ({ projects: [...s.projects, added] }));
+    } catch (err) {
+      get().reportError(err);
+    }
+  },
+
+  updateProject: async (id, patch) => {
+    try {
+      const updated = await api.projectUpdate(id, patch);
+      set((s) => ({ projects: s.projects.map((p) => (p.id === id ? updated : p)) }));
+    } catch (err) {
+      get().reportError(err);
+    }
+  },
+
+  removeProject: async (id) => {
+    try {
+      await api.projectRemove(id);
+      set((s) => ({ projects: s.projects.filter((p) => p.id !== id) }));
+    } catch (err) {
+      get().reportError(err);
+    }
+  },
+
+  relocateProject: async (id) => {
+    try {
+      const updated = await api.projectRelocate(id);
+      if (updated) {
+        set((s) => ({ projects: s.projects.map((p) => (p.id === id ? updated : p)) }));
+      }
+    } catch (err) {
+      get().reportError(err);
     }
   },
 
