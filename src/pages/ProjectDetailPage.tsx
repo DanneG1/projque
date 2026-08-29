@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api/ipc";
 import type { DescriptionSource, ProjectDocument } from "../models";
 import { useAppStore } from "../store/useAppStore";
+import { GitControls } from "../components/GitControls";
 import { GitSummary } from "../components/GitSummary";
 import { MarkdownView } from "../components/MarkdownView";
 import { QuickActions } from "../components/QuickActions";
@@ -157,6 +158,7 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Git</h2>
           <GitSummary info={gitInfo} />
+          <GitControls projectId={project.id} gitInfo={gitInfo} />
           {gitInfo.lastCommit && (
             <div className={styles.metaRow}>
               <span className={styles.metaLabel}>Last commit</span>

@@ -5,6 +5,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
   AddRootResult,
+  BranchList,
   ConfigStatus,
   DocKind,
   GitAvailability,
@@ -54,6 +55,11 @@ export const api = {
   gitAvailability: () => invoke<GitAvailability>("git_availability"),
   gitInfoMany: (ids: string[], force: boolean) =>
     invoke<GitInfo[]>("git_info_many", { ids, force }),
+  gitBranches: (id: string) => invoke<BranchList>("git_branches", { id }),
+  gitFetch: (id: string) => invoke<GitInfo>("git_fetch", { id }),
+  gitPullFf: (id: string) => invoke<GitInfo>("git_pull_ff", { id }),
+  gitSwitch: (id: string, branch: string) =>
+    invoke<GitInfo>("git_switch", { id, branch }),
 
   projectDocument: (id: string, kind: DocKind) =>
     invoke<ProjectDocument | null>("project_document", { id, kind }),

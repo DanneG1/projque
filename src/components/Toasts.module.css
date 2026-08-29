@@ -28,3 +28,7 @@
   margin-top: 2px;
   user-select: text;
 }
+
+.toast[data-variant="info"] {
+  border-left-color: var(--status-active);
+}

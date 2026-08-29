@@ -140,4 +140,12 @@ impl AppState {
             .unwrap()
             .insert(info.project_id.clone(), (info.clone(), Instant::now()));
     }
+
+    /// Force-refresh git info after a mutating operation, bypassing the TTL
+    /// cache, and return the fresh state for the UI.
+    pub fn refresh_git_info(&self, id: &str, dir: &std::path::Path) -> GitInfo {
+        let info = crate::git::fetch_info(id, dir);
+        self.store_git_info(&info);
+        info
+    }
 }

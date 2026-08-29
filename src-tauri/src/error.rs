@@ -30,6 +30,8 @@ pub enum AppError {
     GitUnavailable,
     #[error("git failed: {detail}")]
     GitFailed { detail: String },
+    #[error("branch not found: {branch}")]
+    BranchNotFound { branch: String },
     #[error("program not found: {program}")]
     ProgramNotFound { program: String },
     #[error("failed to launch {program}: {detail}")]

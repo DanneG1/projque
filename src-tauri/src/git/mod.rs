@@ -1,3 +1,4 @@
+pub mod ops;
 mod parse;
 mod remote;
 mod runner;

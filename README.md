@@ -14,7 +14,7 @@ Projque is a local-first, fully offline desktop app for developers juggling many
 
 These are guarantees, not just missing features:
 
-- **No network requests, ever.** Git info comes from local git only; the strict CSP and the absence of any HTTP client enforce it. Opening a repository hands the URL to your browser.
+- **No automatic network.** Git info comes from local git; the strict CSP and the absence of any HTTP client enforce it. The only network traffic is `git fetch`/`git pull --ff-only` against your own remotes when you explicitly click Fetch or Pull. Opening a repository hands the URL to your browser.
 - **No telemetry.** There is no analytics code at all.
 - **No accounts, no cloud sync.** Configuration is two human-readable JSON files you can back up with `cp`.
 - **No arbitrary shell execution.** Only fixed, audited launcher actions exist; tools come from a static allowlist. See [docs/SECURITY.md](docs/SECURITY.md).

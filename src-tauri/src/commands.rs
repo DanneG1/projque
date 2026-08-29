@@ -668,3 +668,69 @@ pub async fn open_external_url(url: String) -> Result<(), AppError> {
     })
     .await
 }
+
+// ---------------------------------------------------------------------------
+// Git controls (safe set: fetch / ff-only pull / branch list / switch)
+
+use crate::git::ops::{self, BranchList};
+
+fn require_git(state: &AppState) -> Result<(), AppError> {
+    if state.git_version().is_none() {
+        return Err(AppError::GitUnavailable);
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn git_branches(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<BranchList, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        ops::list_branches(&dir)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn git_fetch(state: State<'_, Arc<AppState>>, id: String) -> Result<GitInfo, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        ops::fetch(&dir)?;
+        Ok(state.refresh_git_info(&id, &dir))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn git_pull_ff(state: State<'_, Arc<AppState>>, id: String) -> Result<GitInfo, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        ops::pull_ff(&dir)?;
+        Ok(state.refresh_git_info(&id, &dir))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn git_switch(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    branch: String,
+) -> Result<GitInfo, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        ops::switch(&dir, &branch)?;
+        Ok(state.refresh_git_info(&id, &dir))
+    })
+    .await
+}

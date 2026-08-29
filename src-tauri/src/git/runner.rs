@@ -1,7 +1,12 @@
 //! The single place a `git` process is spawned. Argv-only (no shell), cwd
-//! pinned to the repository, hardened environment so git can never prompt,
-//! touch the network, or take locks in the user's repo, and a watchdog so a
-//! pathological repository cannot hang the app.
+//! pinned to the repository, hardened environment so git can never prompt or
+//! take locks in the user's repo, and a watchdog so a pathological
+//! repository (or a stalled network transfer) cannot hang the app.
+//!
+//! Two timeout classes: local read/switch operations use the 5s default;
+//! the explicit user-initiated network operations (fetch, pull) use 120s
+//! plus SSH BatchMode so a passphrase prompt fails in milliseconds instead
+//! of eating the timeout.
 
 use std::io::Read;
 use std::path::Path;
@@ -10,16 +15,28 @@ use std::time::{Duration, Instant};
 
 use crate::error::AppError;
 
-const TIMEOUT: Duration = Duration::from_secs(5);
+const LOCAL_TIMEOUT: Duration = Duration::from_secs(5);
+pub const NET_TIMEOUT: Duration = Duration::from_secs(120);
 
 pub struct GitOutput {
     pub success: bool,
     pub stdout: String,
+    pub stderr: String,
 }
 
+/// Local (non-network) git invocation with the default 5s watchdog.
 pub fn git(dir: &Path, args: &[&str]) -> Result<GitOutput, AppError> {
-    let mut child = Command::new("git")
-        .arg("--no-optional-locks")
+    git_with_timeout(dir, args, LOCAL_TIMEOUT, false)
+}
+
+pub fn git_with_timeout(
+    dir: &Path,
+    args: &[&str],
+    timeout: Duration,
+    net: bool,
+) -> Result<GitOutput, AppError> {
+    let mut cmd = Command::new("git");
+    cmd.arg("--no-optional-locks")
         .args(args)
         .current_dir(dir)
         .env("GIT_TERMINAL_PROMPT", "0")
@@ -28,22 +45,32 @@ pub fn git(dir: &Path, args: &[&str]) -> Result<GitOutput, AppError> {
         .env("GCM_INTERACTIVE", "never")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|e| {
-            if e.kind() == std::io::ErrorKind::NotFound {
-                AppError::GitUnavailable
-            } else {
-                AppError::GitFailed { detail: e.to_string() }
-            }
-        })?;
+        .stderr(Stdio::piped());
+    if net {
+        // Fail fast on interactive SSH auth instead of stalling: fetch/pull
+        // require non-interactive credentials (ssh-agent / credential helper).
+        cmd.env("GIT_SSH_COMMAND", "ssh -oBatchMode=yes");
+    }
+    let mut child = cmd.spawn().map_err(|e| {
+        if e.kind() == std::io::ErrorKind::NotFound {
+            AppError::GitUnavailable
+        } else {
+            AppError::GitFailed { detail: e.to_string() }
+        }
+    })?;
 
-    // Drain stdout on a separate thread so a full pipe can never deadlock
+    // Drain both pipes on separate threads so a full pipe can never deadlock
     // the timeout loop below.
     let mut stdout_pipe = child.stdout.take().expect("stdout was piped");
-    let reader = std::thread::spawn(move || {
+    let stdout_reader = std::thread::spawn(move || {
         let mut buf = Vec::new();
         let _ = stdout_pipe.read_to_end(&mut buf);
+        buf
+    });
+    let mut stderr_pipe = child.stderr.take().expect("stderr was piped");
+    let stderr_reader = std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        let _ = stderr_pipe.read_to_end(&mut buf);
         buf
     });
 
@@ -52,7 +79,7 @@ pub fn git(dir: &Path, args: &[&str]) -> Result<GitOutput, AppError> {
         match child.try_wait() {
             Ok(Some(status)) => break status,
             Ok(None) => {
-                if started.elapsed() > TIMEOUT {
+                if started.elapsed() > timeout {
                     let _ = child.kill();
                     let _ = child.wait();
                     return Err(AppError::GitFailed { detail: "git timed out".into() });
@@ -63,10 +90,12 @@ pub fn git(dir: &Path, args: &[&str]) -> Result<GitOutput, AppError> {
         }
     };
 
-    let stdout = reader.join().unwrap_or_default();
+    let stdout = stdout_reader.join().unwrap_or_default();
+    let stderr = stderr_reader.join().unwrap_or_default();
     Ok(GitOutput {
         success: status.success(),
         stdout: String::from_utf8_lossy(&stdout).into_owned(),
+        stderr: String::from_utf8_lossy(&stderr).into_owned(),
     })
 }
 

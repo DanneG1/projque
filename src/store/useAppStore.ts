@@ -26,6 +26,7 @@ export interface Toast {
   id: number;
   title: string;
   detail?: string;
+  variant: "error" | "info";
 }
 
 interface AppStore {
@@ -38,6 +39,7 @@ interface AppStore {
   gitAvailable: boolean;
   filter: ProjectFilter;
   query: string;
+  gitBusy: Record<string, boolean>;
   toasts: Toast[];
   initialized: boolean;
   scan: {
@@ -65,10 +67,14 @@ interface AppStore {
   refreshGit: (opts?: { force?: boolean }) => Promise<void>;
   setFilter: (filter: ProjectFilter) => void;
   setQuery: (query: string) => void;
+  fetchRemote: (id: string) => Promise<void>;
+  pullFf: (id: string) => Promise<void>;
+  switchBranch: (id: string, branch: string) => Promise<boolean>;
   setRoute: (route: Route) => void;
   setDisplay: (patch: { showArchived?: boolean; theme?: Theme }) => Promise<void>;
   openConfigDir: () => Promise<void>;
   reportError: (err: unknown) => AppError;
+  notify: (title: string, detail?: string) => void;
   dismissToast: (id: number) => void;
 }
 
@@ -84,6 +90,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   gitAvailable: true,
   filter: "all",
   query: "",
+  gitBusy: {},
   toasts: [],
   initialized: false,
   scan: { result: null, selected: new Set<string>(), scanning: false, importing: false },
@@ -318,13 +325,73 @@ export const useAppStore = create<AppStore>((set, get) => ({
   setFilter: (filter) => set({ filter }),
   setQuery: (query) => set({ query }),
 
+  fetchRemote: async (id) => {
+    set((s) => ({ gitBusy: { ...s.gitBusy, [id]: true } }));
+    try {
+      const before = get().git[id]?.behind ?? null;
+      const info = await api.gitFetch(id);
+      set((s) => ({ git: { ...s.git, [id]: info } }));
+      const behind = info.behind ?? 0;
+      get().notify(
+        behind > 0
+          ? `Fetched — ${behind} commit${behind === 1 ? "" : "s"} behind`
+          : before === null || behind === 0
+            ? "Fetched — up to date"
+            : "Fetched",
+      );
+    } catch (err) {
+      get().reportError(err);
+    } finally {
+      set((s) => ({ gitBusy: { ...s.gitBusy, [id]: false } }));
+    }
+  },
+
+  pullFf: async (id) => {
+    set((s) => ({ gitBusy: { ...s.gitBusy, [id]: true } }));
+    try {
+      const before = get().git[id]?.behind ?? 0;
+      const info = await api.gitPullFf(id);
+      set((s) => ({ git: { ...s.git, [id]: info } }));
+      get().notify(
+        before > 0
+          ? `Pulled ${before} commit${before === 1 ? "" : "s"}`
+          : "Already up to date",
+      );
+    } catch (err) {
+      get().reportError(err);
+    } finally {
+      set((s) => ({ gitBusy: { ...s.gitBusy, [id]: false } }));
+    }
+  },
+
+  switchBranch: async (id, branch) => {
+    set((s) => ({ gitBusy: { ...s.gitBusy, [id]: true } }));
+    try {
+      const info = await api.gitSwitch(id, branch);
+      set((s) => ({ git: { ...s.git, [id]: info } }));
+      get().notify(`Switched to ${branch}`);
+      return true;
+    } catch (err) {
+      get().reportError(err);
+      return false;
+    } finally {
+      set((s) => ({ gitBusy: { ...s.gitBusy, [id]: false } }));
+    }
+  },
+
   reportError: (err) => {
     const appError = parseAppError(err);
     const msg = userMessage(appError);
-    const toast: Toast = { id: ++toastSeq, ...msg };
+    const toast: Toast = { id: ++toastSeq, variant: "error", ...msg };
     set((s) => ({ toasts: [...s.toasts, toast] }));
     setTimeout(() => get().dismissToast(toast.id), 6000);
     return appError;
+  },
+
+  notify: (title, detail) => {
+    const toast: Toast = { id: ++toastSeq, variant: "info", title, detail };
+    set((s) => ({ toasts: [...s.toasts, toast] }));
+    setTimeout(() => get().dismissToast(toast.id), 4000);
   },
 
   dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),

@@ -37,7 +37,7 @@ Tauri capabilities (`src-tauri/capabilities/default.json`) grant the webview no 
 | `settings/` | `settings.json` model. Serde defaults everywhere so hand-edited files load. |
 | `project/` | `projects.json` model (kept spec-exact), runtime `ProjectView`, slug IDs, README/ROADMAP discovery (`docs.rs`). |
 | `discovery/` | walkdir scanner: configured roots only, depth-capped, no symlink following, prunes hidden/dependency dirs, opaque candidate IDs. |
-| `git/` | `runner.rs` — the single git spawn point (argv-only, hardened env, 5s watchdog); `parse.rs` — porcelain/log parsing; `remote.rs` — GitHub URL normalization. |
+| `git/` | `runner.rs` — the single git spawn point (argv-only, hardened env; 5s watchdog for local ops, 120s + SSH BatchMode for the explicit network ops); `parse.rs` — porcelain/log parsing; `remote.rs` — GitHub URL normalization; `ops.rs` — the safe control verbs (fetch, ff-only pull, branch list, validated switch). |
 | `launcher/` | `catalog.rs` — the static tool allowlist; `which.rs` — PATH resolution (augmented for GUI-launched apps); `terminal.rs` — terminal strategies; process spawning. |
 
 ## Key decisions

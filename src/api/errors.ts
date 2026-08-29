@@ -11,6 +11,7 @@ export type AppError =
   | { kind: "configVersionUnsupported"; file: string; found: number; supported: number }
   | { kind: "gitUnavailable" }
   | { kind: "gitFailed"; detail: string }
+  | { kind: "branchNotFound"; branch: string }
   | { kind: "programNotFound"; program: string }
   | { kind: "launchFailed"; program: string; detail: string }
   | { kind: "unsupportedPlatform"; detail: string }
@@ -58,6 +59,11 @@ export function userMessage(err: AppError): UserMessage {
       return { title: "Git is not installed", detail: "Git information is hidden until git is available." };
     case "gitFailed":
       return { title: "Git command failed", detail: err.detail };
+    case "branchNotFound":
+      return {
+        title: `Branch "${err.branch}" not found`,
+        detail: "It may have been deleted — refresh and try again.",
+      };
     case "programNotFound":
       return {
         title: `${err.program} not found`,

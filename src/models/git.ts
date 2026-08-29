@@ -28,3 +28,17 @@ export interface GitAvailability {
   available: boolean;
   version: string | null;
 }
+
+export interface BranchInfo {
+  name: string;
+  current: boolean;
+  upstream: string | null;
+  ahead: number;
+  behind: number;
+}
+
+export interface BranchList {
+  branches: BranchInfo[];
+  remoteBranches: string[];
+  detached: boolean;
+}
