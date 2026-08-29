@@ -3,6 +3,7 @@ import { api } from "../api/ipc";
 import { parseAppError, userMessage, type AppError } from "../api/errors";
 import type {
   ConfigStatus,
+  ProjectStatus,
   GitInfo,
   LaunchAction,
   LauncherCatalog,
@@ -19,6 +20,8 @@ export type Route =
   | { page: "import" }
   | { page: "detail"; projectId: string };
 
+export type ProjectFilter = "all" | "favorites" | ProjectStatus;
+
 export interface Toast {
   id: number;
   title: string;
@@ -33,6 +36,8 @@ interface AppStore {
   projects: ProjectView[];
   git: Record<string, GitInfo>;
   gitAvailable: boolean;
+  filter: ProjectFilter;
+  query: string;
   toasts: Toast[];
   initialized: boolean;
   scan: {
@@ -58,6 +63,8 @@ interface AppStore {
   launch: (id: string, action: LaunchAction) => Promise<void>;
   openExternalUrl: (url: string) => Promise<void>;
   refreshGit: (opts?: { force?: boolean }) => Promise<void>;
+  setFilter: (filter: ProjectFilter) => void;
+  setQuery: (query: string) => void;
   setRoute: (route: Route) => void;
   setDisplay: (patch: { showArchived?: boolean; theme?: Theme }) => Promise<void>;
   openConfigDir: () => Promise<void>;
@@ -75,6 +82,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
   projects: [],
   git: {},
   gitAvailable: true,
+  filter: "all",
+  query: "",
   toasts: [],
   initialized: false,
   scan: { result: null, selected: new Set<string>(), scanning: false, importing: false },
@@ -305,6 +314,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
       get().reportError(err);
     }
   },
+
+  setFilter: (filter) => set({ filter }),
+  setQuery: (query) => set({ query }),
 
   reportError: (err) => {
     const appError = parseAppError(err);

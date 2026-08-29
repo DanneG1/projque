@@ -7,7 +7,13 @@ import { QuickActions } from "./QuickActions";
 import { GitSummary } from "./GitSummary";
 import styles from "./ProjectCard.module.css";
 
-export function ProjectCard({ project }: { project: ProjectView }) {
+export function ProjectCard({
+  project,
+  selected,
+}: {
+  project: ProjectView;
+  selected?: boolean;
+}) {
   const updateProject = useAppStore((s) => s.updateProject);
   const removeProject = useAppStore((s) => s.removeProject);
   const relocateProject = useAppStore((s) => s.relocateProject);
@@ -30,7 +36,11 @@ export function ProjectCard({ project }: { project: ProjectView }) {
   };
 
   return (
-    <article className={styles.card} data-missing={!project.pathExists || undefined}>
+    <article
+      className={styles.card}
+      data-missing={!project.pathExists || undefined}
+      data-selected={selected || undefined}
+    >
       <div className={styles.topRow}>
         <button
           className={styles.star}

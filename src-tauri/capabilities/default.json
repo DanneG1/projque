@@ -4,6 +4,9 @@
   "description": "Minimal surface. App-defined commands only; no plugin IPC is exposed to the webview.",
   "windows": ["main"],
   "permissions": [
-    "core:default"
+    "core:app:default",
+    "core:event:default",
+    "core:webview:default",
+    "core:window:default"
   ]
 }

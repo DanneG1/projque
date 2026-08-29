@@ -28,6 +28,26 @@ export default function App() {
   }, [refreshGit]);
 
   useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "," && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setRoute({ page: "settings" });
+        return;
+      }
+      const target = e.target as HTMLElement;
+      const typing =
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT";
+      if (e.key === "Escape" && !typing && route.page !== "list") {
+        setRoute({ page: "list" });
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [route, setRoute]);
+
+  useEffect(() => {
     if (theme === "system") {
       delete document.documentElement.dataset.theme;
     } else {
