@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useAppStore } from "./store/useAppStore";
 import { ProjectListPage } from "./pages/ProjectListPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { ImportPage } from "./pages/ImportPage";
 import { ConfigRecoveryBanner } from "./components/ConfigRecoveryBanner";
 import { Toasts } from "./components/Toasts";
 import styles from "./App.module.css";
@@ -50,6 +51,7 @@ export default function App() {
       <main className={styles.main}>
         {route.page === "list" && <ProjectListPage />}
         {route.page === "settings" && <SettingsPage />}
+        {route.page === "import" && <ImportPage />}
       </main>
       <Toasts />
     </div>

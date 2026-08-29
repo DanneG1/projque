@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
@@ -12,6 +13,9 @@ pub struct AppState {
     pub config_dir: PathBuf,
     settings: Mutex<Option<(Settings, FileState)>>,
     projects: Mutex<Option<(Vec<Project>, FileState)>>,
+    /// Candidate-id -> path table from the most recent scan. Import commands
+    /// resolve against this so paths never cross the IPC boundary.
+    pub last_scan: Mutex<HashMap<String, PathBuf>>,
 }
 
 impl AppState {
@@ -20,6 +24,7 @@ impl AppState {
             config_dir,
             settings: Mutex::new(None),
             projects: Mutex::new(None),
+            last_scan: Mutex::new(HashMap::new()),
         }
     }
 

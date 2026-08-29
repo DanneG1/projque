@@ -276,3 +276,137 @@ pub async fn project_relocate(
     })
     .await
 }
+
+// ---------------------------------------------------------------------------
+// Discovery & project roots
+
+use crate::discovery::{self, ScanIssue, ScanResult};
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AddRootResult {
+    pub settings: Settings,
+    pub added: bool,
+}
+
+#[tauri::command]
+pub async fn settings_add_project_root(
+    app: AppHandle,
+    state: State<'_, Arc<AppState>>,
+) -> Result<AddRootResult, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let Some(picked) = app.dialog().file().blocking_pick_folder() else {
+            let (settings, _) = state.settings();
+            return Ok(AddRootResult { settings, added: false });
+        };
+        let path = picked
+            .into_path()
+            .map_err(|e| AppError::InvalidInput { detail: e.to_string() })?;
+        let canon = std::fs::canonicalize(&path)
+            .map_err(|_| AppError::PathMissing { path: path.display().to_string() })?;
+        if !canon.is_dir() {
+            return Err(AppError::NotADirectory { path: canon.display().to_string() });
+        }
+        let already = state.settings().0.project_roots.iter().any(|r| r == &canon);
+        if already {
+            let (settings, _) = state.settings();
+            return Ok(AddRootResult { settings, added: false });
+        }
+        let settings = state.update_settings(|s| s.project_roots.push(canon))?;
+        Ok(AddRootResult { settings, added: true })
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn settings_remove_project_root(
+    state: State<'_, Arc<AppState>>,
+    index: usize,
+) -> Result<Settings, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        state.update_settings(|s| {
+            if index < s.project_roots.len() {
+                s.project_roots.remove(index);
+            }
+        })
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn settings_set_scan_depth(
+    state: State<'_, Arc<AppState>>,
+    depth: u8,
+) -> Result<Settings, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || state.update_settings(|s| s.scan_depth = depth.clamp(1, 6))).await
+}
+
+#[tauri::command]
+pub async fn discovery_scan(state: State<'_, Arc<AppState>>) -> Result<ScanResult, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let (settings, _) = state.settings();
+        if settings.project_roots.is_empty() {
+            return Err(AppError::InvalidInput {
+                detail: "no project folders configured".into(),
+            });
+        }
+        let (projects, _) = state.projects();
+        let imported: Vec<std::path::PathBuf> = projects
+            .iter()
+            .filter_map(|p| std::fs::canonicalize(&p.path).ok())
+            .collect();
+        let (result, table) = discovery::scan(
+            &settings.project_roots,
+            settings.scan_depth as usize,
+            &imported,
+        );
+        *state.last_scan.lock().unwrap() = table;
+        Ok(result)
+    })
+    .await
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportResult {
+    pub imported: Vec<ProjectView>,
+    pub skipped_duplicates: Vec<String>,
+    pub failed: Vec<ScanIssue>,
+}
+
+#[tauri::command]
+pub async fn discovery_import(
+    state: State<'_, Arc<AppState>>,
+    candidate_ids: Vec<String>,
+) -> Result<ImportResult, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let table = state.last_scan.lock().unwrap().clone();
+        let mut imported = Vec::new();
+        let mut skipped_duplicates = Vec::new();
+        let mut failed = Vec::new();
+        for candidate_id in candidate_ids {
+            let Some(path) = table.get(&candidate_id) else {
+                failed.push(ScanIssue {
+                    path: String::new(),
+                    detail: format!("unknown candidate: {candidate_id}"),
+                });
+                continue;
+            };
+            match add_project_at(&state, path.clone()) {
+                Ok(project) => imported.push(project::view(&project)),
+                Err(AppError::DuplicateProject { name, .. }) => skipped_duplicates.push(name),
+                Err(e) => failed.push(ScanIssue {
+                    path: path.display().to_string(),
+                    detail: e.to_string(),
+                }),
+            }
+        }
+        Ok(ImportResult { imported, skipped_duplicates, failed })
+    })
+    .await
+}

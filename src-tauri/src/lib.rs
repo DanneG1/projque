@@ -1,5 +1,6 @@
 mod commands;
 mod config;
+mod discovery;
 mod error;
 mod project;
 mod settings;
@@ -29,6 +30,11 @@ pub fn run() {
             commands::project_update,
             commands::project_remove,
             commands::project_relocate,
+            commands::settings_add_project_root,
+            commands::settings_remove_project_root,
+            commands::settings_set_scan_depth,
+            commands::discovery_scan,
+            commands::discovery_import,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
