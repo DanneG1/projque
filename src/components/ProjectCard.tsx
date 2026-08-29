@@ -4,12 +4,14 @@ import { useAppStore } from "../store/useAppStore";
 import { StatusBadge } from "./StatusBadge";
 import { StatusSelect } from "./StatusSelect";
 import { QuickActions } from "./QuickActions";
+import { GitSummary } from "./GitSummary";
 import styles from "./ProjectCard.module.css";
 
 export function ProjectCard({ project }: { project: ProjectView }) {
   const updateProject = useAppStore((s) => s.updateProject);
   const removeProject = useAppStore((s) => s.removeProject);
   const relocateProject = useAppStore((s) => s.relocateProject);
+  const gitInfo = useAppStore((s) => s.git[project.id]);
   const [editingDescription, setEditingDescription] = useState(false);
   const [draft, setDraft] = useState("");
 
@@ -70,11 +72,13 @@ export function ProjectCard({ project }: { project: ProjectView }) {
         </p>
       )}
 
+      {project.isGitRepo && <GitSummary info={gitInfo} />}
+
       <div className={styles.pathRow}>
         <code className={styles.path}>{project.path}</code>
       </div>
 
-      <QuickActions project={project} />
+      <QuickActions project={project} gitInfo={gitInfo} />
 
       {!project.pathExists && (
         <div className={styles.missing}>

@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Mutex;
+use std::time::{Duration, Instant};
+
+use crate::git::GitInfo;
 
 use crate::config::{self, FileState};
 use crate::error::AppError;
@@ -16,7 +19,11 @@ pub struct AppState {
     /// Candidate-id -> path table from the most recent scan. Import commands
     /// resolve against this so paths never cross the IPC boundary.
     pub last_scan: Mutex<HashMap<String, PathBuf>>,
+    git_cache: Mutex<HashMap<String, (GitInfo, Instant)>>,
+    git_version: Mutex<Option<Option<String>>>,
 }
+
+const GIT_CACHE_TTL: Duration = Duration::from_secs(30);
 
 impl AppState {
     pub fn new(config_dir: PathBuf) -> Self {
@@ -25,6 +32,8 @@ impl AppState {
             settings: Mutex::new(None),
             projects: Mutex::new(None),
             last_scan: Mutex::new(HashMap::new()),
+            git_cache: Mutex::new(HashMap::new()),
+            git_version: Mutex::new(None),
         }
     }
 
@@ -104,5 +113,31 @@ impl AppState {
             return Err(AppError::NotADirectory { path: canon.display().to_string() });
         }
         Ok(canon)
+    }
+}
+
+impl AppState {
+    /// Memoized `git --version` probe.
+    pub fn git_version(&self) -> Option<String> {
+        self.git_version
+            .lock()
+            .unwrap()
+            .get_or_insert_with(crate::git::version)
+            .clone()
+    }
+
+    pub fn cached_git_info(&self, id: &str) -> Option<GitInfo> {
+        let cache = self.git_cache.lock().unwrap();
+        cache
+            .get(id)
+            .filter(|(_, at)| at.elapsed() < GIT_CACHE_TTL)
+            .map(|(info, _)| info.clone())
+    }
+
+    pub fn store_git_info(&self, info: &GitInfo) {
+        self.git_cache
+            .lock()
+            .unwrap()
+            .insert(info.project_id.clone(), (info.clone(), Instant::now()));
     }
 }

@@ -1,8 +1,14 @@
-import type { ProjectView } from "../models";
+import type { GitInfo, ProjectView } from "../models";
 import { useAppStore } from "../store/useAppStore";
 import styles from "./QuickActions.module.css";
 
-export function QuickActions({ project }: { project: ProjectView }) {
+export function QuickActions({
+  project,
+  gitInfo,
+}: {
+  project: ProjectView;
+  gitInfo?: GitInfo;
+}) {
   const launch = useAppStore((s) => s.launch);
   const disabled = !project.pathExists;
 
@@ -37,6 +43,16 @@ export function QuickActions({ project }: { project: ProjectView }) {
       >
         Agent
       </button>
+      {gitInfo?.repositoryUrl && (
+        <button
+          className="btn"
+          disabled={disabled}
+          title={gitInfo.repositoryUrl}
+          onClick={() => void launch(project.id, "openRepository")}
+        >
+          Repository
+        </button>
+      )}
     </div>
   );
 }

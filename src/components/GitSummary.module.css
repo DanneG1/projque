@@ -1,0 +1,44 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  min-height: 18px;
+  overflow: hidden;
+}
+
+.branch {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+.sep {
+  color: var(--text-faint);
+}
+
+.tree[data-dirty] {
+  color: var(--status-paused);
+}
+
+.sync {
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.commit {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 340px;
+}
+
+.time {
+  color: var(--text-faint);
+  white-space: nowrap;
+}

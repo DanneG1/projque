@@ -3,6 +3,7 @@ import { api } from "../api/ipc";
 import { parseAppError, userMessage, type AppError } from "../api/errors";
 import type {
   ConfigStatus,
+  GitInfo,
   LaunchAction,
   LauncherCatalog,
   ProjectPatch,
@@ -29,6 +30,8 @@ interface AppStore {
   configStatus: ConfigStatus | null;
   catalog: LauncherCatalog | null;
   projects: ProjectView[];
+  git: Record<string, GitInfo>;
+  gitAvailable: boolean;
   toasts: Toast[];
   initialized: boolean;
   scan: {
@@ -52,6 +55,7 @@ interface AppStore {
   importSelected: () => Promise<void>;
   setTool: (tool: "editor" | "terminal" | "agent", kind: string) => Promise<void>;
   launch: (id: string, action: LaunchAction) => Promise<void>;
+  refreshGit: (opts?: { force?: boolean }) => Promise<void>;
   setRoute: (route: Route) => void;
   setDisplay: (patch: { showArchived?: boolean; theme?: Theme }) => Promise<void>;
   openConfigDir: () => Promise<void>;
@@ -67,6 +71,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
   configStatus: null,
   catalog: null,
   projects: [],
+  git: {},
+  gitAvailable: true,
   toasts: [],
   initialized: false,
   scan: { result: null, selected: new Set<string>(), scanning: false, importing: false },
@@ -80,6 +86,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         api.launcherCatalog(),
       ]);
       set({ settings, configStatus, projects, catalog, initialized: true });
+      void get().refreshGit();
     } catch (err) {
       get().reportError(err);
       set({ initialized: true });
@@ -89,7 +96,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
   addProjectManual: async () => {
     try {
       const added = await api.projectAddManual();
-      if (added) set((s) => ({ projects: [...s.projects, added] }));
+      if (added) {
+        set((s) => ({ projects: [...s.projects, added] }));
+        void get().refreshGit();
+      }
     } catch (err) {
       get().reportError(err);
     }
@@ -224,6 +234,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         scan: { result: null, selected: new Set<string>(), scanning: false, importing: false },
         route: { page: "list" },
       }));
+      void get().refreshGit();
       if (result.failed.length > 0) {
         get().reportError({
           kind: "io",
@@ -254,6 +265,26 @@ export const useAppStore = create<AppStore>((set, get) => ({
   launch: async (id, action) => {
     try {
       await api.projectLaunch(id, action);
+    } catch (err) {
+      get().reportError(err);
+    }
+  },
+
+  refreshGit: async (opts) => {
+    try {
+      const availability = await api.gitAvailability();
+      set({ gitAvailable: availability.available });
+      if (!availability.available) return;
+      const ids = get()
+        .projects.filter((p) => p.pathExists && p.isGitRepo)
+        .map((p) => p.id);
+      if (ids.length === 0) return;
+      const infos = await api.gitInfoMany(ids, opts?.force ?? false);
+      set((s) => {
+        const git = { ...s.git };
+        for (const info of infos) git[info.projectId] = info;
+        return { git };
+      });
     } catch (err) {
       get().reportError(err);
     }

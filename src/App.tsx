@@ -14,9 +14,17 @@ export default function App() {
   const initialized = useAppStore((s) => s.initialized);
   const theme = useAppStore((s) => s.settings?.display.theme ?? "system");
 
+  const refreshGit = useAppStore((s) => s.refreshGit);
+
   useEffect(() => {
     void init();
   }, [init]);
+
+  useEffect(() => {
+    const onFocus = () => void refreshGit();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [refreshGit]);
 
   useEffect(() => {
     if (theme === "system") {

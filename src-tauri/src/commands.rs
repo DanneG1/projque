@@ -514,11 +514,96 @@ pub async fn project_launch(
                 launcher::open_agent(&settings, &dir, &cache_dir)
             }
             LaunchAction::OpenRepository => {
-                // The URL is derived backend-side from the git remote; wired
-                // up with the git milestone.
-                Err(AppError::InvalidInput { detail: "no repository URL available".into() })
+                // Derived backend-side from the git remote: a compromised
+                // frontend cannot open an arbitrary URL through this path.
+                let info = crate::git::fetch_info(&id, &dir);
+                let url = info.repository_url.ok_or_else(|| AppError::InvalidInput {
+                    detail: "no repository URL available for this project".into(),
+                })?;
+                tauri_plugin_opener::open_url(&url, None::<&str>).map_err(|e| {
+                    AppError::LaunchFailed { program: "browser".into(), detail: e.to_string() }
+                })
             }
         }
     })
     .await
+}
+
+// ---------------------------------------------------------------------------
+// Git
+
+use crate::git::{self, GitInfo, GitState};
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitAvailability {
+    pub available: bool,
+    pub version: Option<String>,
+}
+
+#[tauri::command]
+pub async fn git_availability(state: State<'_, Arc<AppState>>) -> Result<GitAvailability, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let version = state.git_version();
+        Ok(GitAvailability { available: version.is_some(), version })
+    })
+    .await
+}
+
+/// Fetch git info for many projects with bounded parallelism (chunks of 8
+/// blocking tasks) and a short in-memory cache. Never fails per-repo: each
+/// entry degrades to a `state` the UI renders gracefully.
+#[tauri::command]
+pub async fn git_info_many(
+    state: State<'_, Arc<AppState>>,
+    ids: Vec<String>,
+    force: bool,
+) -> Result<Vec<GitInfo>, AppError> {
+    let state = state.inner().clone();
+    let mut results = Vec::with_capacity(ids.len());
+    for chunk in ids.chunks(8) {
+        let mut handles = Vec::with_capacity(chunk.len());
+        for id in chunk {
+            let state = state.clone();
+            let id = id.clone();
+            handles.push(tauri::async_runtime::spawn_blocking(move || {
+                git_info_one(&state, &id, force)
+            }));
+        }
+        for handle in handles {
+            results.push(
+                handle
+                    .await
+                    .map_err(|e| AppError::Io { detail: format!("task join error: {e}") })?,
+            );
+        }
+    }
+    Ok(results)
+}
+
+fn git_info_one(state: &AppState, id: &str, force: bool) -> GitInfo {
+    if !force {
+        if let Some(cached) = state.cached_git_info(id) {
+            return cached;
+        }
+    }
+    let info = match state.resolve_dir(id) {
+        Ok(dir) => {
+            if state.git_version().is_none() {
+                let mut info = git::GitInfo::missing(id);
+                info.state = GitState::GitMissing;
+                info
+            } else {
+                git::fetch_info(id, &dir)
+            }
+        }
+        Err(e) => {
+            let mut info = git::GitInfo::missing(id);
+            info.error = Some(e.to_string());
+            info
+        }
+    };
+    state.store_git_info(&info);
+    info
 }

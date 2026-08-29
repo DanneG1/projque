@@ -6,6 +6,8 @@ import { invoke } from "@tauri-apps/api/core";
 import type {
   AddRootResult,
   ConfigStatus,
+  GitAvailability,
+  GitInfo,
   ImportResult,
   ProjectPatch,
   ProjectView,
@@ -46,4 +48,8 @@ export const api = {
   settingsSetAgent: (kind: string) => invoke<Settings>("settings_set_agent", { kind }),
   projectLaunch: (id: string, action: LaunchAction) =>
     invoke<void>("project_launch", { id, action }),
+
+  gitAvailability: () => invoke<GitAvailability>("git_availability"),
+  gitInfoMany: (ids: string[], force: boolean) =>
+    invoke<GitInfo[]>("git_info_many", { ids, force }),
 };

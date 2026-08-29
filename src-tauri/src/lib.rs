@@ -2,6 +2,7 @@ mod commands;
 mod config;
 mod discovery;
 mod error;
+mod git;
 mod launcher;
 mod project;
 mod settings;
@@ -41,6 +42,8 @@ pub fn run() {
             commands::settings_set_terminal,
             commands::settings_set_agent,
             commands::project_launch,
+            commands::git_availability,
+            commands::git_info_many,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
