@@ -6,9 +6,11 @@ import { invoke } from "@tauri-apps/api/core";
 import type {
   AddRootResult,
   ConfigStatus,
+  DocKind,
   GitAvailability,
   GitInfo,
   ImportResult,
+  ProjectDocument,
   ProjectPatch,
   ProjectView,
   LaunchAction,
@@ -52,4 +54,8 @@ export const api = {
   gitAvailability: () => invoke<GitAvailability>("git_availability"),
   gitInfoMany: (ids: string[], force: boolean) =>
     invoke<GitInfo[]>("git_info_many", { ids, force }),
+
+  projectDocument: (id: string, kind: DocKind) =>
+    invoke<ProjectDocument | null>("project_document", { id, kind }),
+  openExternalUrl: (url: string) => invoke<void>("open_external_url", { url }),
 };

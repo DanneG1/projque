@@ -12,6 +12,7 @@ export function ProjectCard({ project }: { project: ProjectView }) {
   const removeProject = useAppStore((s) => s.removeProject);
   const relocateProject = useAppStore((s) => s.relocateProject);
   const gitInfo = useAppStore((s) => s.git[project.id]);
+  const setRoute = useAppStore((s) => s.setRoute);
   const [editingDescription, setEditingDescription] = useState(false);
   const [draft, setDraft] = useState("");
 
@@ -39,7 +40,13 @@ export function ProjectCard({ project }: { project: ProjectView }) {
         >
           ★
         </button>
-        <h3 className={styles.name}>{project.name}</h3>
+        <h3
+          className={styles.name}
+          onClick={() => setRoute({ page: "detail", projectId: project.id })}
+          title="Open project details"
+        >
+          {project.name}
+        </h3>
         <StatusBadge status={project.status} />
         <div className={styles.spacer} />
         <StatusSelect

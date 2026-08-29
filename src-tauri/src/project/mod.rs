@@ -1,3 +1,4 @@
+pub mod docs;
 mod model;
 
 pub use model::*;
@@ -36,16 +37,26 @@ pub fn view(project: &Project) -> ProjectView {
     let path: &Path = &project.path;
     let path_exists = path.is_dir();
     let is_git_repo = path_exists && path.join(".git").exists();
+    let readme = path_exists
+        .then(|| docs::find_doc(path, docs::DocKind::Readme, None))
+        .flatten();
+    let roadmap = path_exists
+        .then(|| docs::find_doc(path, docs::DocKind::Roadmap, project.roadmap_file.as_deref()))
+        .flatten();
     let resolved_description = match project.description_source {
         DescriptionSource::Custom => project.description.clone(),
-        // README extraction lands with the markdown milestone.
-        DescriptionSource::Readme => None,
+        DescriptionSource::Readme => readme
+            .as_deref()
+            .and_then(|p| docs::read_doc(p).ok())
+            .and_then(|(markdown, _)| docs::first_paragraph(&markdown)),
         DescriptionSource::None => None,
     };
     ProjectView {
         project: project.clone(),
         path_exists,
         is_git_repo,
+        has_readme: readme.is_some(),
+        has_roadmap: roadmap.is_some(),
         resolved_description,
     }
 }

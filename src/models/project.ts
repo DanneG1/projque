@@ -19,7 +19,17 @@ export interface ProjectView {
   roadmapFile?: string;
   pathExists: boolean;
   isGitRepo: boolean;
+  hasReadme: boolean;
+  hasRoadmap: boolean;
   resolvedDescription?: string;
+}
+
+export type DocKind = "roadmap" | "readme";
+
+export interface ProjectDocument {
+  fileName: string;
+  markdown: string;
+  truncated: boolean;
 }
 
 export interface ProjectPatch {

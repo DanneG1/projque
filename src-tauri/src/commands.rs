@@ -607,3 +607,62 @@ fn git_info_one(state: &AppState, id: &str, force: bool) -> GitInfo {
     state.store_git_info(&info);
     info
 }
+
+// ---------------------------------------------------------------------------
+// Documents & external URLs
+
+use crate::project::docs::{self, DocKind, ProjectDocument};
+
+#[tauri::command]
+pub async fn project_document(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    kind: DocKind,
+) -> Result<Option<ProjectDocument>, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        let (projects, _) = state.projects();
+        let configured = projects
+            .iter()
+            .find(|p| p.id == id)
+            .and_then(|p| p.roadmap_file.clone());
+        let Some(path) = docs::find_doc(&dir, kind, configured.as_deref()) else {
+            return Ok(None);
+        };
+        let (markdown, truncated) = docs::read_doc(&path)?;
+        Ok(Some(ProjectDocument {
+            file_name: path
+                .file_name()
+                .map(|f| f.to_string_lossy().into_owned())
+                .unwrap_or_default(),
+            markdown,
+            truncated,
+        }))
+    })
+    .await
+}
+
+/// The single command that accepts a free-form string — documented as the
+/// audited exception in SECURITY.md. A scheme-allowlisted URL can only ever
+/// reach the OS default browser.
+#[tauri::command]
+pub async fn open_external_url(url: String) -> Result<(), AppError> {
+    run_blocking(move || {
+        if url.len() > 2048 {
+            return Err(AppError::InvalidInput { detail: "URL too long".into() });
+        }
+        let lower = url.to_ascii_lowercase();
+        let allowed = lower.starts_with("http://") || lower.starts_with("https://");
+        if !allowed || url.chars().any(|c| c.is_control() || c.is_whitespace()) {
+            return Err(AppError::InvalidInput {
+                detail: "only http and https links can be opened".into(),
+            });
+        }
+        tauri_plugin_opener::open_url(&url, None::<&str>).map_err(|e| AppError::LaunchFailed {
+            program: "browser".into(),
+            detail: e.to_string(),
+        })
+    })
+    .await
+}

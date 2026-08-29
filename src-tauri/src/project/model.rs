@@ -53,6 +53,8 @@ pub struct ProjectView {
     pub project: Project,
     pub path_exists: bool,
     pub is_git_repo: bool,
+    pub has_readme: bool,
+    pub has_roadmap: bool,
     pub resolved_description: Option<String>,
 }
 

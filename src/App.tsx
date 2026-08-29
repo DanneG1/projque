@@ -3,6 +3,7 @@ import { useAppStore } from "./store/useAppStore";
 import { ProjectListPage } from "./pages/ProjectListPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { ImportPage } from "./pages/ImportPage";
+import { ProjectDetailPage } from "./pages/ProjectDetailPage";
 import { ConfigRecoveryBanner } from "./components/ConfigRecoveryBanner";
 import { Toasts } from "./components/Toasts";
 import styles from "./App.module.css";
@@ -60,6 +61,7 @@ export default function App() {
         {route.page === "list" && <ProjectListPage />}
         {route.page === "settings" && <SettingsPage />}
         {route.page === "import" && <ImportPage />}
+        {route.page === "detail" && <ProjectDetailPage projectId={route.projectId} />}
       </main>
       <Toasts />
     </div>

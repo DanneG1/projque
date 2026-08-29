@@ -16,7 +16,8 @@ import type {
 export type Route =
   | { page: "list" }
   | { page: "settings" }
-  | { page: "import" };
+  | { page: "import" }
+  | { page: "detail"; projectId: string };
 
 export interface Toast {
   id: number;
@@ -55,6 +56,7 @@ interface AppStore {
   importSelected: () => Promise<void>;
   setTool: (tool: "editor" | "terminal" | "agent", kind: string) => Promise<void>;
   launch: (id: string, action: LaunchAction) => Promise<void>;
+  openExternalUrl: (url: string) => Promise<void>;
   refreshGit: (opts?: { force?: boolean }) => Promise<void>;
   setRoute: (route: Route) => void;
   setDisplay: (patch: { showArchived?: boolean; theme?: Theme }) => Promise<void>;
@@ -117,7 +119,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
   removeProject: async (id) => {
     try {
       await api.projectRemove(id);
-      set((s) => ({ projects: s.projects.filter((p) => p.id !== id) }));
+      set((s) => ({
+        projects: s.projects.filter((p) => p.id !== id),
+        route:
+          s.route.page === "detail" && s.route.projectId === id
+            ? { page: "list" }
+            : s.route,
+      }));
     } catch (err) {
       get().reportError(err);
     }
@@ -265,6 +273,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
   launch: async (id, action) => {
     try {
       await api.projectLaunch(id, action);
+    } catch (err) {
+      get().reportError(err);
+    }
+  },
+
+  openExternalUrl: async (url) => {
+    try {
+      await api.openExternalUrl(url);
     } catch (err) {
       get().reportError(err);
     }

@@ -78,3 +78,8 @@
   border-radius: var(--radius-sm);
   font-size: 13px;
 }
+
+.name:hover {
+  color: var(--accent);
+  cursor: pointer;
+}
