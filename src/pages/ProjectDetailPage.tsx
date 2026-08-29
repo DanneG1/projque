@@ -3,6 +3,7 @@ import { api } from "../api/ipc";
 import type { DescriptionSource, ProjectDocument } from "../models";
 import { useAppStore } from "../store/useAppStore";
 import { GitControls } from "../components/GitControls";
+import { GithubPanel } from "../components/GithubPanel";
 import { GitSummary } from "../components/GitSummary";
 import { MarkdownView } from "../components/MarkdownView";
 import { QuickActions } from "../components/QuickActions";
@@ -182,6 +183,8 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
           )}
         </section>
       )}
+
+      {project.isGitRepo && <GithubPanel projectId={project.id} gitInfo={gitInfo} />}
 
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Roadmap</h2>

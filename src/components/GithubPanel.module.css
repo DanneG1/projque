@@ -1,0 +1,57 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.prTitle {
+  font-weight: 500;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.state {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 0 8px;
+  color: #fff;
+  background: var(--text-faint);
+}
+
+.state[data-state="open"] { background: var(--status-active); }
+.state[data-state="merged"] { background: var(--status-idea); }
+.state[data-state="closed"] { background: var(--danger); }
+
+.checks {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.checks[data-passing] {
+  color: var(--status-active);
+}

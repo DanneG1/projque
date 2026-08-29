@@ -16,6 +16,7 @@ export function ProjectListPage() {
   const setRoute = useAppStore((s) => s.setRoute);
   const refreshGit = useAppStore((s) => s.refreshGit);
   const gitAvailable = useAppStore((s) => s.gitAvailable);
+  const setNewProjectOpen = useAppStore((s) => s.setNewProjectOpen);
 
   const searchRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState(-1);
@@ -78,6 +79,9 @@ export function ProjectListPage() {
           </button>
           <button className="btn" onClick={() => void addProjectManual()}>
             Add single project
+          </button>
+          <button className="btn" onClick={() => setNewProjectOpen(true)}>
+            Start something new
           </button>
         </div>
       </EmptyState>

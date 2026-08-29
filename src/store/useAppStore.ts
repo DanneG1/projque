@@ -75,7 +75,13 @@ interface AppStore {
   pullFf: (id: string) => Promise<void>;
   switchBranch: (id: string, branch: string) => Promise<boolean>;
   refreshSessions: () => Promise<void>;
-  startAgentSession: (projectId: string, agentKind?: string) => Promise<void>;
+  startAgentSession: (
+    projectId: string,
+    agentKind?: string,
+    initialPrompt?: string,
+  ) => Promise<void>;
+  newProjectOpen: boolean;
+  setNewProjectOpen: (open: boolean) => void;
   startRunSession: (projectId: string, targetId: string) => Promise<void>;
   openSessionUrl: (sessionId: string) => Promise<void>;
   sessionUrlDetected: (sessionId: string, url: string) => void;
@@ -110,6 +116,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   gitBusy: {},
   sessions: [],
   quitPrompt: null,
+  newProjectOpen: false,
   toasts: [],
   initialized: false,
   scan: { result: null, selected: new Set<string>(), scanning: false, importing: false },
@@ -408,12 +415,20 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
   },
 
-  startAgentSession: async (projectId, agentKind) => {
+  setNewProjectOpen: (open) => set({ newProjectOpen: open }),
+
+  startAgentSession: async (projectId, agentKind, initialPrompt) => {
     try {
       const pane = document.querySelector("[data-terminal-pane]");
       const { probeSize } = await import("../terminal/manager");
       const { rows, cols } = probeSize(pane as HTMLElement | null);
-      const session = await api.agentSessionStart(projectId, agentKind ?? null, rows, cols);
+      const session = await api.agentSessionStart(
+        projectId,
+        agentKind ?? null,
+        rows,
+        cols,
+        initialPrompt,
+      );
       set((s) => ({
         sessions: [...s.sessions, session],
         route: { page: "agents", sessionId: session.sessionId },

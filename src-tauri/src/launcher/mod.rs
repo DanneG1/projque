@@ -131,6 +131,7 @@ pub struct ResolvedAgent {
     pub label: String,
     pub program: PathBuf,
     pub args: Vec<String>,
+    pub prompt_arg: bool,
 }
 
 /// Resolve an agent for an embedded session. `kind: None` means the
@@ -160,6 +161,7 @@ pub fn resolve_agent(settings: &Settings, kind: Option<&str>) -> Result<Resolved
         label: spec.map(|s| s.label.to_string()).unwrap_or_else(|| effective_kind.to_string()),
         program,
         args,
+        prompt_arg: spec.map(|s| s.prompt_arg).unwrap_or(false),
     })
 }
 

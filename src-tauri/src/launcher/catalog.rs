@@ -16,25 +16,27 @@ pub struct ProgramSpec {
     pub program: &'static str,
     pub args: &'static [&'static str],
     pub platforms: &'static [&'static str],
+    /// Agents only: accepts an initial prompt as a positional argument.
+    pub prompt_arg: bool,
 }
 
 pub const EDITORS: &[ProgramSpec] = &[
-    ProgramSpec { kind: "vscode", label: "Visual Studio Code", program: "code", args: &[], platforms: ALL },
-    ProgramSpec { kind: "cursor", label: "Cursor", program: "cursor", args: &[], platforms: ALL },
-    ProgramSpec { kind: "zed", label: "Zed", program: "zed", args: &[], platforms: &[MACOS, LINUX] },
-    ProgramSpec { kind: "sublime", label: "Sublime Text", program: "subl", args: &[], platforms: ALL },
-    ProgramSpec { kind: "intellij", label: "IntelliJ IDEA", program: "idea", args: &[], platforms: ALL },
-    ProgramSpec { kind: "rider", label: "JetBrains Rider", program: "rider", args: &[], platforms: ALL },
-    ProgramSpec { kind: "webstorm", label: "WebStorm", program: "webstorm", args: &[], platforms: ALL },
+    ProgramSpec { kind: "vscode", label: "Visual Studio Code", program: "code", args: &[], platforms: ALL, prompt_arg: false },
+    ProgramSpec { kind: "cursor", label: "Cursor", program: "cursor", args: &[], platforms: ALL, prompt_arg: false },
+    ProgramSpec { kind: "zed", label: "Zed", program: "zed", args: &[], platforms: &[MACOS, LINUX], prompt_arg: false },
+    ProgramSpec { kind: "sublime", label: "Sublime Text", program: "subl", args: &[], platforms: ALL, prompt_arg: false },
+    ProgramSpec { kind: "intellij", label: "IntelliJ IDEA", program: "idea", args: &[], platforms: ALL, prompt_arg: false },
+    ProgramSpec { kind: "rider", label: "JetBrains Rider", program: "rider", args: &[], platforms: ALL, prompt_arg: false },
+    ProgramSpec { kind: "webstorm", label: "WebStorm", program: "webstorm", args: &[], platforms: ALL, prompt_arg: false },
 ];
 
 pub const AGENTS: &[ProgramSpec] = &[
-    ProgramSpec { kind: "claude", label: "Claude Code", program: "claude", args: &[], platforms: ALL },
-    ProgramSpec { kind: "codex", label: "Codex CLI", program: "codex", args: &[], platforms: ALL },
-    ProgramSpec { kind: "aider", label: "Aider", program: "aider", args: &[], platforms: ALL },
-    ProgramSpec { kind: "gemini", label: "Gemini CLI", program: "gemini", args: &[], platforms: ALL },
-    ProgramSpec { kind: "opencode", label: "opencode", program: "opencode", args: &[], platforms: ALL },
-    ProgramSpec { kind: "cursor-agent", label: "Cursor Agent", program: "cursor-agent", args: &[], platforms: ALL },
+    ProgramSpec { kind: "claude", label: "Claude Code", program: "claude", args: &[], platforms: ALL, prompt_arg: true },
+    ProgramSpec { kind: "codex", label: "Codex CLI", program: "codex", args: &[], platforms: ALL, prompt_arg: true },
+    ProgramSpec { kind: "aider", label: "Aider", program: "aider", args: &[], platforms: ALL, prompt_arg: false },
+    ProgramSpec { kind: "gemini", label: "Gemini CLI", program: "gemini", args: &[], platforms: ALL, prompt_arg: true },
+    ProgramSpec { kind: "opencode", label: "opencode", program: "opencode", args: &[], platforms: ALL, prompt_arg: true },
+    ProgramSpec { kind: "cursor-agent", label: "Cursor Agent", program: "cursor-agent", args: &[], platforms: ALL, prompt_arg: false },
 ];
 
 /// How a terminal is asked to open at a directory (and optionally run a

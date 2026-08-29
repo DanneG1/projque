@@ -4,6 +4,7 @@ mod config;
 mod discovery;
 mod error;
 mod git;
+mod github;
 mod launcher;
 mod project;
 mod run;
@@ -78,6 +79,11 @@ pub fn run() {
             commands::agent_session_remove,
             commands::app_confirm_quit,
             commands::sessions_set_active,
+            commands::github_status,
+            commands::github_pr_status,
+            commands::github_open_pr,
+            commands::project_create,
+            commands::project_clone,
             commands::project_run_targets,
             commands::run_session_start,
             commands::run_session_open_url,

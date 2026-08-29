@@ -15,6 +15,10 @@ export type AppError =
   | { kind: "sessionNotFound"; id: string }
   | { kind: "sessionExited"; id: string }
   | { kind: "runTargetNotFound"; target: string }
+  | { kind: "nameInvalid"; detail: string }
+  | { kind: "alreadyExists"; path: string }
+  | { kind: "ghUnavailable" }
+  | { kind: "ghFailed"; detail: string }
   | { kind: "programNotFound"; program: string }
   | { kind: "launchFailed"; program: string; detail: string }
   | { kind: "unsupportedPlatform"; detail: string }
@@ -76,6 +80,17 @@ export function userMessage(err: AppError): UserMessage {
         title: "Run target no longer exists",
         detail: "The project files may have changed — reopen the Run menu.",
       };
+    case "nameInvalid":
+      return { title: "Invalid name", detail: err.detail };
+    case "alreadyExists":
+      return { title: "Folder already exists", detail: err.path };
+    case "ghUnavailable":
+      return {
+        title: "GitHub CLI not available",
+        detail: "Install gh and run 'gh auth login' to enable GitHub features.",
+      };
+    case "ghFailed":
+      return { title: "GitHub CLI failed", detail: err.detail };
     case "programNotFound":
       return {
         title: `${err.program} not found`,

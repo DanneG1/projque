@@ -751,6 +751,7 @@ pub async fn agent_session_start(
     agent_kind: Option<String>,
     rows: u16,
     cols: u16,
+    initial_prompt: Option<String>,
 ) -> Result<AgentSessionView, AppError> {
     let state = state.inner().clone();
     run_blocking(move || {
@@ -758,6 +759,18 @@ pub async fn agent_session_start(
         let (settings, _) = state.settings();
         let agent = launcher::resolve_agent(&settings, agent_kind.as_deref())?;
         let path_env = which::augmented_path(&settings.path_additions);
+        let mut args = agent.args.clone();
+        // Kickoff prompt: content into the user's own agent (write-level
+        // trust), passed as a positional argument only for agents that
+        // support one; silently ignored otherwise.
+        if let Some(prompt) = initial_prompt.filter(|p| !p.trim().is_empty()) {
+            if prompt.len() > 4 * 1024 {
+                return Err(AppError::InvalidInput { detail: "prompt too large".into() });
+            }
+            if agent.prompt_arg {
+                args.push(prompt);
+            }
+        }
         state.agents.start(
             app,
             StartSpec {
@@ -766,7 +779,7 @@ pub async fn agent_session_start(
                 agent_kind: &agent.kind,
                 agent_label: &agent.label,
                 program: &agent.program,
-                args: &agent.args,
+                args: &args,
                 cwd: &dir,
                 path_env: &path_env,
                 rows,
@@ -941,4 +954,185 @@ pub async fn run_session_open_url(
         program: "browser".into(),
         detail: e.to_string(),
     })
+}
+
+// ---------------------------------------------------------------------------
+// GitHub CLI layer + project creation / cloning
+
+use crate::github::{self, GhStatus, PrStatus};
+
+#[tauri::command]
+pub async fn github_status(state: State<'_, Arc<AppState>>) -> Result<GhStatus, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let (settings, _) = state.settings();
+        Ok(github::status(&settings.path_additions))
+    })
+    .await
+}
+
+/// Explicit-click network operation, like Fetch.
+#[tauri::command]
+pub async fn github_pr_status(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<Option<PrStatus>, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        let (settings, _) = state.settings();
+        let status = github::pr_status(&dir, &settings.path_additions)?;
+        let mut cache = state.pr_cache.lock().unwrap();
+        match &status {
+            Some(pr) => {
+                cache.insert(id.clone(), pr.clone());
+            }
+            None => {
+                cache.remove(&id);
+            }
+        }
+        Ok(status)
+    })
+    .await
+}
+
+/// Opens the PR URL stored by the last github_pr_status call — no URL
+/// crosses IPC.
+#[tauri::command]
+pub async fn github_open_pr(state: State<'_, Arc<AppState>>, id: String) -> Result<(), AppError> {
+    let url = state
+        .pr_cache
+        .lock()
+        .unwrap()
+        .get(&id)
+        .map(|pr| pr.url.clone())
+        .ok_or_else(|| AppError::InvalidInput { detail: "no PR loaded for this project".into() })?;
+    tauri_plugin_opener::open_url(&url, None::<&str>).map_err(|e| AppError::LaunchFailed {
+        program: "browser".into(),
+        detail: e.to_string(),
+    })
+}
+
+/// Create a new project: folder + git init + README + first commit, and
+/// optionally the GitHub repository. Audited exception: `name` (strict
+/// charset, also the directory name) and `description` (file content only).
+#[tauri::command]
+pub async fn project_create(
+    state: State<'_, Arc<AppState>>,
+    name: String,
+    description: Option<String>,
+    root_index: usize,
+    create_remote: bool,
+    private: bool,
+) -> Result<ProjectView, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        github::validate_name(&name)?;
+        let (settings, _) = state.settings();
+        let root = settings
+            .project_roots
+            .get(root_index)
+            .ok_or_else(|| AppError::InvalidInput { detail: "unknown project folder".into() })?
+            .clone();
+        let dir = root.join(&name);
+        if dir.exists() {
+            return Err(AppError::AlreadyExists { path: dir.display().to_string() });
+        }
+        std::fs::create_dir_all(&dir)?;
+
+        let description = description
+            .map(|d| d.trim().to_string())
+            .filter(|d| !d.is_empty());
+        let mut readme = format!("# {name}\n");
+        if let Some(d) = &description {
+            readme.push_str(&format!("\n{d}\n"));
+        }
+        std::fs::write(dir.join("README.md"), readme)?;
+
+        let git_ready = state.git_version().is_some()
+            && crate::git::run_in(&dir, &["init"]).is_ok()
+            && crate::git::run_in(&dir, &["add", "-A"]).is_ok()
+            && crate::git::run_in(&dir, &["commit", "-m", "Initial commit"]).is_ok();
+
+        let mut remote_error: Option<AppError> = None;
+        if create_remote && git_ready {
+            if let Err(e) = github::repo_create(&dir, &name, private, &settings.path_additions) {
+                // The project is still created locally; surface the failure.
+                remote_error = Some(e);
+            }
+        }
+
+        let project = add_project_at(&state, dir)?;
+        let view = if let Some(d) = description {
+            let updated = state.update_projects(|projects| {
+                let p = projects
+                    .iter_mut()
+                    .find(|p| p.id == project.id)
+                    .ok_or_else(|| AppError::ProjectNotFound { id: project.id.clone() })?;
+                p.description = Some(d);
+                p.description_source = crate::project::DescriptionSource::Custom;
+                Ok(p.clone())
+            })?;
+            project::view(&updated)
+        } else {
+            project::view(&project)
+        };
+        match remote_error {
+            Some(e) => Err(e),
+            None => Ok(view),
+        }
+    })
+    .await
+}
+
+/// Clone a repository into a configured project root and import it.
+/// Audited exception: `url` — shape-validated (scheme prefix, no
+/// whitespace/control, length cap; prefixes exclude a leading '-') and
+/// passed to git as a single argv element after `--`.
+#[tauri::command]
+pub async fn project_clone(
+    state: State<'_, Arc<AppState>>,
+    url: String,
+    root_index: usize,
+) -> Result<ProjectView, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let url = url.trim().to_string();
+        let shape_ok = url.len() <= 300
+            && !url.chars().any(|c| c.is_control() || c.is_whitespace())
+            && (url.starts_with("https://")
+                || url.starts_with("http://")
+                || url.starts_with("ssh://")
+                || url.starts_with("git@"));
+        if !shape_ok {
+            return Err(AppError::InvalidInput {
+                detail: "enter an https://, ssh:// or git@ repository URL".into(),
+            });
+        }
+        if state.git_version().is_none() {
+            return Err(AppError::GitUnavailable);
+        }
+        let (settings, _) = state.settings();
+        let root = settings
+            .project_roots
+            .get(root_index)
+            .ok_or_else(|| AppError::InvalidInput { detail: "unknown project folder".into() })?
+            .clone();
+        let dir_name = url
+            .trim_end_matches('/')
+            .rsplit(['/', ':'])
+            .next()
+            .unwrap_or("")
+            .trim_end_matches(".git")
+            .to_string();
+        github::validate_name(&dir_name)?;
+        let dir = root.join(&dir_name);
+        if dir.exists() {
+            return Err(AppError::AlreadyExists { path: dir.display().to_string() });
+        }
+        crate::git::clone_into(&root, &url, &dir_name)?;
+        let project = add_project_at(&state, dir)?;
+        Ok(project::view(&project))
+    })
+    .await
 }

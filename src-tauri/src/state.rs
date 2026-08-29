@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 
 use crate::agent::Registry;
 use crate::git::GitInfo;
+use crate::github::PrStatus;
 
 use crate::config::{self, FileState};
 use crate::error::AppError;
@@ -23,6 +24,9 @@ pub struct AppState {
     git_cache: Mutex<HashMap<String, (GitInfo, Instant)>>,
     git_version: Mutex<Option<Option<String>>>,
     pub agents: Registry,
+    /// Last fetched PR status per project — github_open_pr opens the stored
+    /// URL so nothing crosses IPC.
+    pub pr_cache: Mutex<HashMap<String, PrStatus>>,
 }
 
 const GIT_CACHE_TTL: Duration = Duration::from_secs(30);
@@ -37,6 +41,7 @@ impl AppState {
             git_cache: Mutex::new(HashMap::new()),
             git_version: Mutex::new(None),
             agents: Registry::default(),
+            pr_cache: Mutex::new(HashMap::new()),
         }
     }
 

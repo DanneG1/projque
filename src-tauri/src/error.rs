@@ -38,6 +38,14 @@ pub enum AppError {
     SessionExited { id: String },
     #[error("run target not found: {target}")]
     RunTargetNotFound { target: String },
+    #[error("invalid name: {detail}")]
+    NameInvalid { detail: String },
+    #[error("already exists: {path}")]
+    AlreadyExists { path: String },
+    #[error("GitHub CLI (gh) is not available")]
+    GhUnavailable,
+    #[error("gh failed: {detail}")]
+    GhFailed { detail: String },
     #[error("program not found: {program}")]
     ProgramNotFound { program: String },
     #[error("failed to launch {program}: {detail}")]

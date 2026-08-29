@@ -9,6 +9,7 @@ import type {
   BranchList,
   ConfigStatus,
   DocKind,
+  GhStatus,
   GitAvailability,
   GitInfo,
   ImportResult,
@@ -17,6 +18,7 @@ import type {
   ProjectView,
   LaunchAction,
   LauncherCatalog,
+  PrStatus,
   RunTarget,
   ScanResult,
   Settings,
@@ -72,8 +74,15 @@ export const api = {
     agentKind: string | null,
     rows: number,
     cols: number,
+    initialPrompt?: string,
   ) =>
-    invoke<AgentSessionView>("agent_session_start", { projectId, agentKind, rows, cols }),
+    invoke<AgentSessionView>("agent_session_start", {
+      projectId,
+      agentKind,
+      rows,
+      cols,
+      initialPrompt: initialPrompt ?? null,
+    }),
   agentSessionsList: () => invoke<AgentSessionView[]>("agent_sessions_list"),
   agentSessionAttach: (sessionId: string, channel: Channel<unknown>) =>
     invoke<void>("agent_session_attach", { sessionId, channel }),
@@ -95,4 +104,24 @@ export const api = {
     invoke<AgentSessionView>("run_session_start", { projectId, targetId, rows, cols }),
   runSessionOpenUrl: (sessionId: string) =>
     invoke<void>("run_session_open_url", { sessionId }),
+
+  githubStatus: () => invoke<GhStatus>("github_status"),
+  githubPrStatus: (id: string) => invoke<PrStatus | null>("github_pr_status", { id }),
+  githubOpenPr: (id: string) => invoke<void>("github_open_pr", { id }),
+  projectCreate: (params: {
+    name: string;
+    description?: string;
+    rootIndex: number;
+    createRemote: boolean;
+    private: boolean;
+  }) =>
+    invoke<ProjectView>("project_create", {
+      name: params.name,
+      description: params.description ?? null,
+      rootIndex: params.rootIndex,
+      createRemote: params.createRemote,
+      private: params.private,
+    }),
+  projectClone: (url: string, rootIndex: number) =>
+    invoke<ProjectView>("project_clone", { url, rootIndex }),
 };

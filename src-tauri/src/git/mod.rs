@@ -11,6 +11,38 @@ use serde::Serialize;
 pub use remote::normalize_repository_url;
 pub use runner::version;
 
+use crate::error::AppError;
+
+/// Local git invocation used by project setup (init / add / commit) and
+/// cloning. Same hardened runner as everything else.
+pub fn run_in(dir: &Path, args: &[&str]) -> Result<(), AppError> {
+    let out = runner::git(dir, args)?;
+    if !out.success {
+        let detail = out.stderr.trim();
+        return Err(AppError::GitFailed {
+            detail: if detail.is_empty() { "git command failed".into() } else { detail.lines().take(3).collect::<Vec<_>>().join(" ") },
+        });
+    }
+    Ok(())
+}
+
+/// Network clone with a long timeout (large repositories).
+pub fn clone_into(root: &Path, url: &str, dir_name: &str) -> Result<(), AppError> {
+    let out = runner::git_with_timeout(
+        root,
+        &["clone", "--", url, dir_name],
+        std::time::Duration::from_secs(600),
+        true,
+    )?;
+    if !out.success {
+        let detail = out.stderr.trim();
+        return Err(AppError::GitFailed {
+            detail: if detail.is_empty() { "git clone failed".into() } else { detail.lines().take(3).collect::<Vec<_>>().join(" ") },
+        });
+    }
+    Ok(())
+}
+
 #[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct GitCommit {

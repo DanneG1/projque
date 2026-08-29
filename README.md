@@ -11,6 +11,8 @@ Projque is a local-first, fully offline desktop app for developers juggling many
 - **Agent** — run your configured LLM coding agent (Claude Code, Codex, Aider, …) in an embedded terminal inside Projque — manage several agents across different projects at once from the Agents view (external-terminal launch is still available from the project detail page)
 - **Repository** — open the GitHub remote in your browser
 
+Beyond the shelf itself: **create a new project** from inside Projque (folder + git init + README + first commit, optionally a GitHub repository via `gh`, optionally launching your agent with a kickoff prompt so it scaffolds the project for you), **clone a repository** straight into a project root, get **notified when a background agent needs you** (bell or gone-quiet detection), and **check PR & CI status** for the current branch via the GitHub CLI. `gh` is optional — every GitHub feature hides gracefully without it.
+
 ## What this app does not do
 
 These are guarantees, not just missing features:

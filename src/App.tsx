@@ -7,6 +7,7 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { ImportPage } from "./pages/ImportPage";
 import { ProjectDetailPage } from "./pages/ProjectDetailPage";
 import { QuitConfirmDialog } from "./components/agent/QuitConfirmDialog";
+import { NewProjectDialog } from "./components/NewProjectDialog";
 import type { AgentSessionView } from "./models";
 
 const AgentsPage = lazy(() =>
@@ -130,6 +131,12 @@ export default function App() {
         <div style={{ display: "flex", gap: 8 }}>
         <button
           className="btn"
+          onClick={() => useAppStore.getState().setNewProjectOpen(true)}
+        >
+          New
+        </button>
+        <button
+          className="btn"
           onClick={() => setRoute({ page: "agents" })}
         >
           {attentionCount > 0 && <span className={styles.attentionDot} />}
@@ -160,6 +167,7 @@ export default function App() {
       </main>
       <Toasts />
       <QuitConfirmDialog />
+      <NewProjectDialog />
     </div>
   );
 }
