@@ -2,23 +2,91 @@
 
 > **Your local project shelf.** Keep track of what you're building, see where you left off, and jump back into any project instantly.
 
-Projque is a local-first, fully offline desktop app that gives you an overview of all your local development projects: status, description, Git state, and roadmap — with quick actions to open the folder, editor, terminal, repository, or an LLM coding agent in any project.
+Projque is a local-first, fully offline desktop app for developers juggling many local projects. It shows every project in one place — status, description, current branch, working-tree state, last commit, roadmap — with quick actions to jump back in:
+
+- **Folder** — open the project in your file manager
+- **Editor** — open it in your configured editor
+- **Terminal** — open a terminal at the project directory
+- **Agent** — open a terminal running your configured LLM coding agent (Claude Code, Codex, Aider, …) in the project
+- **Repository** — open the GitHub remote in your browser
 
 ## What this app does not do
 
-- No network requests, ever
-- No telemetry
-- No accounts or cloud sync
-- No arbitrary shell execution
+These are guarantees, not just missing features:
 
-## Development
+- **No network requests, ever.** Git info comes from local git only; the strict CSP and the absence of any HTTP client enforce it. Opening a repository hands the URL to your browser.
+- **No telemetry.** There is no analytics code at all.
+- **No accounts, no cloud sync.** Configuration is two human-readable JSON files you can back up with `cp`.
+- **No arbitrary shell execution.** Only fixed, audited launcher actions exist; tools come from a static allowlist. See [docs/SECURITY.md](docs/SECURITY.md).
 
-Prerequisites: Node.js >= 20, Rust >= 1.77 (`rustup`), plus the [Tauri prerequisites](https://tauri.app/start/prerequisites/) for your OS.
+## Install & build
+
+Prerequisites:
+
+- Node.js ≥ 20
+- Rust ≥ 1.77 (`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`)
+- Platform extras per the [Tauri prerequisites](https://tauri.app/start/prerequisites/):
+  - **macOS:** Xcode Command Line Tools
+  - **Windows:** MSVC Build Tools + WebView2
+  - **Linux:** `webkit2gtk-4.1`, `libayatana-appindicator3`, `librsvg2`
 
 ```bash
 npm install
-npm run tauri dev    # run in development
-npm run tauri build  # build the app bundle
+npm run tauri dev    # development
+npm run tauri build  # release bundle
 ```
 
-Docs: see `docs/requirements.md` (product spec). ARCHITECTURE.md and SECURITY.md coming with v1.
+macOS note: unsigned local builds may be quarantined by Gatekeeper. Fix with
+`xattr -dr com.apple.quarantine "/Applications/Projque.app"`.
+
+## Configuration
+
+Two pretty-printed JSON files, safe to hand-edit and non-critical if lost (rescan your folders to recover the list):
+
+| OS | Location |
+|---|---|
+| macOS | `~/Library/Application Support/com.projque.app/` |
+| Windows | `%APPDATA%\com.projque.app\` |
+| Linux | `~/.config/com.projque.app/` |
+
+`settings.json`:
+
+```json
+{
+  "configVersion": 1,
+  "projectRoots": ["/Users/you/git"],
+  "scanDepth": 3,
+  "editor":   { "type": "vscode" },
+  "terminal": { "type": "macos-terminal" },
+  "agent":    { "type": "claude" },
+  "display":  { "showArchived": false, "theme": "system" }
+}
+```
+
+Advanced, file-only options: `"command"`/`"args"` on any tool override the catalog entry (run as argv, never through a shell), and `"pathAdditions": ["/some/bin"]` extends the search path for launcher programs — useful because GUI-launched apps don't inherit your shell's PATH.
+
+## Supported tools
+
+| Editors | Terminals | Agents |
+|---|---|---|
+| VS Code, Cursor, Zed, Sublime Text, IntelliJ IDEA, Rider, WebStorm | Terminal.app, iTerm2, Windows Terminal, kitty, Alacritty, WezTerm, Ghostty, GNOME Terminal, Konsole | Claude Code, Codex CLI, Aider, Gemini CLI, opencode, Cursor Agent |
+
+**Adding a tool is a one-line pull request** — a single const entry in
+[`src-tauri/src/launcher/catalog.rs`](src-tauri/src/launcher/catalog.rs). A great first issue.
+
+## Troubleshooting
+
+- **"code not found" (or any tool):** the CLI isn't on the PATH Projque can see. Install the tool's shell command, or add its directory to `pathAdditions` in `settings.json`.
+- **Git info missing:** git isn't installed or isn't on PATH. Everything else keeps working.
+- **Settings were reset:** the previous file failed to parse and was backed up next to the original as `*.invalid-<timestamp>.bak` — nothing is deleted.
+
+## Docs
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — how it's put together, the trust boundary, how to extend it
+- [docs/SECURITY.md](docs/SECURITY.md) — threat model and the invariants that keep this app boring
+- [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) — dev loop and PR rules
+- [docs/requirements.md](docs/requirements.md) — the original product spec
+
+## License
+
+[MIT](LICENSE)
