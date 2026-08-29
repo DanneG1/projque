@@ -9,6 +9,8 @@ import type {
   ImportResult,
   ProjectPatch,
   ProjectView,
+  LaunchAction,
+  LauncherCatalog,
   ScanResult,
   Settings,
   Theme,
@@ -37,4 +39,11 @@ export const api = {
   discoveryScan: () => invoke<ScanResult>("discovery_scan"),
   discoveryImport: (candidateIds: string[]) =>
     invoke<ImportResult>("discovery_import", { candidateIds }),
+
+  launcherCatalog: () => invoke<LauncherCatalog>("launcher_catalog"),
+  settingsSetEditor: (kind: string) => invoke<Settings>("settings_set_editor", { kind }),
+  settingsSetTerminal: (kind: string) => invoke<Settings>("settings_set_terminal", { kind }),
+  settingsSetAgent: (kind: string) => invoke<Settings>("settings_set_agent", { kind }),
+  projectLaunch: (id: string, action: LaunchAction) =>
+    invoke<void>("project_launch", { id, action }),
 };

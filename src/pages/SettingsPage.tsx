@@ -1,5 +1,5 @@
 import { useAppStore } from "../store/useAppStore";
-import type { Theme } from "../models";
+import type { CatalogEntry, Theme } from "../models";
 import styles from "./SettingsPage.module.css";
 
 const THEMES: { value: Theme; label: string }[] = [
@@ -16,6 +16,8 @@ export function SettingsPage() {
   const addProjectRoot = useAppStore((s) => s.addProjectRoot);
   const removeProjectRoot = useAppStore((s) => s.removeProjectRoot);
   const setScanDepth = useAppStore((s) => s.setScanDepth);
+  const catalog = useAppStore((s) => s.catalog);
+  const setTool = useAppStore((s) => s.setTool);
 
   if (!settings) return null;
 
@@ -60,6 +62,33 @@ export function SettingsPage() {
       </section>
 
       <section className={styles.section}>
+        <h2>Tools</h2>
+        <ToolSelect
+          label="Editor"
+          entries={catalog?.editors ?? []}
+          value={settings.editor.type}
+          onChange={(kind) => void setTool("editor", kind)}
+        />
+        <ToolSelect
+          label="Terminal"
+          entries={catalog?.terminals ?? []}
+          value={settings.terminal.type}
+          onChange={(kind) => void setTool("terminal", kind)}
+        />
+        <ToolSelect
+          label="Agent"
+          entries={catalog?.agents ?? []}
+          value={settings.agent.type}
+          onChange={(kind) => void setTool("agent", kind)}
+        />
+        <p className={styles.hint}>
+          Tools are chosen from a fixed, audited list — Projque never runs
+          arbitrary commands. Greyed-out entries were not found on this
+          machine.
+        </p>
+      </section>
+
+      <section className={styles.section}>
         <h2>Display</h2>
         <label className={styles.row}>
           <input
@@ -98,5 +127,32 @@ export function SettingsPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+function ToolSelect(props: {
+  label: string;
+  entries: CatalogEntry[];
+  value: string;
+  onChange: (kind: string) => void;
+}) {
+  const known = props.entries.some((e) => e.kind === props.value);
+  return (
+    <label className={styles.row}>
+      {props.label}
+      <select value={props.value} onChange={(e) => props.onChange(e.target.value)}>
+        {!known && (
+          <option value={props.value} disabled>
+            {props.value} (unrecognized)
+          </option>
+        )}
+        {props.entries.map((e) => (
+          <option key={e.kind} value={e.kind}>
+            {e.label}
+            {e.installed ? "" : " (not installed)"}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

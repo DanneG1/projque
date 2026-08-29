@@ -1,0 +1,10 @@
+.row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.row .btn {
+  font-size: 12px;
+  padding: 3px 10px;
+}

@@ -3,6 +3,8 @@ import { api } from "../api/ipc";
 import { parseAppError, userMessage, type AppError } from "../api/errors";
 import type {
   ConfigStatus,
+  LaunchAction,
+  LauncherCatalog,
   ProjectPatch,
   ProjectView,
   ScanResult,
@@ -25,6 +27,7 @@ interface AppStore {
   route: Route;
   settings: Settings | null;
   configStatus: ConfigStatus | null;
+  catalog: LauncherCatalog | null;
   projects: ProjectView[];
   toasts: Toast[];
   initialized: boolean;
@@ -47,6 +50,8 @@ interface AppStore {
   toggleCandidate: (id: string) => void;
   setAllCandidates: (selected: boolean) => void;
   importSelected: () => Promise<void>;
+  setTool: (tool: "editor" | "terminal" | "agent", kind: string) => Promise<void>;
+  launch: (id: string, action: LaunchAction) => Promise<void>;
   setRoute: (route: Route) => void;
   setDisplay: (patch: { showArchived?: boolean; theme?: Theme }) => Promise<void>;
   openConfigDir: () => Promise<void>;
@@ -60,6 +65,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   route: { page: "list" },
   settings: null,
   configStatus: null,
+  catalog: null,
   projects: [],
   toasts: [],
   initialized: false,
@@ -67,12 +73,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   init: async () => {
     try {
-      const [settings, configStatus, projects] = await Promise.all([
+      const [settings, configStatus, projects, catalog] = await Promise.all([
         api.settingsGet(),
         api.appConfigStatus(),
         api.projectsList(),
+        api.launcherCatalog(),
       ]);
-      set({ settings, configStatus, projects, initialized: true });
+      set({ settings, configStatus, projects, catalog, initialized: true });
     } catch (err) {
       get().reportError(err);
       set({ initialized: true });
@@ -226,6 +233,29 @@ export const useAppStore = create<AppStore>((set, get) => ({
     } catch (err) {
       get().reportError(err);
       set((s) => ({ scan: { ...s.scan, importing: false } }));
+    }
+  },
+
+  setTool: async (tool, kind) => {
+    try {
+      const call =
+        tool === "editor"
+          ? api.settingsSetEditor
+          : tool === "terminal"
+            ? api.settingsSetTerminal
+            : api.settingsSetAgent;
+      const settings = await call(kind);
+      set({ settings });
+    } catch (err) {
+      get().reportError(err);
+    }
+  },
+
+  launch: async (id, action) => {
+    try {
+      await api.projectLaunch(id, action);
+    } catch (err) {
+      get().reportError(err);
     }
   },
 

@@ -410,3 +410,115 @@ pub async fn discovery_import(
     })
     .await
 }
+
+// ---------------------------------------------------------------------------
+// Launcher & tool settings
+
+use tauri::Manager;
+
+use crate::launcher::{self, LauncherCatalog};
+use crate::settings::ToolConfig;
+
+#[derive(serde::Deserialize, Clone, Copy, Debug)]
+#[serde(rename_all = "camelCase")]
+pub enum LaunchAction {
+    OpenFolder,
+    OpenEditor,
+    OpenTerminal,
+    OpenRepository,
+    OpenAgent,
+}
+
+#[tauri::command]
+pub async fn launcher_catalog(state: State<'_, Arc<AppState>>) -> Result<LauncherCatalog, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let (settings, _) = state.settings();
+        Ok(launcher::build_catalog(&settings))
+    })
+    .await
+}
+
+fn set_tool(
+    state: &AppState,
+    kind: String,
+    valid: impl Fn(&str) -> bool,
+    select: impl Fn(&mut crate::settings::Settings) -> &mut ToolConfig,
+) -> Result<Settings, AppError> {
+    if !valid(&kind) {
+        return Err(AppError::InvalidInput { detail: format!("unknown tool kind '{kind}'") });
+    }
+    state.update_settings(|s| {
+        // Choosing from the catalog clears any hand-edited override.
+        *select(s) = ToolConfig { kind: kind.clone(), command: None, args: Vec::new() };
+    })
+}
+
+#[tauri::command]
+pub async fn settings_set_editor(
+    state: State<'_, Arc<AppState>>,
+    kind: String,
+) -> Result<Settings, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        set_tool(&state, kind, |k| launcher::catalog::find_editor(k).is_some(), |s| &mut s.editor)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn settings_set_terminal(
+    state: State<'_, Arc<AppState>>,
+    kind: String,
+) -> Result<Settings, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        set_tool(&state, kind, |k| launcher::catalog::find_terminal(k).is_some(), |s| &mut s.terminal)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn settings_set_agent(
+    state: State<'_, Arc<AppState>>,
+    kind: String,
+) -> Result<Settings, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        set_tool(&state, kind, |k| launcher::catalog::find_agent(k).is_some(), |s| &mut s.agent)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn project_launch(
+    app: AppHandle,
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    action: LaunchAction,
+) -> Result<(), AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        // Single validation path for every action: opaque id -> canonical dir.
+        let dir = state.resolve_dir(&id)?;
+        let (settings, _) = state.settings();
+        match action {
+            LaunchAction::OpenFolder => launcher::open_folder(&dir),
+            LaunchAction::OpenEditor => launcher::open_editor(&settings, &dir),
+            LaunchAction::OpenTerminal => launcher::open_terminal(&settings, &dir),
+            LaunchAction::OpenAgent => {
+                let cache_dir = app
+                    .path()
+                    .app_cache_dir()
+                    .map_err(|e| AppError::Io { detail: e.to_string() })?;
+                launcher::open_agent(&settings, &dir, &cache_dir)
+            }
+            LaunchAction::OpenRepository => {
+                // The URL is derived backend-side from the git remote; wired
+                // up with the git milestone.
+                Err(AppError::InvalidInput { detail: "no repository URL available".into() })
+            }
+        }
+    })
+    .await
+}

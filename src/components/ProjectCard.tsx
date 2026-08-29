@@ -3,6 +3,7 @@ import type { ProjectView } from "../models";
 import { useAppStore } from "../store/useAppStore";
 import { StatusBadge } from "./StatusBadge";
 import { StatusSelect } from "./StatusSelect";
+import { QuickActions } from "./QuickActions";
 import styles from "./ProjectCard.module.css";
 
 export function ProjectCard({ project }: { project: ProjectView }) {
@@ -72,6 +73,8 @@ export function ProjectCard({ project }: { project: ProjectView }) {
       <div className={styles.pathRow}>
         <code className={styles.path}>{project.path}</code>
       </div>
+
+      <QuickActions project={project} />
 
       {!project.pathExists && (
         <div className={styles.missing}>
