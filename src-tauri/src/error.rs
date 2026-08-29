@@ -14,6 +14,8 @@ pub enum AppError {
     NotADirectory { path: String },
     #[error("project already imported: {name}")]
     DuplicateProject { id: String, name: String },
+    // Part of the frontend error contract even while unconstructed in Rust.
+    #[allow(dead_code)]
     #[error("invalid config file: {file}")]
     ConfigInvalid {
         file: String,
@@ -32,6 +34,8 @@ pub enum AppError {
     ProgramNotFound { program: String },
     #[error("failed to launch {program}: {detail}")]
     LaunchFailed { program: String, detail: String },
+    // Constructed only in non-macOS builds (launcher/terminal.rs).
+    #[allow(dead_code)]
     #[error("unsupported on this platform: {detail}")]
     UnsupportedPlatform { detail: String },
     #[error("invalid input: {detail}")]

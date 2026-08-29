@@ -60,3 +60,17 @@ pub fn view(project: &Project) -> ProjectView {
         resolved_description,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn slugs_are_kebab_and_collision_safe() {
+        assert_eq!(slug_id("Gusta Draw", &[]), "gusta-draw");
+        assert_eq!(slug_id("Gusta Draw", &["gusta-draw"]), "gusta-draw-2");
+        assert_eq!(slug_id("Gusta Draw", &["gusta-draw", "gusta-draw-2"]), "gusta-draw-3");
+        assert_eq!(slug_id("...", &[]), "project");
+        assert_eq!(slug_id("Ünïcode & Co.", &[]), "n-code-co");
+    }
+}

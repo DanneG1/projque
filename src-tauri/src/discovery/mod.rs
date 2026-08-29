@@ -162,3 +162,59 @@ fn nearest_ancestor_candidate(
     }
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn mkrepo(dir: &Path) {
+        std::fs::create_dir_all(dir.join(".git")).unwrap();
+    }
+
+    #[test]
+    fn finds_repos_skips_hidden_ignored_and_symlinks() {
+        let root = std::env::temp_dir().join(format!("projque-scan-test-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        mkrepo(&root.join("alpha"));
+        mkrepo(&root.join("nested/beta"));
+        mkrepo(&root.join(".hidden/secret"));
+        mkrepo(&root.join("alpha/node_modules/dep"));
+        // A symlink pointing outside the root must never be followed.
+        let outside = root.join("outside-target");
+        mkrepo(&outside.join("gamma"));
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(&outside, root.join("nested/link")).unwrap();
+
+        let (result, table) = scan(&[root.join("alpha").parent().unwrap().to_path_buf()], 3, &[]);
+        let names: Vec<&str> = result.candidates.iter().map(|c| c.name.as_str()).collect();
+        assert!(names.contains(&"alpha"), "found {names:?}");
+        assert!(names.contains(&"beta"));
+        // outside-target/gamma is only reachable through the symlink or by
+        // being a sibling dir; the sibling IS inside the root so it will be
+        // found — but nothing under `nested/link/` may be traversed.
+        assert!(!result
+            .candidates
+            .iter()
+            .any(|c| c.display_path.contains("link")));
+        assert!(!names.contains(&"secret"));
+        assert!(!names.contains(&"dep"));
+        assert_eq!(result.candidates.len(), table.len());
+
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn respects_max_depth() {
+        let root = std::env::temp_dir().join(format!("projque-depth-test-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        mkrepo(&root.join("a/b/c/deep"));
+        mkrepo(&root.join("shallow"));
+
+        let (result, _) = scan(&[root.clone()], 3, &[]);
+        let names: Vec<&str> = result.candidates.iter().map(|c| c.name.as_str()).collect();
+        assert!(names.contains(&"shallow"));
+        assert!(!names.contains(&"deep"), "depth 4 repo must not be found at max_depth 3");
+
+        let _ = std::fs::remove_dir_all(&root);
+    }
+}

@@ -421,6 +421,8 @@ use crate::settings::ToolConfig;
 
 #[derive(serde::Deserialize, Clone, Copy, Debug)]
 #[serde(rename_all = "camelCase")]
+// The Open* names mirror the wire values ("openFolder", ...) and the spec.
+#[allow(clippy::enum_variant_names)]
 pub enum LaunchAction {
     OpenFolder,
     OpenEditor,

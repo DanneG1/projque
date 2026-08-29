@@ -11,10 +11,8 @@ pub fn normalize_repository_url(remote: &str) -> Option<String> {
         rest
     } else if let Some(rest) = remote.strip_prefix("https://github.com/") {
         rest
-    } else if let Some(rest) = remote.strip_prefix("http://github.com/") {
-        rest
     } else {
-        return None;
+        remote.strip_prefix("http://github.com/")?
     };
     let path = path.trim_end_matches('/').trim_end_matches(".git");
     if path.is_empty() || path.contains("..") {

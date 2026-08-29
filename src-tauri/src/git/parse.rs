@@ -71,3 +71,55 @@ pub fn parse_last_commit(raw: &str) -> Option<CommitInfo> {
     }
     Some(CommitInfo { hash, short_hash, subject, timestamp })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_branch_with_upstream_and_counts() {
+        let info = parse_status(
+            "## feature/rules...origin/feature/rules [ahead 2, behind 1]\n M src/a.rs\n?? new.txt\n",
+        );
+        assert_eq!(info.branch.as_deref(), Some("feature/rules"));
+        assert!(!info.detached);
+        assert_eq!(info.changed_files, 2);
+        assert!(info.has_untracked);
+        assert_eq!(info.ahead, Some(2));
+        assert_eq!(info.behind, Some(1));
+    }
+
+    #[test]
+    fn parses_detached_head() {
+        let info = parse_status("## HEAD (no branch)\n");
+        assert!(info.detached);
+        assert_eq!(info.branch, None);
+    }
+
+    #[test]
+    fn parses_fresh_repo_without_commits() {
+        let info = parse_status("## No commits yet on main\n");
+        assert_eq!(info.branch.as_deref(), Some("main"));
+        assert_eq!(info.changed_files, 0);
+    }
+
+    #[test]
+    fn parses_clean_branch_without_upstream() {
+        let info = parse_status("## main\n");
+        assert_eq!(info.branch.as_deref(), Some("main"));
+        assert!(!info.detached);
+        assert_eq!(info.changed_files, 0);
+    }
+
+    #[test]
+    fn parses_last_commit() {
+        let c = parse_last_commit("abc123\nabc\nAdd rule engine\n1756000000").unwrap();
+        assert_eq!(c.subject, "Add rule engine");
+        assert_eq!(c.timestamp, 1756000000);
+    }
+
+    #[test]
+    fn no_commit_from_empty_output() {
+        assert!(parse_last_commit("").is_none());
+    }
+}
