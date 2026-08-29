@@ -8,18 +8,21 @@ export function TerminalPane({ session }: { session: AgentSessionView }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const project = useAppStore((s) => s.projects.find((p) => p.id === session.projectId));
   const openSessionUrl = useAppStore((s) => s.openSessionUrl);
+  const setActiveSession = useAppStore((s) => s.setActiveSession);
 
   useEffect(() => {
     const parent = mountRef.current;
     if (!parent) return;
     mountTerminal(session.sessionId, parent);
+    setActiveSession(session.sessionId);
     const observer = new ResizeObserver(() => fitTerminal(session.sessionId));
     observer.observe(parent);
     return () => {
       observer.disconnect();
       unmountTerminal(session.sessionId);
+      setActiveSession(null);
     };
-  }, [session.sessionId]);
+  }, [session.sessionId, setActiveSession]);
 
   return (
     <div className={styles.pane} data-terminal-pane>

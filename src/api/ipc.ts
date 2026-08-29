@@ -86,6 +86,8 @@ export const api = {
   agentSessionRemove: (sessionId: string) =>
     invoke<void>("agent_session_remove", { sessionId }),
   appConfirmQuit: () => invoke<void>("app_confirm_quit"),
+  sessionsSetActive: (sessionId: string | null, appFocused: boolean) =>
+    invoke<void>("sessions_set_active", { sessionId, appFocused }),
 
   projectRunTargets: (id: string) =>
     invoke<RunTarget[]>("project_run_targets", { id }),

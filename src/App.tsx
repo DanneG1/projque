@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { api } from "./api/ipc";
 import { useAppStore } from "./store/useAppStore";
 import { ProjectListPage } from "./pages/ProjectListPage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -26,6 +27,26 @@ export default function App() {
   const runningSessions = useAppStore(
     (s) => s.sessions.filter((v) => v.status.state === "running").length,
   );
+  const attentionCount = useAppStore(
+    (s) => s.sessions.filter((v) => v.needsAttention).length,
+  );
+
+  // Keep the backend informed of focus so attention isn't raised for what
+  // the user is already looking at.
+  useEffect(() => {
+    const report = () => {
+      const state = useAppStore.getState();
+      const active =
+        state.route.page === "agents" ? (state.route.sessionId ?? null) : null;
+      void api.sessionsSetActive(active, document.hasFocus()).catch(() => {});
+    };
+    window.addEventListener("focus", report);
+    window.addEventListener("blur", report);
+    return () => {
+      window.removeEventListener("focus", report);
+      window.removeEventListener("blur", report);
+    };
+  }, []);
 
   useEffect(() => {
     void init();
@@ -43,6 +64,9 @@ export default function App() {
         useAppStore
           .getState()
           .sessionUrlDetected(event.payload.sessionId, event.payload.url);
+      }),
+      listen<AgentSessionView>("agent:session-attention", (event) => {
+        useAppStore.getState().sessionAttention(event.payload);
       }),
     ];
     return () => {
@@ -108,6 +132,7 @@ export default function App() {
           className="btn"
           onClick={() => setRoute({ page: "agents" })}
         >
+          {attentionCount > 0 && <span className={styles.attentionDot} />}
           Sessions{runningSessions > 0 ? ` (${runningSessions})` : ""}
         </button>
         <button

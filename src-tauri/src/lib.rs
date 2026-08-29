@@ -18,6 +18,7 @@ use tauri::{Emitter, Manager};
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let config_dir = app.path().app_config_dir()?;
@@ -76,6 +77,7 @@ pub fn run() {
             commands::agent_session_kill,
             commands::agent_session_remove,
             commands::app_confirm_quit,
+            commands::sessions_set_active,
             commands::project_run_targets,
             commands::run_session_start,
             commands::run_session_open_url,

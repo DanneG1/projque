@@ -75,3 +75,8 @@
   color: var(--text-muted);
   flex-shrink: 0;
 }
+
+.dot[data-attention] {
+  background: var(--status-paused);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-paused) 30%, transparent);
+}

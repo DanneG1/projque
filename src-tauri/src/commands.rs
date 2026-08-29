@@ -833,6 +833,19 @@ pub async fn agent_session_remove(
     state.agents.remove(&session_id)
 }
 
+/// Frontend reports which session is on screen and whether the app is
+/// focused — IDs only; used to suppress attention for what the user is
+/// already looking at.
+#[tauri::command]
+pub async fn sessions_set_active(
+    state: State<'_, Arc<AppState>>,
+    session_id: Option<String>,
+    app_focused: bool,
+) -> Result<(), AppError> {
+    state.agents.set_active(session_id, app_focused);
+    Ok(())
+}
+
 /// Confirm quitting while agent sessions are running: kill them all, mark
 /// the quit confirmed, and close the main window (the CloseRequested guard
 /// in lib.rs then lets it through).

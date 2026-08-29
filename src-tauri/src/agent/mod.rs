@@ -12,6 +12,7 @@ use std::collections::{HashMap, VecDeque};
 use std::io::{Read, Write};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::time::{Duration, Instant};
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -25,6 +26,10 @@ use crate::error::AppError;
 const SCROLLBACK_CAP: usize = 256 * 1024;
 const MAX_SESSIONS: usize = 16;
 const READ_BUF: usize = 8192;
+/// An agent that produced output and then stayed quiet this long is
+/// probably waiting for the user.
+const ATTENTION_QUIET: Duration = Duration::from_secs(6);
+const TICKER_INTERVAL: Duration = Duration::from_secs(2);
 
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -51,6 +56,7 @@ pub struct AgentSessionView {
     pub started_at: i64,
     pub status: SessionStatus,
     pub detected_url: Option<String>,
+    pub needs_attention: bool,
 }
 
 struct OutputState {
@@ -58,6 +64,13 @@ struct OutputState {
     channel: Option<Channel<InvokeResponseBody>>,
     /// First localhost URL seen in the output (run sessions only).
     detected_url: Option<String>,
+    // Attention tracking (agent sessions only): a bell, or going quiet
+    // after producing output since the user's last keystroke, means the
+    // agent is probably waiting for the user.
+    last_output: Option<Instant>,
+    pending_since_input: bool,
+    attention: bool,
+    announced: bool,
 }
 
 struct Session {
@@ -73,6 +86,10 @@ pub struct Registry {
     sessions: Arc<Mutex<HashMap<String, Session>>>,
     counter: AtomicU64,
     pub quit_confirmed: AtomicBool,
+    /// (currently viewed session, app focused) — reported by the frontend
+    /// so attention is never raised for what the user is looking at.
+    active: Arc<Mutex<(Option<String>, bool)>>,
+    ticker_started: AtomicBool,
 }
 
 pub struct StartSpec<'a> {
@@ -125,12 +142,18 @@ impl Registry {
             started_at,
             status: SessionStatus::Running,
             detected_url: None,
+            needs_attention: false,
         };
         let output = Arc::new(Mutex::new(OutputState {
             scrollback: VecDeque::with_capacity(READ_BUF),
             channel: None,
             detected_url: None,
+            last_output: None,
+            pending_since_input: false,
+            attention: false,
+            announced: false,
         }));
+        self.ensure_ticker(app.clone());
 
         // Reader thread: PTY -> scrollback + live channel. Never locks the
         // registry; keeps draining even when the webview is detached so the
@@ -140,6 +163,7 @@ impl Registry {
             let output = output.clone();
             let mut reader = handles.reader;
             let detect_urls = spec.kind == SessionKind::Run;
+            let track_attention = spec.kind == SessionKind::Agent;
             let url_app = app.clone();
             let url_session_id = session_id.clone();
             std::thread::spawn(move || {
@@ -154,6 +178,14 @@ impl Registry {
                                 out.scrollback.extend(&buf[..n]);
                                 while out.scrollback.len() > SCROLLBACK_CAP {
                                     out.scrollback.pop_front();
+                                }
+                                if track_attention {
+                                    out.last_output = Some(Instant::now());
+                                    out.pending_since_input = true;
+                                    // BEL = the agent explicitly asked for attention.
+                                    if buf[..n].contains(&0x07) {
+                                        out.attention = true;
+                                    }
                                 }
                                 if detect_urls && out.detected_url.is_none() {
                                     if let Some(url) = find_local_url(&buf[..n]) {
@@ -225,7 +257,9 @@ impl Registry {
             .values()
             .map(|s| {
                 let mut view = s.view.clone();
-                view.detected_url = s.output.lock().unwrap().detected_url.clone();
+                let out = s.output.lock().unwrap();
+                view.detected_url = out.detected_url.clone();
+                view.needs_attention = out.attention;
                 view
             })
             .collect();
@@ -273,6 +307,13 @@ impl Registry {
             .ok_or_else(|| AppError::SessionNotFound { id: session_id.to_string() })?;
         if !matches!(session.view.status, SessionStatus::Running) {
             return Err(AppError::SessionExited { id: session_id.to_string() });
+        }
+        {
+            // The user is interacting — nothing is waiting on them anymore.
+            let mut out = session.output.lock().unwrap();
+            out.pending_since_input = false;
+            out.attention = false;
+            out.announced = false;
         }
         session
             .writer
@@ -330,6 +371,76 @@ impl Registry {
             .values()
             .filter(|s| matches!(s.view.status, SessionStatus::Running))
             .count()
+    }
+
+    /// Frontend reports what the user is looking at; viewing a session
+    /// clears its attention state.
+    pub fn set_active(&self, session_id: Option<String>, app_focused: bool) {
+        if let Some(id) = &session_id {
+            let sessions = self.sessions.lock().unwrap();
+            if let Some(session) = sessions.get(id) {
+                let mut out = session.output.lock().unwrap();
+                out.pending_since_input = false;
+                out.attention = false;
+                out.announced = false;
+            }
+        }
+        *self.active.lock().unwrap() = (session_id, app_focused);
+    }
+
+    /// Background ticker (spawned once, on the first session): raises
+    /// attention for running agent sessions that rang the bell or went
+    /// quiet after output, unless the user is already looking at them.
+    fn ensure_ticker(&self, app: AppHandle) {
+        if self.ticker_started.swap(true, Ordering::SeqCst) {
+            return;
+        }
+        let sessions = self.sessions.clone();
+        let active = self.active.clone();
+        std::thread::spawn(move || loop {
+            std::thread::sleep(TICKER_INTERVAL);
+            let (active_id, focused) = active.lock().unwrap().clone();
+            let mut to_announce: Vec<AgentSessionView> = Vec::new();
+            {
+                let map = sessions.lock().unwrap();
+                for session in map.values() {
+                    if session.view.kind != SessionKind::Agent
+                        || !matches!(session.view.status, SessionStatus::Running)
+                    {
+                        continue;
+                    }
+                    let viewed = focused
+                        && active_id.as_deref() == Some(session.view.session_id.as_str());
+                    if viewed {
+                        continue;
+                    }
+                    let mut out = session.output.lock().unwrap();
+                    let quiet = out.pending_since_input
+                        && out
+                            .last_output
+                            .map(|t| t.elapsed() >= ATTENTION_QUIET)
+                            .unwrap_or(false);
+                    if (out.attention || quiet) && !out.announced {
+                        out.attention = true;
+                        out.announced = true;
+                        let mut view = session.view.clone();
+                        view.needs_attention = true;
+                        view.detected_url = out.detected_url.clone();
+                        to_announce.push(view);
+                    }
+                }
+            }
+            for view in to_announce {
+                let _ = app.emit("agent:session-attention", &view);
+                use tauri_plugin_notification::NotificationExt;
+                let _ = app
+                    .notification()
+                    .builder()
+                    .title(format!("{} — {}", view.agent_label, view.project_id))
+                    .body("Waiting for you")
+                    .show();
+            }
+        });
     }
 
     pub fn kill_all(&self) {

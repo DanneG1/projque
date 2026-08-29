@@ -13,6 +13,7 @@ export interface AgentSessionView {
   startedAt: number;
   status: SessionStatus;
   detectedUrl: string | null;
+  needsAttention: boolean;
 }
 
 export interface RunTarget {

@@ -79,6 +79,9 @@ interface AppStore {
   startRunSession: (projectId: string, targetId: string) => Promise<void>;
   openSessionUrl: (sessionId: string) => Promise<void>;
   sessionUrlDetected: (sessionId: string, url: string) => void;
+  sessionAttention: (view: AgentSessionView) => void;
+  clearSessionAttention: (sessionId: string) => void;
+  setActiveSession: (sessionId: string | null) => void;
   killSession: (sessionId: string) => Promise<void>;
   removeSession: (sessionId: string) => Promise<void>;
   sessionExited: (view: AgentSessionView) => void;
@@ -449,6 +452,25 @@ export const useAppStore = create<AppStore>((set, get) => ({
         v.sessionId === sessionId ? { ...v, detectedUrl: url } : v,
       ),
     }));
+  },
+
+  sessionAttention: (view) => {
+    set((s) => ({
+      sessions: s.sessions.map((v) => (v.sessionId === view.sessionId ? view : v)),
+    }));
+  },
+
+  clearSessionAttention: (sessionId) => {
+    set((s) => ({
+      sessions: s.sessions.map((v) =>
+        v.sessionId === sessionId ? { ...v, needsAttention: false } : v,
+      ),
+    }));
+  },
+
+  setActiveSession: (sessionId) => {
+    void api.sessionsSetActive(sessionId, document.hasFocus()).catch(() => {});
+    if (sessionId) get().clearSessionAttention(sessionId);
   },
 
   killSession: async (sessionId) => {

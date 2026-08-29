@@ -11,6 +11,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import { Channel } from "@tauri-apps/api/core";
 import "@xterm/xterm/css/xterm.css";
 import { api } from "../api/ipc";
+import { useAppStore } from "../store/useAppStore";
 
 interface Entry {
   term: Terminal;
@@ -62,6 +63,7 @@ export function ensureTerminal(sessionId: string): Entry {
     hostDiv.style.height = "100%";
     term.open(hostDiv);
     term.onData((data) => {
+      useAppStore.getState().clearSessionAttention(sessionId);
       void api.agentSessionWrite(sessionId, data).catch(() => {
         /* exited session: keystrokes are simply dropped */
       });

@@ -25,6 +25,9 @@ export function ProjectCard({
         (v) => v.projectId === project.id && v.status.state === "running",
       ).length,
   );
+  const projectAttention = useAppStore((s) =>
+    s.sessions.some((v) => v.projectId === project.id && v.needsAttention),
+  );
   const [editingDescription, setEditingDescription] = useState(false);
   const [draft, setDraft] = useState("");
 
@@ -67,7 +70,12 @@ export function ProjectCard({
         {runningAgents > 0 && (
           <span
             className={styles.agentBadge}
-            title={`${runningAgents} agent session(s) running`}
+            data-attention={projectAttention || undefined}
+            title={
+              projectAttention
+                ? "A session needs your attention"
+                : `${runningAgents} session(s) running`
+            }
             onClick={() => setRoute({ page: "agents" })}
           >
             ⚡ {runningAgents}
