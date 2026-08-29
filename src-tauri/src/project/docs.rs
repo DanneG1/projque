@@ -38,10 +38,15 @@ pub fn find_doc(dir: &Path, kind: DocKind, configured: Option<&str>) -> Option<P
         DocKind::Roadmap => ROADMAP_NAMES,
         DocKind::Readme => README_NAMES,
     };
-    names.iter().map(|n| dir.join(n)).find(|p| p.is_file())
+    // Every candidate — default names included — goes through the same
+    // containment check, so a `README.md` symlink pointing outside the
+    // project (e.g. -> /etc/passwd in a hostile repo) is never read.
+    names.iter().find_map(|n| resolve_inside(dir, n))
 }
 
 /// Canonicalize `dir/rel` and require the result to stay inside `dir`.
+/// Canonicalization resolves symlinks, so a link whose target escapes the
+/// project directory fails the `starts_with` check.
 fn resolve_inside(dir: &Path, rel: &str) -> Option<PathBuf> {
     let dir = std::fs::canonicalize(dir).ok()?;
     let candidate = std::fs::canonicalize(dir.join(rel)).ok()?;
@@ -129,5 +134,26 @@ mod tests {
     #[test]
     fn first_paragraph_empty_for_headings_only() {
         assert_eq!(first_paragraph("# Just a title\n\n## And more"), None);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn default_readme_symlink_escaping_project_is_rejected() {
+        use std::fs;
+        let base = std::env::temp_dir().join(format!("projque-docs-{}", std::process::id()));
+        let project = base.join("project");
+        let outside = base.join("secret.txt");
+        let _ = fs::remove_dir_all(&base);
+        fs::create_dir_all(&project).unwrap();
+        fs::write(&outside, "TOP SECRET").unwrap();
+        // README.md is a symlink pointing outside the project directory.
+        std::os::unix::fs::symlink(&outside, project.join("README.md")).unwrap();
+        assert_eq!(find_doc(&project, DocKind::Readme, None), None);
+
+        // A real in-project README is still found.
+        fs::remove_file(project.join("README.md")).unwrap();
+        fs::write(project.join("README.md"), "# ok").unwrap();
+        assert!(find_doc(&project, DocKind::Readme, None).is_some());
+        let _ = fs::remove_dir_all(&base);
     }
 }

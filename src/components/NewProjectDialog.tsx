@@ -46,7 +46,7 @@ export function NewProjectDialog() {
   const submitCreate = async () => {
     setBusy(true);
     try {
-      const view = await api.projectCreate({
+      const { project: view, remoteError } = await api.projectCreate({
         name: name.trim(),
         description: description.trim() || undefined,
         rootIndex,
@@ -55,6 +55,9 @@ export function NewProjectDialog() {
       });
       useAppStore.setState((s) => ({ projects: [...s.projects, view] }));
       notify(`Created ${view.name}`);
+      if (remoteError) {
+        reportError({ kind: "ghFailed", detail: remoteError });
+      }
       setOpen(false);
       setName("");
       setDescription("");
@@ -67,8 +70,6 @@ export function NewProjectDialog() {
       void useAppStore.getState().refreshGit();
     } catch (err) {
       reportError(err);
-      // The project may still have been created locally (e.g. gh failed).
-      void api.projectsList().then((projects) => useAppStore.setState({ projects }));
     } finally {
       setBusy(false);
     }

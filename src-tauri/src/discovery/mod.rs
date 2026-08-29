@@ -210,7 +210,7 @@ mod tests {
         mkrepo(&root.join("a/b/c/deep"));
         mkrepo(&root.join("shallow"));
 
-        let (result, _) = scan(&[root.clone()], 3, &[]);
+        let (result, _) = scan(std::slice::from_ref(&root), 3, &[]);
         let names: Vec<&str> = result.candidates.iter().map(|c| c.name.as_str()).collect();
         assert!(names.contains(&"shallow"));
         assert!(!names.contains(&"deep"), "depth 4 repo must not be found at max_depth 3");

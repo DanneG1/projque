@@ -768,7 +768,10 @@ pub async fn agent_session_start(
                 return Err(AppError::InvalidInput { detail: "prompt too large".into() });
             }
             if agent.prompt_arg {
-                args.push(prompt);
+                // A leading '-' would make the agent's CLI parse the prompt
+                // as a flag; a leading space keeps it a harmless positional.
+                let safe = if prompt.starts_with('-') { format!(" {prompt}") } else { prompt };
+                args.push(safe);
             }
         }
         state.agents.start(
@@ -1013,6 +1016,15 @@ pub async fn github_open_pr(state: State<'_, Arc<AppState>>, id: String) -> Resu
     })
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateProjectResult {
+    pub project: ProjectView,
+    /// Set when the local project was created but `gh repo create` failed —
+    /// the caller shows this as a warning, not a failure.
+    pub remote_error: Option<String>,
+}
+
 /// Create a new project: folder + git init + README + first commit, and
 /// optionally the GitHub repository. Audited exception: `name` (strict
 /// charset, also the directory name) and `description` (file content only).
@@ -1024,7 +1036,7 @@ pub async fn project_create(
     root_index: usize,
     create_remote: bool,
     private: bool,
-) -> Result<ProjectView, AppError> {
+) -> Result<CreateProjectResult, AppError> {
     let state = state.inner().clone();
     run_blocking(move || {
         github::validate_name(&name)?;
@@ -1054,11 +1066,11 @@ pub async fn project_create(
             && crate::git::run_in(&dir, &["add", "-A"]).is_ok()
             && crate::git::run_in(&dir, &["commit", "-m", "Initial commit"]).is_ok();
 
-        let mut remote_error: Option<AppError> = None;
+        let mut remote_error: Option<String> = None;
         if create_remote && git_ready {
             if let Err(e) = github::repo_create(&dir, &name, private, &settings.path_additions) {
-                // The project is still created locally; surface the failure.
-                remote_error = Some(e);
+                // The project is still created locally; surface as a warning.
+                remote_error = Some(e.to_string());
             }
         }
 
@@ -1077,10 +1089,7 @@ pub async fn project_create(
         } else {
             project::view(&project)
         };
-        match remote_error {
-            Some(e) => Err(e),
-            None => Ok(view),
-        }
+        Ok(CreateProjectResult { project: view, remote_error })
     })
     .await
 }

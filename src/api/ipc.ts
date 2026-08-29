@@ -115,7 +115,7 @@ export const api = {
     createRemote: boolean;
     private: boolean;
   }) =>
-    invoke<ProjectView>("project_create", {
+    invoke<{ project: ProjectView; remoteError: string | null }>("project_create", {
       name: params.name,
       description: params.description ?? null,
       rootIndex: params.rootIndex,
