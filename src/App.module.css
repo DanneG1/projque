@@ -1,0 +1,27 @@
+.app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-raised);
+}
+
+.brand {
+  font-size: 15px;
+  font-weight: 700;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.main {
+  flex: 1;
+  overflow-y: auto;
+}
