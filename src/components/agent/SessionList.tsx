@@ -35,6 +35,7 @@ export function SessionList({ activeId }: { activeId: string }) {
             onClick={() => setRoute({ page: "agents", sessionId: session.sessionId })}
           >
             <span className={styles.dot} data-running={running || undefined} />
+            {session.kind === "run" && <span className={styles.kindGlyph}>▶</span>}
             <div className={styles.itemBody}>
               <div className={styles.project}>{project?.name ?? session.projectId}</div>
               <div className={styles.meta}>

@@ -1,10 +1,13 @@
 import { useEffect, useRef } from "react";
 import type { AgentSessionView } from "../../models";
+import { useAppStore } from "../../store/useAppStore";
 import { fitTerminal, mountTerminal, unmountTerminal } from "../../terminal/manager";
 import styles from "./TerminalPane.module.css";
 
 export function TerminalPane({ session }: { session: AgentSessionView }) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const project = useAppStore((s) => s.projects.find((p) => p.id === session.projectId));
+  const openSessionUrl = useAppStore((s) => s.openSessionUrl);
 
   useEffect(() => {
     const parent = mountRef.current;
@@ -20,6 +23,21 @@ export function TerminalPane({ session }: { session: AgentSessionView }) {
 
   return (
     <div className={styles.pane} data-terminal-pane>
+      <div className={styles.header}>
+        <span className={styles.headerLabel}>
+          {session.agentLabel}
+          {project && <span className={styles.headerProject}> — {project.name}</span>}
+        </span>
+        {session.kind === "run" && session.detectedUrl && (
+          <button
+            className="btn"
+            title={session.detectedUrl}
+            onClick={() => void openSessionUrl(session.sessionId)}
+          >
+            Open in browser
+          </button>
+        )}
+      </div>
       <div className={styles.mount} ref={mountRef} />
       {session.status.state === "exited" && (
         <div className={styles.exitedBar}>

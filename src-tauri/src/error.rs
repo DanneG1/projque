@@ -36,6 +36,8 @@ pub enum AppError {
     SessionNotFound { id: String },
     #[error("agent session has exited: {id}")]
     SessionExited { id: String },
+    #[error("run target not found: {target}")]
+    RunTargetNotFound { target: String },
     #[error("program not found: {program}")]
     ProgramNotFound { program: String },
     #[error("failed to launch {program}: {detail}")]

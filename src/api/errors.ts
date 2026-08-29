@@ -14,6 +14,7 @@ export type AppError =
   | { kind: "branchNotFound"; branch: string }
   | { kind: "sessionNotFound"; id: string }
   | { kind: "sessionExited"; id: string }
+  | { kind: "runTargetNotFound"; target: string }
   | { kind: "programNotFound"; program: string }
   | { kind: "launchFailed"; program: string; detail: string }
   | { kind: "unsupportedPlatform"; detail: string }
@@ -70,6 +71,11 @@ export function userMessage(err: AppError): UserMessage {
       return { title: "Agent session not found", detail: "It may have been removed." };
     case "sessionExited":
       return { title: "Agent session has ended" };
+    case "runTargetNotFound":
+      return {
+        title: "Run target no longer exists",
+        detail: "The project files may have changed — reopen the Run menu.",
+      };
     case "programNotFound":
       return {
         title: `${err.program} not found`,

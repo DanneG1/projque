@@ -6,6 +6,7 @@ mod error;
 mod git;
 mod launcher;
 mod project;
+mod run;
 mod settings;
 mod state;
 
@@ -75,6 +76,9 @@ pub fn run() {
             commands::agent_session_kill,
             commands::agent_session_remove,
             commands::app_confirm_quit,
+            commands::project_run_targets,
+            commands::run_session_start,
+            commands::run_session_open_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -39,6 +39,11 @@ export default function App() {
       listen<number>("app:confirm-quit", (event) => {
         useAppStore.getState().setQuitPrompt(event.payload);
       }),
+      listen<{ sessionId: string; url: string }>("agent:session-url", (event) => {
+        useAppStore
+          .getState()
+          .sessionUrlDetected(event.payload.sessionId, event.payload.url);
+      }),
     ];
     return () => {
       for (const d of disposers) void d.then((fn) => fn());
@@ -103,7 +108,7 @@ export default function App() {
           className="btn"
           onClick={() => setRoute({ page: "agents" })}
         >
-          Agents{runningSessions > 0 ? ` (${runningSessions})` : ""}
+          Sessions{runningSessions > 0 ? ` (${runningSessions})` : ""}
         </button>
         <button
           className="btn"

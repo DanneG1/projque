@@ -7,6 +7,7 @@ Projque is a local-first, fully offline desktop app for developers juggling many
 - **Folder** — open the project in your file manager
 - **Editor** — open it in your configured editor
 - **Terminal** — open a terminal at the project directory
+- **Run** — start the application itself (`npm run dev`, `cargo run`, …) in an embedded terminal; targets are auto-detected from the project's own files (package.json scripts with npm/yarn/pnpm/bun picked from the lockfile, Cargo.toml, go.mod, .NET projects), and when the dev server prints its localhost URL an **Open in browser** button appears
 - **Agent** — run your configured LLM coding agent (Claude Code, Codex, Aider, …) in an embedded terminal inside Projque — manage several agents across different projects at once from the Agents view (external-terminal launch is still available from the project detail page)
 - **Repository** — open the GitHub remote in your browser
 

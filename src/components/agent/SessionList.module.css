@@ -69,3 +69,9 @@
 .itemAction:hover {
   color: var(--text);
 }
+
+.kindGlyph {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}

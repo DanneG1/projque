@@ -1,5 +1,6 @@
 import type { GitInfo, ProjectView } from "../models";
 import { useAppStore } from "../store/useAppStore";
+import { RunMenu } from "./RunMenu";
 import styles from "./QuickActions.module.css";
 
 export function QuickActions({
@@ -44,6 +45,7 @@ export function QuickActions({
       >
         Agent
       </button>
+      {project.hasRunTargets && <RunMenu projectId={project.id} disabled={disabled} />}
       {gitInfo?.repositoryUrl && (
         <button
           className="btn"

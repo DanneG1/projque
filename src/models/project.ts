@@ -21,6 +21,7 @@ export interface ProjectView {
   isGitRepo: boolean;
   hasReadme: boolean;
   hasRoadmap: boolean;
+  hasRunTargets: boolean;
   resolvedDescription?: string;
 }
 

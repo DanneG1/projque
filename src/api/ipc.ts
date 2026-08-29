@@ -17,6 +17,7 @@ import type {
   ProjectView,
   LaunchAction,
   LauncherCatalog,
+  RunTarget,
   ScanResult,
   Settings,
   Theme,
@@ -85,4 +86,11 @@ export const api = {
   agentSessionRemove: (sessionId: string) =>
     invoke<void>("agent_session_remove", { sessionId }),
   appConfirmQuit: () => invoke<void>("app_confirm_quit"),
+
+  projectRunTargets: (id: string) =>
+    invoke<RunTarget[]>("project_run_targets", { id }),
+  runSessionStart: (projectId: string, targetId: string, rows: number, cols: number) =>
+    invoke<AgentSessionView>("run_session_start", { projectId, targetId, rows, cols }),
+  runSessionOpenUrl: (sessionId: string) =>
+    invoke<void>("run_session_open_url", { sessionId }),
 };

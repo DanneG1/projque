@@ -39,7 +39,8 @@ Tauri capabilities (`src-tauri/capabilities/default.json`) grant the webview no 
 | `discovery/` | walkdir scanner: configured roots only, depth-capped, no symlink following, prunes hidden/dependency dirs, opaque candidate IDs. |
 | `git/` | `runner.rs` — the single git spawn point (argv-only, hardened env; 5s watchdog for local ops, 120s + SSH BatchMode for the explicit network ops); `parse.rs` — porcelain/log parsing; `remote.rs` — GitHub URL normalization; `ops.rs` — the safe control verbs (fetch, ff-only pull, branch list, validated switch). |
 | `launcher/` | `catalog.rs` — the static tool allowlist; `which.rs` — PATH resolution (augmented for GUI-launched apps); `terminal.rs` — terminal strategies; process spawning. |
-| `agent/` | Embedded agent sessions: `pty.rs` (portable-pty spawn — the agent runs directly on the PTY, never a shell), registry with per-session reader/wait threads, 256 KB scrollback ring, streaming to the webview via `tauri::ipc::Channel` raw bytes (scrollback replayed on attach, so webview reloads lose nothing). |
+| `run/` | Run-target detection from the project's own manifests (package.json scripts + lockfile-derived package manager, Cargo.toml, go.mod, csproj/sln) and argv construction; launch revalidates the target against a fresh enumeration. |
+| `agent/` | Embedded agent AND run sessions: `pty.rs` (portable-pty spawn — the agent runs directly on the PTY, never a shell), registry with per-session reader/wait threads, 256 KB scrollback ring, streaming to the webview via `tauri::ipc::Channel` raw bytes (scrollback replayed on attach, so webview reloads lose nothing). |
 
 ## Key decisions
 

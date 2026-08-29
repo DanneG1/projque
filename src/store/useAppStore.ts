@@ -76,6 +76,9 @@ interface AppStore {
   switchBranch: (id: string, branch: string) => Promise<boolean>;
   refreshSessions: () => Promise<void>;
   startAgentSession: (projectId: string, agentKind?: string) => Promise<void>;
+  startRunSession: (projectId: string, targetId: string) => Promise<void>;
+  openSessionUrl: (sessionId: string) => Promise<void>;
+  sessionUrlDetected: (sessionId: string, url: string) => void;
   killSession: (sessionId: string) => Promise<void>;
   removeSession: (sessionId: string) => Promise<void>;
   sessionExited: (view: AgentSessionView) => void;
@@ -415,6 +418,37 @@ export const useAppStore = create<AppStore>((set, get) => ({
     } catch (err) {
       get().reportError(err);
     }
+  },
+
+  startRunSession: async (projectId, targetId) => {
+    try {
+      const pane = document.querySelector("[data-terminal-pane]");
+      const { probeSize } = await import("../terminal/manager");
+      const { rows, cols } = probeSize(pane as HTMLElement | null);
+      const session = await api.runSessionStart(projectId, targetId, rows, cols);
+      set((s) => ({
+        sessions: [...s.sessions, session],
+        route: { page: "agents", sessionId: session.sessionId },
+      }));
+    } catch (err) {
+      get().reportError(err);
+    }
+  },
+
+  openSessionUrl: async (sessionId) => {
+    try {
+      await api.runSessionOpenUrl(sessionId);
+    } catch (err) {
+      get().reportError(err);
+    }
+  },
+
+  sessionUrlDetected: (sessionId, url) => {
+    set((s) => ({
+      sessions: s.sessions.map((v) =>
+        v.sessionId === sessionId ? { ...v, detectedUrl: url } : v,
+      ),
+    }));
   },
 
   killSession: async (sessionId) => {

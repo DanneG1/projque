@@ -26,6 +26,13 @@ const SCROLLBACK_CAP: usize = 256 * 1024;
 const MAX_SESSIONS: usize = 16;
 const READ_BUF: usize = 8192;
 
+#[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum SessionKind {
+    Agent,
+    Run,
+}
+
 #[derive(Serialize, Clone, Debug)]
 #[serde(tag = "state", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum SessionStatus {
@@ -38,15 +45,19 @@ pub enum SessionStatus {
 pub struct AgentSessionView {
     pub session_id: String,
     pub project_id: String,
+    pub kind: SessionKind,
     pub agent_kind: String,
     pub agent_label: String,
     pub started_at: i64,
     pub status: SessionStatus,
+    pub detected_url: Option<String>,
 }
 
 struct OutputState {
     scrollback: VecDeque<u8>,
     channel: Option<Channel<InvokeResponseBody>>,
+    /// First localhost URL seen in the output (run sessions only).
+    detected_url: Option<String>,
 }
 
 struct Session {
@@ -66,6 +77,7 @@ pub struct Registry {
 
 pub struct StartSpec<'a> {
     pub project_id: &'a str,
+    pub kind: SessionKind,
     pub agent_kind: &'a str,
     pub agent_label: &'a str,
     pub program: &'a Path,
@@ -107,14 +119,17 @@ impl Registry {
         let view = AgentSessionView {
             session_id: session_id.clone(),
             project_id: spec.project_id.to_string(),
+            kind: spec.kind,
             agent_kind: spec.agent_kind.to_string(),
             agent_label: spec.agent_label.to_string(),
             started_at,
             status: SessionStatus::Running,
+            detected_url: None,
         };
         let output = Arc::new(Mutex::new(OutputState {
             scrollback: VecDeque::with_capacity(READ_BUF),
             channel: None,
+            detected_url: None,
         }));
 
         // Reader thread: PTY -> scrollback + live channel. Never locks the
@@ -124,26 +139,44 @@ impl Registry {
         {
             let output = output.clone();
             let mut reader = handles.reader;
+            let detect_urls = spec.kind == SessionKind::Run;
+            let url_app = app.clone();
+            let url_session_id = session_id.clone();
             std::thread::spawn(move || {
                 let mut buf = [0u8; READ_BUF];
                 loop {
                     match reader.read(&mut buf) {
                         Ok(0) | Err(_) => break,
                         Ok(n) => {
-                            let mut out = output.lock().unwrap();
-                            out.scrollback.extend(&buf[..n]);
-                            while out.scrollback.len() > SCROLLBACK_CAP {
-                                out.scrollback.pop_front();
-                            }
-                            if let Some(channel) = &out.channel {
-                                if channel
-                                    .send(InvokeResponseBody::Raw(buf[..n].to_vec()))
-                                    .is_err()
-                                {
-                                    // Webview reloaded/navigated: detach and
-                                    // keep buffering for the next attach.
-                                    out.channel = None;
+                            let mut announce: Option<String> = None;
+                            {
+                                let mut out = output.lock().unwrap();
+                                out.scrollback.extend(&buf[..n]);
+                                while out.scrollback.len() > SCROLLBACK_CAP {
+                                    out.scrollback.pop_front();
                                 }
+                                if detect_urls && out.detected_url.is_none() {
+                                    if let Some(url) = find_local_url(&buf[..n]) {
+                                        out.detected_url = Some(url.clone());
+                                        announce = Some(url);
+                                    }
+                                }
+                                if let Some(channel) = &out.channel {
+                                    if channel
+                                        .send(InvokeResponseBody::Raw(buf[..n].to_vec()))
+                                        .is_err()
+                                    {
+                                        // Webview reloaded/navigated: detach and
+                                        // keep buffering for the next attach.
+                                        out.channel = None;
+                                    }
+                                }
+                            }
+                            if let Some(url) = announce {
+                                let _ = url_app.emit(
+                                    "agent:session-url",
+                                    serde_json::json!({ "sessionId": url_session_id, "url": url }),
+                                );
                             }
                         }
                     }
@@ -190,10 +223,24 @@ impl Registry {
             .lock()
             .unwrap()
             .values()
-            .map(|s| s.view.clone())
+            .map(|s| {
+                let mut view = s.view.clone();
+                view.detected_url = s.output.lock().unwrap().detected_url.clone();
+                view
+            })
             .collect();
         views.sort_by_key(|v| v.started_at);
         views
+    }
+
+    /// The stored detected URL for a session (never supplied by the frontend).
+    pub fn detected_url(&self, session_id: &str) -> Result<Option<String>, AppError> {
+        let sessions = self.sessions.lock().unwrap();
+        let session = sessions
+            .get(session_id)
+            .ok_or_else(|| AppError::SessionNotFound { id: session_id.to_string() })?;
+        let url = session.output.lock().unwrap().detected_url.clone();
+        Ok(url)
     }
 
     /// Replay the scrollback, then install the live channel — both under the
@@ -292,5 +339,78 @@ impl Registry {
                 let _ = session.killer.kill();
             }
         }
+    }
+}
+
+/// Scan a raw output chunk for the first local dev-server URL. ASCII scan —
+/// ANSI escapes (0x1b) and whitespace terminate the token naturally.
+fn find_local_url(chunk: &[u8]) -> Option<String> {
+    let text = String::from_utf8_lossy(chunk);
+    for (idx, _) in text.match_indices("http") {
+        let rest = &text[idx..];
+        let token: String = rest
+            .chars()
+            .take_while(|c| c.is_ascii_alphanumeric() || ":/.-_?#=&%~+[]".contains(*c))
+            .collect();
+        let token = token.trim_end_matches(['.', ',', ';', ':']);
+        let after_scheme = token
+            .strip_prefix("https://")
+            .or_else(|| token.strip_prefix("http://"));
+        let Some(after_scheme) = after_scheme else { continue };
+        let scheme = if token.starts_with("https://") { "https" } else { "http" };
+        let host_port = after_scheme.split('/').next().unwrap_or("");
+        let (host, port) = match host_port.rsplit_once(':') {
+            Some((h, p)) if p.chars().all(|c| c.is_ascii_digit()) && !p.is_empty() => {
+                (h, Some(p))
+            }
+            _ => (host_port, None),
+        };
+        let normalized_host = match host {
+            "localhost" | "127.0.0.1" => Some("localhost"),
+            "0.0.0.0" | "[::]" | "[::1]" => Some("localhost"), // bind-all: reachable via localhost
+            _ => None,
+        };
+        let Some(host) = normalized_host else { continue };
+        let path = after_scheme
+            .split_once('/')
+            .map(|(_, rest)| format!("/{rest}"))
+            .unwrap_or_default();
+        let port = port.map(|p| format!(":{p}")).unwrap_or_default();
+        return Some(format!("{scheme}://{host}{port}{path}"));
+    }
+    None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::find_local_url;
+
+    #[test]
+    fn finds_and_normalizes_local_urls() {
+        assert_eq!(
+            find_local_url(b"  Local:   http://localhost:5173/
+"),
+            Some("http://localhost:5173/".to_string())
+        );
+        assert_eq!(
+            find_local_url(b"listening on http://127.0.0.1:8080"),
+            Some("http://localhost:8080".to_string())
+        );
+        assert_eq!(
+            find_local_url(b"serving at http://0.0.0.0:3000, press ctrl-c"),
+            Some("http://localhost:3000".to_string())
+        );
+        // ANSI-wrapped (vite-style)
+        assert_eq!(
+            find_local_url(b"[32mhttp://localhost:1420/[0m"),
+            Some("http://localhost:1420/".to_string())
+        );
+    }
+
+    #[test]
+    fn ignores_remote_urls() {
+        assert_eq!(find_local_url(b"see https://vitejs.dev/config/"), None);
+        assert_eq!(find_local_url(b"no urls here"), None);
+        assert_eq!(find_local_url(b"http://example.com:8080"), None);
     }
 }

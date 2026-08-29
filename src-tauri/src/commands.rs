@@ -740,7 +740,7 @@ pub async fn git_switch(
 
 use tauri::ipc::{Channel, InvokeResponseBody};
 
-use crate::agent::{AgentSessionView, StartSpec};
+use crate::agent::{AgentSessionView, SessionKind, StartSpec};
 use crate::launcher::which;
 
 #[tauri::command]
@@ -762,6 +762,7 @@ pub async fn agent_session_start(
             app,
             StartSpec {
                 project_id: &project_id,
+                kind: SessionKind::Agent,
                 agent_kind: &agent.kind,
                 agent_label: &agent.label,
                 program: &agent.program,
@@ -849,4 +850,82 @@ pub async fn app_confirm_quit(
         let _ = window.close();
     }
     Ok(())
+}
+
+
+// ---------------------------------------------------------------------------
+// Run targets (dev servers etc., derived from the project's own manifests)
+
+use crate::run::{self, RunTarget};
+
+#[tauri::command]
+pub async fn project_run_targets(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<Vec<RunTarget>, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        Ok(run::detect_targets(&dir))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn run_session_start(
+    app: AppHandle,
+    state: State<'_, Arc<AppState>>,
+    project_id: String,
+    target_id: String,
+    rows: u16,
+    cols: u16,
+) -> Result<AgentSessionView, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&project_id)?;
+        // Re-derive the enumeration at launch time; the requested target
+        // must match exactly (the git_switch validation pattern).
+        let targets = run::detect_targets(&dir);
+        let target = targets
+            .iter()
+            .find(|t| t.target_id == target_id)
+            .ok_or_else(|| AppError::RunTargetNotFound { target: target_id.clone() })?;
+        let (runner, args) = run::argv_for(target);
+        let (settings, _) = state.settings();
+        let program = which::resolve_program(&runner, &settings.path_additions)
+            .ok_or_else(|| AppError::ProgramNotFound { program: runner.clone() })?;
+        let path_env = which::augmented_path(&settings.path_additions);
+        state.agents.start(
+            app,
+            StartSpec {
+                project_id: &project_id,
+                kind: SessionKind::Run,
+                agent_kind: &runner,
+                agent_label: &target.label,
+                program: &program,
+                args: &args,
+                cwd: &dir,
+                path_env: &path_env,
+                rows,
+                cols,
+            },
+        )
+    })
+    .await
+}
+
+/// Open the URL the run session itself printed (stored backend-side —
+/// no URL ever crosses IPC).
+#[tauri::command]
+pub async fn run_session_open_url(
+    state: State<'_, Arc<AppState>>,
+    session_id: String,
+) -> Result<(), AppError> {
+    let url = state.agents.detected_url(&session_id)?.ok_or_else(|| AppError::InvalidInput {
+        detail: "no URL detected for this session yet".into(),
+    })?;
+    tauri_plugin_opener::open_url(&url, None::<&str>).map_err(|e| AppError::LaunchFailed {
+        program: "browser".into(),
+        detail: e.to_string(),
+    })
 }

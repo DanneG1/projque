@@ -10,10 +10,11 @@ export function AgentsPage({ sessionId }: { sessionId?: string }) {
 
   if (sessions.length === 0) {
     return (
-      <EmptyState title="No agent sessions">
+      <EmptyState title="No sessions">
         <p>
           Use the <strong>Agent</strong> button on any project to start a coding
-          agent right here inside Projque.
+          agent, or <strong>▶ Run</strong> to start the application itself —
+          both run right here inside Projque.
         </p>
         <button className="btn" onClick={() => setRoute({ page: "list" })}>
           Back to projects

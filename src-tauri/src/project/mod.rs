@@ -51,12 +51,18 @@ pub fn view(project: &Project) -> ProjectView {
             .and_then(|(markdown, _)| docs::first_paragraph(&markdown)),
         DescriptionSource::None => None,
     };
+    let has_run_targets = path_exists
+        && (path.join("package.json").is_file()
+            || path.join("Cargo.toml").is_file()
+            || path.join("go.mod").is_file()
+            || crate::run::has_dotnet_project(path));
     ProjectView {
         project: project.clone(),
         path_exists,
         is_git_repo,
         has_readme: readme.is_some(),
         has_roadmap: roadmap.is_some(),
+        has_run_targets,
         resolved_description,
     }
 }
