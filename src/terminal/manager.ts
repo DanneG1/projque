@@ -12,7 +12,6 @@ import * as FitMod from "@xterm/addon-fit";
 import { Channel } from "@tauri-apps/api/core";
 import "@xterm/xterm/css/xterm.css";
 import { api } from "../api/ipc";
-import { useAppStore } from "../store/useAppStore";
 
 type XtermModule = typeof import("@xterm/xterm");
 type XtermTerminal = InstanceType<XtermModule["Terminal"]>;
@@ -26,8 +25,14 @@ interface Entry {
   attached: boolean;
 }
 
-// Declared first so it is always initialized before any function runs.
-const entries = new Map<string, Entry>();
+// A hoisted `var` (initialised to undefined, never in the temporal dead
+// zone) plus a lazy accessor makes the registry immune to circular-chunk
+// initialisation ordering — the failure mode that left `entries` in the TDZ.
+// eslint-disable-next-line no-var
+var entriesMap: Map<string, Entry> | undefined;
+function reg(): Map<string, Entry> {
+  return (entriesMap ??= new Map<string, Entry>());
+}
 
 /** Resolve a constructor from a module namespace across interop shapes
  *  (named export, default export, or default-wrapped). Never called at
@@ -64,7 +69,7 @@ function writeChunk(term: XtermTerminal, message: unknown) {
 }
 
 function ensureEntry(sessionId: string): Entry {
-  let entry = entries.get(sessionId);
+  let entry = reg().get(sessionId);
   if (!entry) {
     const Terminal = resolveCtor<XtermModule["Terminal"]>(XtermMod, "Terminal");
     const FitAddon = resolveCtor<typeof import("@xterm/addon-fit")["FitAddon"]>(FitMod, "FitAddon");
@@ -80,13 +85,13 @@ function ensureEntry(sessionId: string): Entry {
     hostDiv.style.width = "100%";
     hostDiv.style.height = "100%";
     term.onData((data) => {
-      useAppStore.getState().clearSessionAttention(sessionId);
+      // The backend resets attention on write; no store call needed here.
       void api.agentSessionWrite(sessionId, data).catch(() => {});
     });
     const channel = new Channel<unknown>();
     channel.onmessage = (message) => writeChunk(term, message);
     entry = { term, fit, channel, hostDiv, opened: false, attached: false };
-    entries.set(sessionId, entry);
+    reg().set(sessionId, entry);
   }
   return entry;
 }
@@ -111,12 +116,12 @@ export function mountTerminal(sessionId: string, parent: HTMLElement) {
 }
 
 export function unmountTerminal(sessionId: string) {
-  const entry = entries.get(sessionId);
+  const entry = reg().get(sessionId);
   entry?.hostDiv.parentElement?.removeChild(entry.hostDiv);
 }
 
 export function fitTerminal(sessionId: string) {
-  const entry = entries.get(sessionId);
+  const entry = reg().get(sessionId);
   if (!entry || !entry.opened || !entry.hostDiv.isConnected) return;
   try {
     entry.fit.fit();
@@ -131,7 +136,7 @@ export function fitTerminal(sessionId: string) {
 
 export function applyTheme() {
   const theme = themeFromTokens();
-  for (const entry of entries.values()) entry.term.options.theme = theme;
+  for (const entry of reg().values()) entry.term.options.theme = theme;
 }
 
 export function probeSize(parent: HTMLElement | null): { rows: number; cols: number } {
@@ -143,10 +148,10 @@ export function probeSize(parent: HTMLElement | null): { rows: number; cols: num
 }
 
 export function disposeTerminal(sessionId: string) {
-  const entry = entries.get(sessionId);
+  const entry = reg().get(sessionId);
   if (entry) {
     entry.term.dispose();
     entry.hostDiv.remove();
-    entries.delete(sessionId);
+    reg().delete(sessionId);
   }
 }
