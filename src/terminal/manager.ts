@@ -10,6 +10,15 @@ import "@xterm/xterm/css/xterm.css";
 import { api } from "../api/ipc";
 import { useAppStore } from "../store/useAppStore";
 
+// This module owns singleton state (live xterm instances). Hot-swapping it
+// leaves stale/duplicated state and TDZ errors, so opt out of HMR — Vite
+// does a full reload when it changes instead.
+if (import.meta.hot) {
+  import.meta.hot.accept(() => {
+    import.meta.hot?.invalidate();
+  });
+}
+
 // @xterm/xterm 6's ESM entry exposes only a default export ({ Terminal }) —
 // no named `Terminal`. Resolve it in a way that works under both Vite's dev
 // pre-bundle and the production rollup build.
