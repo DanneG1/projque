@@ -2,7 +2,7 @@
 name = "projque"
 version = "0.1.0"
 description = "Projque - your local project shelf. A local-first, offline overview of your development projects."
-authors = ["Daniel Gustafsson"]
+authors = ["DanneG1"]
 license = "MIT"
 edition = "2021"
 
