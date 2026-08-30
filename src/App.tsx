@@ -10,6 +10,7 @@ import { QuitConfirmDialog } from "./components/agent/QuitConfirmDialog";
 import { NewProjectDialog } from "./components/NewProjectDialog";
 import { Icon } from "./components/Icon";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import logoUrl from "./assets/logo.png";
 import type { AgentSessionView } from "./models";
 
 const AgentsPage = lazy(() =>
@@ -127,7 +128,7 @@ export default function App() {
     <div className={styles.app}>
       <header className={styles.header}>
         <button className={styles.brand} onClick={() => setRoute({ page: "list" })}>
-          <span className={styles.glyph} aria-hidden>◧</span> ProjQue
+          <img className={styles.glyph} src={logoUrl} alt="" /> ProjQue
         </button>
         {route.page !== "list" && (
           <button

@@ -29,15 +29,12 @@
 }
 
 .glyph {
-  width: 20px;
-  height: 20px;
+  width: 21px;
+  height: 21px;
   border-radius: 5px;
-  background: linear-gradient(var(--accent-top), var(--accent-bot));
-  display: grid;
-  place-items: center;
-  color: #fff;
-  font-size: 12px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 1px rgba(0, 0, 0, 0.15);
+  object-fit: cover;
+  display: block;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25), inset 0 0 0 0.5px rgba(255, 255, 255, 0.12);
 }
 
 .spacer {
