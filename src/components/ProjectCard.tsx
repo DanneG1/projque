@@ -19,8 +19,11 @@ export function ProjectCard({
   const relocateProject = useAppStore((s) => s.relocateProject);
   const gitInfo = useAppStore((s) => s.git[project.id]);
   const setRoute = useAppStore((s) => s.setRoute);
-  const sessions = useAppStore((s) =>
-    s.sessions.filter((v) => v.projectId === project.id && v.status.state === "running"),
+  // Select the stable array reference and derive locally — returning a fresh
+  // .filter() array from the selector would make the store subscription loop.
+  const allSessions = useAppStore((s) => s.sessions);
+  const sessions = allSessions.filter(
+    (v) => v.projectId === project.id && v.status.state === "running",
   );
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
