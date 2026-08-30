@@ -137,3 +137,14 @@
 .open:hover {
   color: var(--text);
 }
+
+.kbdHint {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 5px;
+  line-height: 16px;
+  flex-shrink: 0;
+}

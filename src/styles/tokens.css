@@ -1,57 +1,60 @@
 /* ProjQue design tokens — circa-2010 Mac aesthetic (refined Aqua / Lion era):
-   hairline borders, top-lit gradients, glossy soft controls, the classic
-   blue source-list selection. Light is the hero; a graphite dark variant is
-   provided. Existing token names are preserved so components need no churn. */
+   hairline borders, top-lit gradients, glossy soft controls — recolored to
+   the brand mark: raspberry→orange→gold gradient on a dark plum ground.
+   The accent is the logo's raspberry; neutrals carry a faint warm/plum cast.
+   Existing token names are preserved so components need no churn. */
 :root {
   color-scheme: light;
   /* surfaces */
-  --bg: #ececee;
+  --bg: #eeecee;
   --bg-raised: #ffffff;
-  --bg-raised-2: #fafafb;
-  --bg-sunken: #e6e6e9;
+  --bg-raised-2: #fbfafb;
+  --bg-sunken: #e9e5e8;
 
   /* toolbar gradient + chrome */
-  --tb-top: #fdfdfe;
-  --tb-bot: #d6d6da;
-  --tb-border: #b4b4b9;
+  --tb-top: #fefdfe;
+  --tb-bot: #dad4d8;
+  --tb-border: #b8b1b6;
 
   /* hairlines */
-  --border: #d3d3d8;
-  --border-soft: #e6e6ea;
+  --border: #d7d2d6;
+  --border-soft: #eae5e9;
   --inset-hi: rgba(255, 255, 255, 0.8);
 
   /* text */
-  --text: #1d1d1f;
-  --text-muted: #6b6b72;
-  --text-faint: #9a9aa2;
+  --text: #201d1f;
+  --text-muted: #6f6a6e;
+  --text-faint: #9d979c;
 
-  /* accent (Lion blue) */
-  --accent: #2f6fe0;
-  --accent-top: #62a0ff;
-  --accent-bot: #2767d8;
-  --accent-border: #2258bd;
+  /* accent (brand raspberry; the top->bottom control gradient sweeps the
+     logo's magenta -> orange) */
+  --accent: #d6215f;
+  --accent-top: #ee2f6b;
+  --accent-bot: #f0560f;
+  --accent-border: #ad1f47;
   --accent-text: #ffffff;
-  --accent-weak: #2f6fe016;
+  --accent-weak: #d6215f16;
+  --brand-gradient: linear-gradient(90deg, #f0045e 0%, #fc5a1e 55%, #fcc000 100%);
 
   /* glossy button */
   --btn-top: #ffffff;
-  --btn-bot: #e7e7ea;
-  --btn-border: #b7b7bd;
-  --btn-text: #29292c;
+  --btn-bot: #eae6e9;
+  --btn-border: #bbb4b9;
+  --btn-text: #2b282a;
 
   /* semantic */
-  --danger: #e0392b;
-  --star: #e3ac1b;
+  --danger: #e23a20;
+  --star: #e2a70e;
   --warning-bg: #fdf3d8;
   --warning-border: #e8d9a8;
 
   /* status */
-  --status-idea: #7d6ad6;
+  --status-idea: #8d62d1;
   --status-active: #37a24a;
   --status-paused: #d38a1a;
   --status-maintenance: #3d92c4;
-  --status-done: #83838c;
-  --status-archived: #a0a0a8;
+  --status-done: #85818b;
+  --status-archived: #a29ea6;
 
   /* shape & type */
   --radius: 8px;
@@ -68,34 +71,35 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #26262a;
-    --bg-raised: #313137;
-    --bg-raised-2: #34343a;
-    --bg-sunken: #232327;
-    --tb-top: #3a3a40;
-    --tb-bot: #29292e;
-    --tb-border: #17171a;
-    --border: #1e1e22;
-    --border-soft: #3a3a41;
+    --bg: #2a1c26;
+    --bg-raised: #382839;
+    --bg-raised-2: #3b2a3b;
+    --bg-sunken: #221420;
+    --tb-top: #402c3c;
+    --tb-bot: #2c1d29;
+    --tb-border: #140a12;
+    --border: #1f1220;
+    --border-soft: #423045;
     --inset-hi: rgba(255, 255, 255, 0.06);
-    --text: #ececef;
-    --text-muted: #a2a2ab;
-    --text-faint: #6d6d76;
-    --accent: #4f8bf5;
-    --accent-top: #5b96ff;
-    --accent-bot: #2f6fe0;
-    --accent-border: #204f9c;
-    --accent-weak: #4f8bf522;
-    --btn-top: #45454c;
-    --btn-bot: #37373d;
-    --btn-border: #1c1c20;
-    --btn-text: #ececef;
-    --danger: #f0574a;
-    --star: #e6b73a;
+    --text: #efeaee;
+    --text-muted: #a8a0a6;
+    --text-faint: #746c72;
+    --accent: #f2467e;
+    --accent-top: #ff4d84;
+    --accent-bot: #fc6a1a;
+    --accent-border: #8f1f42;
+    --accent-weak: #f2467e22;
+    --brand-gradient: linear-gradient(90deg, #f90661 0%, #fc5a1e 55%, #fcc000 100%);
+    --btn-top: #4c3849;
+    --btn-bot: #3b2a38;
+    --btn-border: #1c101c;
+    --btn-text: #efeaee;
+    --danger: #f25a42;
+    --star: #f0b929;
     --warning-bg: #3a3320;
     --warning-border: #5c522f;
-    --status-done: #9a9aa2;
-    --status-archived: #7a7a82;
+    --status-done: #a29aa0;
+    --status-archived: #7f7880;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.4);
@@ -105,34 +109,35 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #26262a;
-  --bg-raised: #313137;
-  --bg-raised-2: #34343a;
-  --bg-sunken: #232327;
-  --tb-top: #3a3a40;
-  --tb-bot: #29292e;
-  --tb-border: #17171a;
-  --border: #1e1e22;
-  --border-soft: #3a3a41;
+  --bg: #2a1c26;
+  --bg-raised: #382839;
+  --bg-raised-2: #3b2a3b;
+  --bg-sunken: #221420;
+  --tb-top: #402c3c;
+  --tb-bot: #2c1d29;
+  --tb-border: #140a12;
+  --border: #1f1220;
+  --border-soft: #423045;
   --inset-hi: rgba(255, 255, 255, 0.06);
-  --text: #ececef;
-  --text-muted: #a2a2ab;
-  --text-faint: #6d6d76;
-  --accent: #4f8bf5;
-  --accent-top: #5b96ff;
-  --accent-bot: #2f6fe0;
-  --accent-border: #204f9c;
-  --accent-weak: #4f8bf522;
-  --btn-top: #45454c;
-  --btn-bot: #37373d;
-  --btn-border: #1c1c20;
-  --btn-text: #ececef;
-  --danger: #f0574a;
-  --star: #e6b73a;
+  --text: #efeaee;
+  --text-muted: #a8a0a6;
+  --text-faint: #746c72;
+  --accent: #f2467e;
+  --accent-top: #ff4d84;
+  --accent-bot: #fc6a1a;
+  --accent-border: #8f1f42;
+  --accent-weak: #f2467e22;
+  --brand-gradient: linear-gradient(90deg, #f90661 0%, #fc5a1e 55%, #fcc000 100%);
+  --btn-top: #4c3849;
+  --btn-bot: #3b2a38;
+  --btn-border: #1c101c;
+  --btn-text: #efeaee;
+  --danger: #f25a42;
+  --star: #f0b929;
   --warning-bg: #3a3320;
   --warning-border: #5c522f;
-  --status-done: #9a9aa2;
-  --status-archived: #7a7a82;
+  --status-done: #a29aa0;
+  --status-archived: #7f7880;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.4);

@@ -1,0 +1,106 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.currentBranch {
+  font-size: 13px;
+}
+
+.inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.branchInput {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  padding: 5px 9px;
+  font: inherit;
+  font-size: 12.5px;
+  font-family: var(--font-mono);
+  width: 180px;
+}
+
+.mergeLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+}
+
+.mergeLabel select {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  padding: 4px 8px;
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(320px, 5fr) minmax(280px, 4fr);
+  gap: 10px;
+  align-items: start;
+}
+
+@media (max-width: 980px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.graphCol {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.diffCol {
+  min-width: 0;
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.workdirBtn {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-raised-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  padding: 6px 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.workdirBtn[data-selected] {
+  background: var(--accent-weak);
+  border-color: var(--accent);
+}
+
+.tracks {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+}

@@ -17,6 +17,7 @@ export interface GitInfo {
   hasUntracked: boolean;
   ahead: number | null;
   behind: number | null;
+  mergeInProgress: boolean;
   lastCommit: GitCommit | null;
   remoteUrl: string | null;
   repositoryUrl: string | null;
@@ -42,3 +43,36 @@ export interface BranchList {
   remoteBranches: string[];
   detached: boolean;
 }
+
+/** Automatic working-tree snapshot on a hidden ref (refs/projque/snapshots). */
+export interface Snapshot {
+  hash: string;
+  shortHash: string;
+  reason: string;
+  timestamp: number;
+}
+
+/** One node in the commit graph (git log --all --topo-order). */
+export interface GraphCommit {
+  hash: string;
+  shortHash: string;
+  parents: string[];
+  subject: string;
+  author: string;
+  timestamp: number;
+  refs: string[];
+  isHead: boolean;
+}
+
+/** One file's part of a diff. Paths are repo-relative, display only. */
+export interface FileDiff {
+  path: string;
+  oldPath: string | null;
+  status: "added" | "modified" | "deleted" | "renamed" | "untracked";
+  patch: string;
+  truncated: boolean;
+}
+
+export type MergeOutcome =
+  | { status: "merged" }
+  | { status: "conflicts"; files: string[] };

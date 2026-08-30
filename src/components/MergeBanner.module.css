@@ -1,0 +1,39 @@
+.banner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius);
+  background: var(--warning-bg);
+}
+
+.title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.text {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.files {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+}
+
+.files code {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}

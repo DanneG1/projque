@@ -6,8 +6,11 @@ import { ProjectListPage } from "./pages/ProjectListPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { ImportPage } from "./pages/ImportPage";
 import { ProjectDetailPage } from "./pages/ProjectDetailPage";
+import { GitPage } from "./pages/GitPage";
 import { QuitConfirmDialog } from "./components/agent/QuitConfirmDialog";
 import { NewProjectDialog } from "./components/NewProjectDialog";
+import { IdeaCaptureDialog } from "./components/IdeaCaptureDialog";
+import { favoriteShortcuts, visibleSessionIds } from "./utils/shortcuts";
 import { Icon } from "./components/Icon";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import logoUrl from "./assets/logo.png";
@@ -36,13 +39,13 @@ export default function App() {
   );
 
   // Keep the backend informed of focus so attention isn't raised for what
-  // the user is already looking at.
+  // the user is already looking at (every visible pane in split view).
   useEffect(() => {
     const report = () => {
       const state = useAppStore.getState();
-      const active =
-        state.route.page === "agents" ? (state.route.sessionId ?? null) : null;
-      void api.sessionsSetActive(active, document.hasFocus()).catch(() => {});
+      void api
+        .sessionsSetActive(visibleSessionIds(state), document.hasFocus())
+        .catch(() => {});
     };
     window.addEventListener("focus", report);
     window.addEventListener("blur", report);
@@ -55,6 +58,11 @@ export default function App() {
   useEffect(() => {
     void init();
   }, [init]);
+
+  // Mirror the attention count on the dock/taskbar badge.
+  useEffect(() => {
+    void api.appSetBadge(attentionCount).catch(() => {});
+  }, [attentionCount]);
 
   useEffect(() => {
     const disposers: Promise<() => void>[] = [
@@ -90,6 +98,22 @@ export default function App() {
         e.preventDefault();
         setRoute({ page: "settings" });
         return;
+      }
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey) {
+        if (e.key >= "1" && e.key <= "9") {
+          const target =
+            favoriteShortcuts(useAppStore.getState().projects)[Number(e.key) - 1];
+          if (target) {
+            e.preventDefault();
+            setRoute({ page: "detail", projectId: target.id });
+          }
+          return;
+        }
+        if (e.key === "k") {
+          e.preventDefault();
+          useAppStore.getState().setIdeaOpen(true);
+          return;
+        }
       }
       const target = e.target as HTMLElement;
       const typing =
@@ -141,10 +165,25 @@ export default function App() {
         )}
         <div className={styles.spacer} />
         <button
+          className="btn"
+          title="Capture an idea (⌘K)"
+          onClick={() => useAppStore.getState().setIdeaOpen(true)}
+        >
+          <Icon name="idea" size={14} /> Idea
+        </button>
+        <button
           className="btn btn-primary"
           onClick={() => useAppStore.getState().setNewProjectOpen(true)}
         >
           <Icon name="plus" size={14} /> New
+        </button>
+        <button
+          className="btn"
+          title="Git — branches, commits, merges and pushes across your projects"
+          data-active={route.page === "git" || undefined}
+          onClick={() => setRoute({ page: "git" })}
+        >
+          <Icon name="branch" size={14} /> Git
         </button>
         <button
           className="btn"
@@ -173,6 +212,7 @@ export default function App() {
           {route.page === "settings" && <SettingsPage />}
           {route.page === "import" && <ImportPage />}
           {route.page === "detail" && <ProjectDetailPage projectId={route.projectId} />}
+          {route.page === "git" && <GitPage projectId={route.projectId} />}
           {route.page === "agents" && (
             <Suspense fallback={null}>
               <AgentsPage sessionId={route.sessionId} />
@@ -183,6 +223,7 @@ export default function App() {
       <Toasts />
       <QuitConfirmDialog />
       <NewProjectDialog />
+      <IdeaCaptureDialog />
     </div>
   );
 }

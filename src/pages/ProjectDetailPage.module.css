@@ -136,3 +136,31 @@
   font-size: 12px;
   color: var(--text-muted);
 }
+
+.gitButtons {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.gitButtons > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.gitButtons button svg {
+  vertical-align: -2px;
+  margin-right: 4px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sectionHead h2 {
+  margin: 0;
+}

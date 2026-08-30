@@ -1,4 +1,5 @@
 mod agent;
+mod assist;
 mod commands;
 mod config;
 mod discovery;
@@ -87,6 +88,29 @@ pub fn run() {
             commands::project_run_targets,
             commands::run_session_start,
             commands::run_session_open_url,
+            commands::idea_capture,
+            commands::app_set_badge,
+            commands::git_commit,
+            commands::git_history,
+            commands::git_snapshots,
+            commands::git_restore,
+            commands::git_change_summary,
+            commands::publish_preflight,
+            commands::publish_run,
+            commands::doctor_status,
+            commands::doctor_fix,
+            commands::ideas_list,
+            commands::idea_set_done,
+            commands::git_graph,
+            commands::git_commit_diff,
+            commands::git_workdir_diff,
+            commands::git_branch_create,
+            commands::git_branch_delete,
+            commands::git_push,
+            commands::git_merge_into,
+            commands::git_merge_abort,
+            commands::git_merge_complete,
+            commands::git_conflicts,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

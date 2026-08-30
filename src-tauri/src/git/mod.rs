@@ -1,7 +1,9 @@
+pub mod backup;
+pub mod inspect;
 pub mod ops;
 mod parse;
 mod remote;
-mod runner;
+pub(crate) mod runner;
 
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -76,6 +78,7 @@ pub struct GitInfo {
     pub has_untracked: bool,
     pub ahead: Option<u32>,
     pub behind: Option<u32>,
+    pub merge_in_progress: bool,
     pub last_commit: Option<GitCommit>,
     pub remote_url: Option<String>,
     pub repository_url: Option<String>,
@@ -101,6 +104,7 @@ impl GitInfo {
             has_untracked: false,
             ahead: None,
             behind: None,
+            merge_in_progress: false,
             last_commit: None,
             remote_url: None,
             repository_url: None,
@@ -167,6 +171,7 @@ pub fn fetch_info(project_id: &str, dir: &Path) -> GitInfo {
         has_untracked: status.has_untracked,
         ahead: status.ahead,
         behind: status.behind,
+        merge_in_progress: ops::merge_in_progress(dir),
         last_commit,
         remote_url,
         repository_url,

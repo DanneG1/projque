@@ -1,0 +1,111 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.empty {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-faint);
+}
+
+.file {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--bg-raised);
+}
+
+.fileHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: none;
+  background: var(--bg-raised-2);
+  font: inherit;
+  font-size: 12.5px;
+  padding: 6px 10px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+}
+
+.chevron {
+  font-size: 10px;
+  color: var(--text-faint);
+  transition: transform 0.12s;
+}
+
+.chevron[data-open] {
+  transform: rotate(90deg);
+}
+
+.path {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status {
+  font-size: 11px;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+
+.status[data-status="added"],
+.status[data-status="untracked"] {
+  color: var(--status-active);
+  border-color: var(--status-active);
+}
+
+.status[data-status="deleted"] {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.patch {
+  margin: 0;
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.5;
+  overflow-x: auto;
+  border-top: 1px solid var(--border-soft);
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.add {
+  color: #1e7c33;
+  background: #1e7c3314;
+  display: inline;
+}
+
+.del {
+  color: #b3341f;
+  background: #b3341f14;
+  display: inline;
+}
+
+.hunk {
+  color: #3d92c4;
+  display: inline;
+}
+
+.meta {
+  color: var(--text-faint);
+  display: inline;
+}
+
+.ctx {
+  color: var(--text-muted);
+  display: inline;
+}

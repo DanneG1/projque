@@ -29,11 +29,28 @@ pub fn git(dir: &Path, args: &[&str]) -> Result<GitOutput, AppError> {
     git_with_timeout(dir, args, LOCAL_TIMEOUT, false)
 }
 
+/// Local git invocation with extra environment variables (e.g. a scratch
+/// GIT_INDEX_FILE for snapshots, or identity fallbacks for plumbing commits).
+/// Longer watchdog: populating a fresh scratch index re-hashes every file.
+pub fn git_env(dir: &Path, args: &[&str], envs: &[(&str, &str)]) -> Result<GitOutput, AppError> {
+    git_full(dir, args, Duration::from_secs(30), false, envs)
+}
+
 pub fn git_with_timeout(
     dir: &Path,
     args: &[&str],
     timeout: Duration,
     net: bool,
+) -> Result<GitOutput, AppError> {
+    git_full(dir, args, timeout, net, &[])
+}
+
+fn git_full(
+    dir: &Path,
+    args: &[&str],
+    timeout: Duration,
+    net: bool,
+    envs: &[(&str, &str)],
 ) -> Result<GitOutput, AppError> {
     let mut cmd = Command::new("git");
     cmd.arg("--no-optional-locks")
@@ -50,6 +67,9 @@ pub fn git_with_timeout(
         // Fail fast on interactive SSH auth instead of stalling: fetch/pull
         // require non-interactive credentials (ssh-agent / credential helper).
         cmd.env("GIT_SSH_COMMAND", "ssh -oBatchMode=yes");
+    }
+    for (key, value) in envs {
+        cmd.env(key, value);
     }
     let mut child = cmd.spawn().map_err(|e| {
         if e.kind() == std::io::ErrorKind::NotFound {

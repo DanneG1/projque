@@ -9,6 +9,8 @@ type Mode = "create" | "clone";
 export function NewProjectDialog() {
   const open = useAppStore((s) => s.newProjectOpen);
   const setOpen = useAppStore((s) => s.setNewProjectOpen);
+  const seed = useAppStore((s) => s.newProjectSeed);
+  const setSeed = useAppStore((s) => s.setNewProjectSeed);
   const settings = useAppStore((s) => s.settings);
   const addProjectRoot = useAppStore((s) => s.addProjectRoot);
   const startAgentSession = useAppStore((s) => s.startAgentSession);
@@ -36,7 +38,13 @@ export function NewProjectDialog() {
       api.githubStatus().then(setGh).catch(() => setGh(null));
       setRootIndex(0);
       setBusy(false);
+      // Starting from a captured idea: prefill the description once.
+      if (seed) {
+        setDescription(seed);
+        setSeed(null);
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   if (!open) return null;

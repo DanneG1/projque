@@ -13,11 +13,23 @@
 }
 
 .exitedBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   padding: 6px 12px;
   font-size: 12px;
   color: var(--text-muted);
   background: var(--warning-bg);
   border-top: 1px solid var(--warning-border);
+}
+
+.exitedText {
+  flex: 1;
+  min-width: 0;
+}
+
+.stopBtn {
+  flex-shrink: 0;
 }
 
 .header {
@@ -32,6 +44,8 @@
 }
 
 .headerLabel {
+  flex: 1;
+  min-width: 0;
   font-size: 13px;
   font-weight: 600;
   overflow: hidden;
@@ -80,4 +94,31 @@
   font-family: var(--font-mono);
   font-size: 12px;
   outline: none;
+}
+
+.pane[data-grid] .header {
+  padding: 4px 10px;
+}
+
+.gridRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-xs);
+  padding: 0;
+  color: var(--text-faint);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.gridRemove:hover {
+  background: rgba(120, 130, 150, 0.18);
+}
+
+.gridRemove:hover {
+  color: var(--text);
 }

@@ -50,6 +50,8 @@ pub enum SessionStatus {
 pub struct AgentSessionView {
     pub session_id: String,
     pub project_id: String,
+    /// Display name of the project, for notifications and pane headers.
+    pub project_label: String,
     pub kind: SessionKind,
     pub agent_kind: String,
     pub agent_label: String,
@@ -86,14 +88,16 @@ pub struct Registry {
     sessions: Arc<Mutex<HashMap<String, Session>>>,
     counter: AtomicU64,
     pub quit_confirmed: AtomicBool,
-    /// (currently viewed session, app focused) — reported by the frontend
-    /// so attention is never raised for what the user is looking at.
-    active: Arc<Mutex<(Option<String>, bool)>>,
+    /// (currently visible sessions, app focused) — reported by the frontend
+    /// so attention is never raised for what the user is looking at. More
+    /// than one session is visible when the split/grid view is active.
+    active: Arc<Mutex<(Vec<String>, bool)>>,
     ticker_started: AtomicBool,
 }
 
 pub struct StartSpec<'a> {
     pub project_id: &'a str,
+    pub project_label: &'a str,
     pub kind: SessionKind,
     pub agent_kind: &'a str,
     pub agent_label: &'a str,
@@ -136,6 +140,7 @@ impl Registry {
         let view = AgentSessionView {
             session_id: session_id.clone(),
             project_id: spec.project_id.to_string(),
+            project_label: spec.project_label.to_string(),
             kind: spec.kind,
             agent_kind: spec.agent_kind.to_string(),
             agent_label: spec.agent_label.to_string(),
@@ -373,19 +378,21 @@ impl Registry {
             .count()
     }
 
-    /// Frontend reports what the user is looking at; viewing a session
-    /// clears its attention state.
-    pub fn set_active(&self, session_id: Option<String>, app_focused: bool) {
-        if let Some(id) = &session_id {
+    /// Frontend reports what the user is looking at (one session, or every
+    /// pane of the split view); viewing a session clears its attention state.
+    pub fn set_active(&self, session_ids: Vec<String>, app_focused: bool) {
+        {
             let sessions = self.sessions.lock().unwrap();
-            if let Some(session) = sessions.get(id) {
-                let mut out = session.output.lock().unwrap();
-                out.pending_since_input = false;
-                out.attention = false;
-                out.announced = false;
+            for id in &session_ids {
+                if let Some(session) = sessions.get(id) {
+                    let mut out = session.output.lock().unwrap();
+                    out.pending_since_input = false;
+                    out.attention = false;
+                    out.announced = false;
+                }
             }
         }
-        *self.active.lock().unwrap() = (session_id, app_focused);
+        *self.active.lock().unwrap() = (session_ids, app_focused);
     }
 
     /// Background ticker (spawned once, on the first session): raises
@@ -399,7 +406,7 @@ impl Registry {
         let active = self.active.clone();
         std::thread::spawn(move || loop {
             std::thread::sleep(TICKER_INTERVAL);
-            let (active_id, focused) = active.lock().unwrap().clone();
+            let (active_ids, focused) = active.lock().unwrap().clone();
             let mut to_announce: Vec<AgentSessionView> = Vec::new();
             {
                 let map = sessions.lock().unwrap();
@@ -410,7 +417,7 @@ impl Registry {
                         continue;
                     }
                     let viewed = focused
-                        && active_id.as_deref() == Some(session.view.session_id.as_str());
+                        && active_ids.iter().any(|a| a == &session.view.session_id);
                     if viewed {
                         continue;
                     }
@@ -436,7 +443,7 @@ impl Registry {
                 let _ = app
                     .notification()
                     .builder()
-                    .title(format!("{} — {}", view.agent_label, view.project_id))
+                    .title(format!("{} — {}", view.agent_label, view.project_label))
                     .body("Waiting for you")
                     .show();
             }

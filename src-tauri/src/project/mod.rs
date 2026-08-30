@@ -1,4 +1,5 @@
 pub mod docs;
+pub mod ideas;
 mod model;
 
 pub use model::*;
@@ -43,6 +44,9 @@ pub fn view(project: &Project) -> ProjectView {
     let roadmap = path_exists
         .then(|| docs::find_doc(path, docs::DocKind::Roadmap, project.roadmap_file.as_deref()))
         .flatten();
+    let ideas = path_exists
+        .then(|| docs::find_doc(path, docs::DocKind::Ideas, None))
+        .flatten();
     let resolved_description = match project.description_source {
         DescriptionSource::Custom => project.description.clone(),
         DescriptionSource::Readme => readme
@@ -62,6 +66,7 @@ pub fn view(project: &Project) -> ProjectView {
         is_git_repo,
         has_readme: readme.is_some(),
         has_roadmap: roadmap.is_some(),
+        has_ideas: ideas.is_some(),
         has_run_targets,
         resolved_description,
     }

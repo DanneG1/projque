@@ -1,0 +1,402 @@
+.page {
+  display: grid;
+  grid-template-columns: 230px minmax(380px, 1fr) minmax(300px, 42%);
+  gap: 0;
+  height: 100%;
+  min-height: 0;
+}
+
+.empty {
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 13.5px;
+}
+
+/* ---------------------------------------------------------- left rail */
+
+.rail {
+  border-right: 1px solid var(--border);
+  background: var(--bg-raised-2);
+  padding: 12px 10px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.railTitle {
+  margin: 8px 2px 2px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.railTitle:first-child {
+  margin-top: 0;
+}
+
+.repoList,
+.branchList,
+.remoteList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.repoBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  width: 100%;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--text);
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+}
+
+.repoBtn:hover {
+  background: var(--bg-sunken);
+}
+
+.repoBtn[data-active] {
+  background: var(--accent-weak);
+}
+
+.repoName {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.repoMeta {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+}
+
+.branchRow {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.branchBtn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--text);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+}
+
+.branchBtn:hover:not(:disabled) {
+  background: var(--bg-sunken);
+}
+
+.branchBtn[data-current] {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.branchName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.track {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.branchDelete {
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  opacity: 0;
+}
+
+.branchRow:hover .branchDelete {
+  opacity: 1;
+}
+
+.branchDelete:hover {
+  color: var(--danger);
+  background: var(--bg-sunken);
+}
+
+.railAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.railAction:hover {
+  background: var(--bg-sunken);
+  color: var(--text);
+}
+
+.newBranch {
+  display: flex;
+  gap: 5px;
+  padding: 0 2px;
+}
+
+.newBranch input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  padding: 4px 8px;
+  font: inherit;
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+.remoteList {
+  font-size: 11.5px;
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  padding: 0 8px;
+  gap: 3px;
+}
+
+.remoteList li {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------- center */
+
+.center {
+  padding: 12px 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.repoTitle {
+  font-size: 13px;
+}
+
+.projectLink {
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text);
+  padding: 0;
+  cursor: pointer;
+}
+
+.projectLink:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.mergeGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mergeLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.mergeGroup select {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  padding: 4px 8px;
+  font: inherit;
+  font-size: 12.5px;
+  max-width: 200px;
+}
+
+.prGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.prState {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 1px 7px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.prState[data-state="open"] {
+  color: var(--status-active);
+  border-color: var(--status-active);
+}
+
+.prState[data-state="merged"] {
+  color: var(--status-idea);
+  border-color: var(--status-idea);
+}
+
+.prChecks {
+  color: var(--danger);
+}
+
+.prChecks[data-passing] {
+  color: var(--status-active);
+}
+
+.prNone {
+  color: var(--text-faint);
+}
+
+.workdirBtn {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-raised-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  padding: 6px 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.workdirBtn[data-selected] {
+  background: var(--accent-weak);
+  border-color: var(--accent);
+}
+
+.hint {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-faint);
+}
+
+/* ---------------------------------------------------------- diff pane */
+
+.diff {
+  border-left: 1px solid var(--border);
+  padding: 12px 14px;
+  overflow-y: auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.diffHead {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.diffTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.diffMeta {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+}
+
+@media (max-width: 1100px) {
+  .page {
+    grid-template-columns: 200px 1fr;
+    grid-template-rows: 1fr auto;
+  }
+  .diff {
+    grid-column: 1 / 3;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    max-height: 45vh;
+  }
+}
+
+.localOnly {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 0 5px;
+}
+
+.tracks {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+}

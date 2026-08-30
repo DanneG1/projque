@@ -21,11 +21,12 @@ export interface ProjectView {
   isGitRepo: boolean;
   hasReadme: boolean;
   hasRoadmap: boolean;
+  hasIdeas: boolean;
   hasRunTargets: boolean;
   resolvedDescription?: string;
 }
 
-export type DocKind = "roadmap" | "readme";
+export type DocKind = "roadmap" | "readme" | "ideas";
 
 export interface ProjectDocument {
   fileName: string;
@@ -59,3 +60,11 @@ export const STATUS_LABELS: Record<ProjectStatus, string> = {
   done: "Done",
   archived: "Archived",
 };
+
+/** One checklist entry in IDEAS.md. `line` is the item's 0-based line number. */
+export interface IdeaItem {
+  line: number;
+  text: string;
+  done: boolean;
+  date: string | null;
+}

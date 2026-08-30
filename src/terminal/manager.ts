@@ -52,10 +52,10 @@ function themeFromTokens() {
   const tokens = getComputedStyle(document.documentElement);
   const val = (name: string, fallback: string) =>
     tokens.getPropertyValue(name).trim() || fallback;
-  const accent = val("--accent", "#4f8bf5");
+  const accent = val("--accent", "#f2467e");
   return {
-    background: val("--bg-sunken", "#1c1c20"),
-    foreground: val("--text", "#e7e9f0"),
+    background: val("--bg-sunken", "#251e24"),
+    foreground: val("--text", "#efeaee"),
     cursor: accent,
     selectionBackground: accent + "55",
   };
@@ -95,7 +95,7 @@ function ensureEntry(sessionId: string): Entry {
   return entry;
 }
 
-export function mountTerminal(sessionId: string, parent: HTMLElement) {
+export function mountTerminal(sessionId: string, parent: HTMLElement, focus = true) {
   const entry = ensureEntry(sessionId);
   if (entry.hostDiv.parentElement !== parent) parent.appendChild(entry.hostDiv);
   if (!entry.opened) {
@@ -104,7 +104,7 @@ export function mountTerminal(sessionId: string, parent: HTMLElement) {
   }
   requestAnimationFrame(() => {
     fitTerminal(sessionId);
-    entry.term.focus();
+    if (focus) entry.term.focus();
     if (!entry.attached) {
       entry.attached = true;
       void invoke("agent_session_attach", { sessionId, channel: entry.channel }).catch(() => {

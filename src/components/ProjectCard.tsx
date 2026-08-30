@@ -10,9 +10,12 @@ import styles from "./ProjectCard.module.css";
 export function ProjectCard({
   project,
   selected,
+  shortcut,
 }: {
   project: ProjectView;
   selected?: boolean;
+  /** 1–9 when this favorite is reachable via ⌘n. */
+  shortcut?: number;
 }) {
   const updateProject = useAppStore((s) => s.updateProject);
   const removeProject = useAppStore((s) => s.removeProject);
@@ -67,6 +70,11 @@ export function ProjectCard({
         >
           {project.name}
         </h3>
+        {shortcut !== undefined && (
+          <span className={styles.kbdHint} title={`Jump here with ⌘${shortcut}`}>
+            ⌘{shortcut}
+          </span>
+        )}
         <StatusBadge status={project.status} />
         {attention ? (
           <span className={styles.badge} data-attn onClick={() => setRoute({ page: "agents" })}>

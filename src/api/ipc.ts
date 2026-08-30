@@ -7,6 +7,15 @@ import type {
   AddRootResult,
   AgentSessionView,
   BranchList,
+  DoctorItem,
+  FileDiff,
+  GitCommit,
+  GraphCommit,
+  MergeOutcome,
+  IdeaItem,
+  PublishOutcome,
+  PublishPreflight,
+  Snapshot,
   ConfigStatus,
   DocKind,
   GhStatus,
@@ -64,6 +73,29 @@ export const api = {
   gitPullFf: (id: string) => invoke<GitInfo>("git_pull_ff", { id }),
   gitSwitch: (id: string, branch: string) =>
     invoke<GitInfo>("git_switch", { id, branch }),
+  gitCommit: (id: string, message: string) =>
+    invoke<GitInfo>("git_commit", { id, message }),
+  gitHistory: (id: string, limit?: number) =>
+    invoke<GitCommit[]>("git_history", { id, limit: limit ?? null }),
+  gitSnapshots: (id: string) => invoke<Snapshot[]>("git_snapshots", { id }),
+  gitRestore: (id: string, hash: string) =>
+    invoke<GitInfo>("git_restore", { id, hash }),
+  gitChangeSummary: (id: string) => invoke<string>("git_change_summary", { id }),
+  gitGraph: (id: string, limit?: number) =>
+    invoke<GraphCommit[]>("git_graph", { id, limit: limit ?? null }),
+  gitCommitDiff: (id: string, hash: string) =>
+    invoke<FileDiff[]>("git_commit_diff", { id, hash }),
+  gitWorkdirDiff: (id: string) => invoke<FileDiff[]>("git_workdir_diff", { id }),
+  gitBranchCreate: (id: string, name: string) =>
+    invoke<GitInfo>("git_branch_create", { id, name }),
+  gitBranchDelete: (id: string, branch: string) =>
+    invoke<GitInfo>("git_branch_delete", { id, branch }),
+  gitPush: (id: string) => invoke<GitInfo>("git_push", { id }),
+  gitMergeInto: (id: string, target: string) =>
+    invoke<MergeOutcome>("git_merge_into", { id, target }),
+  gitMergeAbort: (id: string) => invoke<GitInfo>("git_merge_abort", { id }),
+  gitMergeComplete: (id: string) => invoke<GitInfo>("git_merge_complete", { id }),
+  gitConflicts: (id: string) => invoke<string[]>("git_conflicts", { id }),
 
   projectDocument: (id: string, kind: DocKind) =>
     invoke<ProjectDocument | null>("project_document", { id, kind }),
@@ -95,8 +127,11 @@ export const api = {
   agentSessionRemove: (sessionId: string) =>
     invoke<void>("agent_session_remove", { sessionId }),
   appConfirmQuit: () => invoke<void>("app_confirm_quit"),
-  sessionsSetActive: (sessionId: string | null, appFocused: boolean) =>
-    invoke<void>("sessions_set_active", { sessionId, appFocused }),
+  sessionsSetActive: (sessionIds: string[], appFocused: boolean) =>
+    invoke<void>("sessions_set_active", { sessionIds, appFocused }),
+  ideaCapture: (id: string | null, text: string) =>
+    invoke<string>("idea_capture", { id, text }),
+  appSetBadge: (count: number) => invoke<void>("app_set_badge", { count }),
 
   projectRunTargets: (id: string) =>
     invoke<RunTarget[]>("project_run_targets", { id }),
@@ -124,4 +159,15 @@ export const api = {
     }),
   projectClone: (url: string, rootIndex: number) =>
     invoke<ProjectView>("project_clone", { url, rootIndex }),
+
+  publishPreflight: (id: string) =>
+    invoke<PublishPreflight>("publish_preflight", { id }),
+  publishRun: (id: string) => invoke<PublishOutcome>("publish_run", { id }),
+
+  doctorStatus: () => invoke<DoctorItem[]>("doctor_status"),
+  doctorFix: (kind: string) => invoke<void>("doctor_fix", { kind }),
+
+  ideasList: (id: string | null) => invoke<IdeaItem[]>("ideas_list", { id }),
+  ideaSetDone: (id: string | null, line: number, done: boolean) =>
+    invoke<IdeaItem[]>("idea_set_done", { id, line, done }),
 };

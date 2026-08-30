@@ -146,6 +146,19 @@ pub fn open_terminal(settings: &Settings, dir: &Path) -> Result<(), AppError> {
     terminal::open(settings, dir, None)
 }
 
+/// Open the configured terminal running a backend-chosen program (doctor
+/// fixes, e.g. `gh auth login`). Program and argv are fixed in Rust — this
+/// is never reachable with frontend-supplied strings.
+pub fn open_terminal_running(
+    settings: &Settings,
+    dir: &Path,
+    program: PathBuf,
+    args: Vec<String>,
+    cache_dir: &Path,
+) -> Result<(), AppError> {
+    terminal::open(settings, dir, Some(terminal::AgentCommand { program, args, cache_dir }))
+}
+
 /// Open the configured terminal at the project directory, running the
 /// configured agent. The agent command comes from the static catalog (or the
 /// hand-edited settings override) — never from the frontend.

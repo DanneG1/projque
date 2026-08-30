@@ -1,5 +1,6 @@
 import { useAppStore } from "../store/useAppStore";
 import type { CatalogEntry, Theme } from "../models";
+import { DoctorPanel } from "../components/DoctorPanel";
 import styles from "./SettingsPage.module.css";
 
 const THEMES: { value: Theme; label: string }[] = [
@@ -59,6 +60,15 @@ export function SettingsPage() {
             ))}
           </select>
         </label>
+      </section>
+
+      <section className={styles.section}>
+        <h2>Setup check</h2>
+        <p className={styles.hint}>
+          Everything ProjQue builds on, checked on this machine. Fix the items
+          marked ✗ to unlock agents, commits, and publishing.
+        </p>
+        <DoctorPanel />
       </section>
 
       <section className={styles.section}>

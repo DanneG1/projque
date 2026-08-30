@@ -12,12 +12,14 @@ const MAX_DOC_BYTES: usize = 512 * 1024;
 
 const ROADMAP_NAMES: &[&str] = &["ROADMAP.md", "roadmap.md", "Roadmap.md"];
 const README_NAMES: &[&str] = &["README.md", "readme.md", "Readme.md"];
+const IDEAS_NAMES: &[&str] = &["IDEAS.md", "ideas.md", "Ideas.md"];
 
 #[derive(Deserialize, Clone, Copy, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum DocKind {
     Roadmap,
     Readme,
+    Ideas,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -37,6 +39,7 @@ pub fn find_doc(dir: &Path, kind: DocKind, configured: Option<&str>) -> Option<P
     let names = match kind {
         DocKind::Roadmap => ROADMAP_NAMES,
         DocKind::Readme => README_NAMES,
+        DocKind::Ideas => IDEAS_NAMES,
     };
     // Every candidate — default names included — goes through the same
     // containment check, so a `README.md` symlink pointing outside the

@@ -2,10 +2,18 @@ import { useEffect, useState } from "react";
 import { api } from "../api/ipc";
 import type { DescriptionSource, ProjectDocument } from "../models";
 import { useAppStore } from "../store/useAppStore";
+import { CommitControls } from "../components/CommitControls";
+import { Icon } from "../components/Icon";
 import { GitControls } from "../components/GitControls";
 import { GithubPanel } from "../components/GithubPanel";
+import { GuidedActions } from "../components/GuidedActions";
+import { HistoryPanel } from "../components/HistoryPanel";
+import { IdeasPanel } from "../components/IdeasPanel";
+import { PublishPanel } from "../components/PublishPanel";
 import { GitSummary } from "../components/GitSummary";
 import { MarkdownView } from "../components/MarkdownView";
+import { MergeBanner } from "../components/MergeBanner";
+import { RepoPanel } from "../components/RepoPanel";
 import { QuickActions } from "../components/QuickActions";
 import { StatusSelect } from "../components/StatusSelect";
 import { relativeTime } from "../utils/time";
@@ -23,16 +31,21 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
 
   const [roadmap, setRoadmap] = useState<ProjectDocument | null>(null);
   const [readme, setReadme] = useState<ProjectDocument | null>(null);
+  const [ideas, setIdeas] = useState<ProjectDocument | null>(null);
   const [showReadme, setShowReadme] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState<string | null>(null);
+  const [showRepo, setShowRepo] = useState(false);
 
   const hasRoadmap = project?.hasRoadmap ?? false;
   const hasReadme = project?.hasReadme ?? false;
+  const hasIdeas = project?.hasIdeas ?? false;
+  const ideasVersion = useAppStore((s) => s.ideasVersion);
   const pathExists = project?.pathExists ?? false;
 
   useEffect(() => {
     setRoadmap(null);
     setReadme(null);
+    setIdeas(null);
     setShowReadme(false);
     if (!pathExists) return;
     if (hasRoadmap) {
@@ -47,7 +60,13 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
         .then(setReadme)
         .catch(reportError);
     }
-  }, [projectId, pathExists, hasRoadmap, hasReadme, reportError]);
+    if (hasIdeas) {
+      api
+        .projectDocument(projectId, "ideas")
+        .then(setIdeas)
+        .catch(reportError);
+    }
+  }, [projectId, pathExists, hasRoadmap, hasReadme, hasIdeas, ideasVersion, reportError]);
 
   if (!project) {
     return (
@@ -143,6 +162,7 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
           </div>
         )}
         <QuickActions project={project} gitInfo={gitInfo} />
+        {project.pathExists && <GuidedActions projectId={project.id} />}
         {project.pathExists && (
           <button
             className={`btn ${styles.secondaryAction}`}
@@ -170,6 +190,19 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
           <h2 className={styles.sectionTitle}>Git</h2>
           <GitSummary info={gitInfo} />
           <GitControls projectId={project.id} gitInfo={gitInfo} />
+          <MergeBanner projectId={project.id} gitInfo={gitInfo} />
+          <CommitControls projectId={project.id} gitInfo={gitInfo} />
+          <div className={styles.gitButtons}>
+            <HistoryPanel projectId={project.id} gitInfo={gitInfo} />
+            <button
+              className="btn"
+              data-active={showRepo || undefined}
+              title="Commit graph, diffs, branches, merge and push"
+              onClick={() => setShowRepo((v) => !v)}
+            >
+              <Icon name="branch" size={13} /> {showRepo ? "Hide git tools" : "Git tools"}
+            </button>
+          </div>
           {gitInfo.lastCommit && (
             <div className={styles.metaRow}>
               <span className={styles.metaLabel}>Last commit</span>
@@ -184,7 +217,30 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
         </section>
       )}
 
+      {showRepo && project.isGitRepo && project.pathExists && gitInfo?.state === "available" && (
+        <section className={styles.section}>
+          <div className={styles.sectionHead}>
+            <h2 className={styles.sectionTitle}>Repository</h2>
+            <button
+              className="btn"
+              title="The full git view: all repositories, branches, and diffs side by side"
+              onClick={() => setRoute({ page: "git", projectId: project.id })}
+            >
+              Open Git view <Icon name="external" size={12} />
+            </button>
+          </div>
+          <RepoPanel projectId={project.id} gitInfo={gitInfo} />
+        </section>
+      )}
+
       {project.isGitRepo && <GithubPanel projectId={project.id} gitInfo={gitInfo} />}
+
+      {project.isGitRepo && project.pathExists && gitInfo?.state === "available" && (
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Publish</h2>
+          <PublishPanel projectId={project.id} gitInfo={gitInfo} />
+        </section>
+      )}
 
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Roadmap</h2>
@@ -199,6 +255,13 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
           <p className={styles.faint}>No roadmap found.</p>
         )}
       </section>
+
+      {ideas && (
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Ideas</h2>
+          <IdeasPanel projectId={project.id} fallbackMarkdown={ideas.markdown} />
+        </section>
+      )}
 
       {readme && (
         <section className={styles.section}>

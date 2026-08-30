@@ -58,12 +58,36 @@
 }
 
 .itemAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
   background: none;
   border: 0;
-  padding: 2px;
+  border-radius: var(--radius-xs);
+  padding: 0;
   color: var(--text-faint);
-  font-size: 12px;
   cursor: pointer;
+}
+
+.itemAction:hover {
+  background: rgba(120, 130, 150, 0.18);
+}
+
+.itemAction[data-danger]:hover {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+}
+
+.item[data-active] .itemAction:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.item[data-active] .itemAction[data-danger]:hover {
+  color: #fff;
+  background: rgba(0, 0, 0, 0.25);
 }
 
 .item[data-active] .itemAction {
@@ -78,7 +102,13 @@
   color: #fff;
 }
 
-.item[data-active]
+.itemAction[data-on] {
+  color: var(--accent);
+}
+
+.item[data-grid]:not([data-active]) {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
 
 .tag {
   margin-left: 6px;

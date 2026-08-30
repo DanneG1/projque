@@ -11,6 +11,7 @@ function statusRank(p: ProjectView): number {
 export function useSortedProjects(): ProjectView[] {
   const projects = useAppStore((s) => s.projects);
   const git = useAppStore((s) => s.git);
+  const sessions = useAppStore((s) => s.sessions);
   const showArchived = useAppStore((s) => s.settings?.display.showArchived ?? false);
   const filter = useAppStore((s) => s.filter);
   const query = useAppStore((s) => s.query);
@@ -34,12 +35,25 @@ export function useSortedProjects(): ProjectView[] {
       );
     }
     const lastActivity = (p: ProjectView) => git[p.id]?.lastCommit?.timestamp ?? 0;
+    const running = (p: ProjectView) =>
+      sessions.some((v) => v.projectId === p.id && v.status.state === "running");
+    const attention = (p: ProjectView) =>
+      sessions.some(
+        (v) =>
+          v.projectId === p.id &&
+          v.status.state === "running" &&
+          v.needsAttention,
+      );
+    // Live work floats to the top: sessions waiting on the user first,
+    // then the pinned (favorite) row, then anything currently running.
     return [...visible].sort(
       (a, b) =>
+        Number(attention(b)) - Number(attention(a)) ||
         Number(b.favorite) - Number(a.favorite) ||
+        Number(running(b)) - Number(running(a)) ||
         statusRank(a) - statusRank(b) ||
         lastActivity(b) - lastActivity(a) ||
         a.name.localeCompare(b.name),
     );
-  }, [projects, git, showArchived, filter, query]);
+  }, [projects, git, sessions, showArchived, filter, query]);
 }

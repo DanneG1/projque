@@ -3,14 +3,18 @@ import { EmptyState } from "../components/EmptyState";
 import { FilterTabs } from "../components/FilterTabs";
 import { ProjectCard } from "../components/ProjectCard";
 import { SearchBar } from "../components/SearchBar";
+import { SparkBanner } from "../components/SparkBanner";
 import { Icon } from "../components/Icon";
+import { IdeasPanel } from "../components/IdeasPanel";
+import { favoriteShortcuts } from "../utils/shortcuts";
 import { useSortedProjects } from "../hooks/useSortedProjects";
 import { useAppStore } from "../store/useAppStore";
 import styles from "./ProjectListPage.module.css";
 
 export function ProjectListPage() {
   const projects = useSortedProjects();
-  const totalCount = useAppStore((s) => s.projects.length);
+  const allProjects = useAppStore((s) => s.projects);
+  const totalCount = allProjects.length;
   const addProjectManual = useAppStore((s) => s.addProjectManual);
   const addProjectRoot = useAppStore((s) => s.addProjectRoot);
   const runScan = useAppStore((s) => s.runScan);
@@ -57,6 +61,8 @@ export function ProjectListPage() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [projects, selected, setRoute]);
+
+  const shortcuts = favoriteShortcuts(allProjects).map((p) => p.id);
 
   const scanFolder = async () => {
     // Onboarding shortcut: pick a root, then scan it right away.
@@ -117,6 +123,10 @@ export function ProjectListPage() {
         </button>
       </div>
 
+      <SparkBanner />
+
+      <IdeasPanel projectId={null} heading="Idea inbox" />
+
       {!gitAvailable && (
         <p className={styles.gitNote}>
           Git was not found on this machine — branch and commit information is
@@ -128,9 +138,17 @@ export function ProjectListPage() {
         <EmptyState title="No projects match" />
       ) : (
         <div className={styles.list} ref={listRef}>
-          {projects.map((p, i) => (
-            <ProjectCard key={p.id} project={p} selected={i === selected} />
-          ))}
+          {projects.map((p, i) => {
+            const shortcutIndex = shortcuts.indexOf(p.id);
+            return (
+              <ProjectCard
+                key={p.id}
+                project={p}
+                selected={i === selected}
+                shortcut={shortcutIndex >= 0 ? shortcutIndex + 1 : undefined}
+              />
+            );
+          })}
         </div>
       )}
     </div>

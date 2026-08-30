@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { AgentSessionView } from "../../models";
 import { useAppStore } from "../../store/useAppStore";
 import { Icon } from "../Icon";
-import { fitTerminal, mountTerminal, unmountTerminal } from "../../terminal/manager";
+import { disposeTerminal, fitTerminal, mountTerminal, unmountTerminal } from "../../terminal/manager";
 import styles from "./TerminalPane.module.css";
 
 function portOf(url: string | null): string {
@@ -10,28 +10,39 @@ function portOf(url: string | null): string {
   return m ? m[1] : "";
 }
 
-export function TerminalPane({ session }: { session: AgentSessionView }) {
+export function TerminalPane({
+  session,
+  grid = false,
+  autoFocus = true,
+}: {
+  session: AgentSessionView;
+  /** Rendered as one pane of the split view. */
+  grid?: boolean;
+  autoFocus?: boolean;
+}) {
   const mountRef = useRef<HTMLDivElement>(null);
   const project = useAppStore((s) => s.projects.find((p) => p.id === session.projectId));
   const openSessionUrl = useAppStore((s) => s.openSessionUrl);
   const openExternalUrl = useAppStore((s) => s.openExternalUrl);
-  const setActiveSession = useAppStore((s) => s.setActiveSession);
+  const toggleGridSession = useAppStore((s) => s.toggleGridSession);
+  const killSession = useAppStore((s) => s.killSession);
+  const removeSession = useAppStore((s) => s.removeSession);
   const [manual, setManual] = useState(false);
   const [port, setPort] = useState("");
 
+  // Visible-session reporting lives in AgentsPage, which knows the full set
+  // of panes on screen; this component only mounts its terminal.
   useEffect(() => {
     const parent = mountRef.current;
     if (!parent) return;
-    mountTerminal(session.sessionId, parent);
-    setActiveSession(session.sessionId);
+    mountTerminal(session.sessionId, parent, autoFocus);
     const observer = new ResizeObserver(() => fitTerminal(session.sessionId));
     observer.observe(parent);
     return () => {
       observer.disconnect();
       unmountTerminal(session.sessionId);
-      setActiveSession(null);
     };
-  }, [session.sessionId, setActiveSession]);
+  }, [session.sessionId, autoFocus]);
 
   const isRun = session.kind === "run";
   const openManual = () => {
@@ -40,12 +51,30 @@ export function TerminalPane({ session }: { session: AgentSessionView }) {
   };
 
   return (
-    <div className={styles.pane} data-terminal-pane>
+    <div className={styles.pane} data-terminal-pane data-grid={grid || undefined}>
       <div className={styles.header}>
         <span className={styles.headerLabel}>
           {session.agentLabel}
           {project && <span className={styles.headerProject}> — {project.name}</span>}
         </span>
+        {session.status.state === "running" && (
+          <button
+            className={`btn ${styles.stopBtn}`}
+            title={session.kind === "run" ? "Stop this run" : "Stop this agent"}
+            onClick={() => void killSession(session.sessionId)}
+          >
+            <Icon name="stop" size={13} /> Stop
+          </button>
+        )}
+        {grid && (
+          <button
+            className={styles.gridRemove}
+            title="Remove this pane from the split view"
+            onClick={() => toggleGridSession(session.sessionId)}
+          >
+            <Icon name="close" size={14} />
+          </button>
+        )}
         {isRun && (
           <div className={styles.browserControls}>
             {session.detectedUrl ? (
@@ -90,9 +119,20 @@ export function TerminalPane({ session }: { session: AgentSessionView }) {
       <div className={styles.mount} ref={mountRef} />
       {session.status.state === "exited" && (
         <div className={styles.exitedBar}>
-          {session.agentLabel} exited
-          {session.status.code != null ? ` with code ${session.status.code}` : ""} — the
-          output above is preserved until you remove the session.
+          <span className={styles.exitedText}>
+            {session.agentLabel} exited
+            {session.status.code != null ? ` with code ${session.status.code}` : ""} — the
+            output above is preserved until you remove the session.
+          </span>
+          <button
+            className="btn"
+            onClick={() => {
+              disposeTerminal(session.sessionId);
+              void removeSession(session.sessionId);
+            }}
+          >
+            <Icon name="close" size={13} /> Remove session
+          </button>
         </div>
       )}
     </div>

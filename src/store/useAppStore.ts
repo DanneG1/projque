@@ -20,6 +20,7 @@ export type Route =
   | { page: "settings" }
   | { page: "import" }
   | { page: "detail"; projectId: string }
+  | { page: "git"; projectId?: string }
   | { page: "agents"; sessionId?: string };
 
 export type ProjectFilter = "all" | "favorites" | ProjectStatus;
@@ -43,6 +44,8 @@ interface AppStore {
   query: string;
   gitBusy: Record<string, boolean>;
   sessions: AgentSessionView[];
+  /** Sessions shown together in the split view (order = pane order, max 4). */
+  gridIds: string[];
   quitPrompt: number | null;
   toasts: Toast[];
   initialized: boolean;
@@ -74,6 +77,17 @@ interface AppStore {
   fetchRemote: (id: string) => Promise<void>;
   pullFf: (id: string) => Promise<void>;
   switchBranch: (id: string, branch: string) => Promise<boolean>;
+  /** Commit everything with a message. Resolves true on success. */
+  commitAll: (id: string, message: string) => Promise<boolean>;
+  /** Restore an earlier version (commit or snapshot) as a new commit. */
+  restoreVersion: (id: string, hash: string) => Promise<boolean>;
+  pushBranch: (id: string) => Promise<boolean>;
+  createBranch: (id: string, name: string) => Promise<boolean>;
+  deleteBranch: (id: string, branch: string) => Promise<boolean>;
+  /** Merge the CURRENT branch into `target`. "merged" | "conflicts" | null (error). */
+  mergeInto: (id: string, target: string) => Promise<"merged" | "conflicts" | null>;
+  mergeAbort: (id: string) => Promise<boolean>;
+  mergeComplete: (id: string) => Promise<boolean>;
   refreshSessions: () => Promise<void>;
   startAgentSession: (
     projectId: string,
@@ -82,12 +96,22 @@ interface AppStore {
   ) => Promise<void>;
   newProjectOpen: boolean;
   setNewProjectOpen: (open: boolean) => void;
+  /** Prefill for the new-project dialog (e.g. starting from a general idea). */
+  newProjectSeed: string | null;
+  setNewProjectSeed: (seed: string | null) => void;
+  ideaOpen: boolean;
+  setIdeaOpen: (open: boolean) => void;
+  /** Bumped whenever an idea is saved, so open views can refetch IDEAS.md. */
+  ideasVersion: number;
+  /** projectId null = general idea (saved app-wide, not in any project). */
+  captureIdea: (projectId: string | null, text: string) => Promise<boolean>;
   startRunSession: (projectId: string, targetId: string) => Promise<void>;
   openSessionUrl: (sessionId: string) => Promise<void>;
   sessionUrlDetected: (sessionId: string, url: string) => void;
   sessionAttention: (view: AgentSessionView) => void;
   clearSessionAttention: (sessionId: string) => void;
-  setActiveSession: (sessionId: string | null) => void;
+  setVisibleSessions: (sessionIds: string[]) => void;
+  toggleGridSession: (sessionId: string) => void;
   killSession: (sessionId: string) => Promise<void>;
   removeSession: (sessionId: string) => Promise<void>;
   sessionExited: (view: AgentSessionView) => void;
@@ -115,8 +139,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
   query: "",
   gitBusy: {},
   sessions: [],
+  gridIds: [],
   quitPrompt: null,
   newProjectOpen: false,
+  newProjectSeed: null,
+  ideaOpen: false,
+  ideasVersion: 0,
   toasts: [],
   initialized: false,
   scan: { result: null, selected: new Set<string>(), scanning: false, importing: false },
@@ -406,6 +434,134 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
   },
 
+  commitAll: async (id, message) => {
+    set((s) => ({ gitBusy: { ...s.gitBusy, [id]: true } }));
+    try {
+      const info = await api.gitCommit(id, message);
+      set((s) => ({ git: { ...s.git, [id]: info } }));
+      get().notify("Committed", "Your work is saved in the project history.");
+      return true;
+    } catch (err) {
+      get().reportError(err);
+      return false;
+    } finally {
+      set((s) => ({ gitBusy: { ...s.gitBusy, [id]: false } }));
+    }
+  },
+
+  restoreVersion: async (id, hash) => {
+    set((s) => ({ gitBusy: { ...s.gitBusy, [id]: true } }));
+    try {
+      const info = await api.gitRestore(id, hash);
+      set((s) => ({ git: { ...s.git, [id]: info } }));
+      get().notify(
+        "Version restored",
+        "Your previous state was backed up automatically first.",
+      );
+      return true;
+    } catch (err) {
+      get().reportError(err);
+      return false;
+    } finally {
+      set((s) => ({ gitBusy: { ...s.gitBusy, [id]: false } }));
+    }
+  },
+
+
+  pushBranch: async (id) => {
+    set((s) => ({ gitBusy: { ...s.gitBusy, [id]: true } }));
+    try {
+      const info = await api.gitPush(id);
+      set((s) => ({ git: { ...s.git, [id]: info } }));
+      get().notify("Pushed", `${info.branch ?? "branch"} is up to date on origin.`);
+      return true;
+    } catch (err) {
+      get().reportError(err);
+      return false;
+    } finally {
+      set((s) => ({ gitBusy: { ...s.gitBusy, [id]: false } }));
+    }
+  },
+
+  createBranch: async (id, name) => {
+    set((s) => ({ gitBusy: { ...s.gitBusy, [id]: true } }));
+    try {
+      const info = await api.gitBranchCreate(id, name);
+      set((s) => ({ git: { ...s.git, [id]: info } }));
+      get().notify(`Created and switched to ${name}`);
+      return true;
+    } catch (err) {
+      get().reportError(err);
+      return false;
+    } finally {
+      set((s) => ({ gitBusy: { ...s.gitBusy, [id]: false } }));
+    }
+  },
+
+  deleteBranch: async (id, branch) => {
+    set((s) => ({ gitBusy: { ...s.gitBusy, [id]: true } }));
+    try {
+      const info = await api.gitBranchDelete(id, branch);
+      set((s) => ({ git: { ...s.git, [id]: info } }));
+      get().notify(`Deleted branch ${branch}`);
+      return true;
+    } catch (err) {
+      get().reportError(err);
+      return false;
+    } finally {
+      set((s) => ({ gitBusy: { ...s.gitBusy, [id]: false } }));
+    }
+  },
+
+  mergeInto: async (id, target) => {
+    const source = get().git[id]?.branch ?? "current branch";
+    set((s) => ({ gitBusy: { ...s.gitBusy, [id]: true } }));
+    try {
+      const outcome = await api.gitMergeInto(id, target);
+      await get().refreshGit({ force: true });
+      if (outcome.status === "merged") {
+        get().notify(`Merged ${source} into ${target}`, `You are now on ${target}.`);
+        return "merged";
+      }
+      return "conflicts";
+    } catch (err) {
+      get().reportError(err);
+      return null;
+    } finally {
+      set((s) => ({ gitBusy: { ...s.gitBusy, [id]: false } }));
+    }
+  },
+
+  mergeAbort: async (id) => {
+    set((s) => ({ gitBusy: { ...s.gitBusy, [id]: true } }));
+    try {
+      const info = await api.gitMergeAbort(id);
+      set((s) => ({ git: { ...s.git, [id]: info } }));
+      get().notify("Merge aborted", "Everything is back to the state before the merge.");
+      return true;
+    } catch (err) {
+      get().reportError(err);
+      return false;
+    } finally {
+      set((s) => ({ gitBusy: { ...s.gitBusy, [id]: false } }));
+    }
+  },
+
+  mergeComplete: async (id) => {
+    set((s) => ({ gitBusy: { ...s.gitBusy, [id]: true } }));
+    try {
+      const info = await api.gitMergeComplete(id);
+      set((s) => ({ git: { ...s.git, [id]: info } }));
+      get().notify("Merge completed");
+      return true;
+    } catch (err) {
+      get().reportError(err);
+      return false;
+    } finally {
+      set((s) => ({ gitBusy: { ...s.gitBusy, [id]: false } }));
+    }
+  },
+
   refreshSessions: async () => {
     try {
       const sessions = await api.agentSessionsList();
@@ -416,6 +572,33 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   setNewProjectOpen: (open) => set({ newProjectOpen: open }),
+
+  setNewProjectSeed: (seed) => set({ newProjectSeed: seed }),
+
+  setIdeaOpen: (open) => set({ ideaOpen: open }),
+
+  captureIdea: async (projectId, text) => {
+    try {
+      const fileName = await api.ideaCapture(projectId, text);
+      const project = projectId
+        ? get().projects.find((p) => p.id === projectId)
+        : null;
+      get().notify(
+        `Idea saved`,
+        projectId ? `${project?.name ?? projectId}/${fileName}` : "General ideas",
+      );
+      set((s) => ({
+        ideasVersion: s.ideasVersion + 1,
+        projects: projectId
+          ? s.projects.map((p) => (p.id === projectId ? { ...p, hasIdeas: true } : p))
+          : s.projects,
+      }));
+      return true;
+    } catch (err) {
+      get().reportError(err);
+      return false;
+    }
+  },
 
   startAgentSession: async (projectId, agentKind, initialPrompt) => {
     try {
@@ -480,9 +663,28 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }));
   },
 
-  setActiveSession: (sessionId) => {
-    void api.sessionsSetActive(sessionId, document.hasFocus()).catch(() => {});
-    if (sessionId) get().clearSessionAttention(sessionId);
+  setVisibleSessions: (sessionIds) => {
+    void api.sessionsSetActive(sessionIds, document.hasFocus()).catch(() => {});
+    if (sessionIds.length > 0) {
+      set((s) => ({
+        sessions: s.sessions.map((v) =>
+          sessionIds.includes(v.sessionId) ? { ...v, needsAttention: false } : v,
+        ),
+      }));
+    }
+  },
+
+  toggleGridSession: (sessionId) => {
+    const { gridIds, notify } = get();
+    if (gridIds.includes(sessionId)) {
+      set({ gridIds: gridIds.filter((id) => id !== sessionId) });
+      return;
+    }
+    if (gridIds.length >= 4) {
+      notify("Split view shows up to 4 sessions");
+      return;
+    }
+    set({ gridIds: [...gridIds, sessionId] });
   },
 
   killSession: async (sessionId) => {
@@ -498,6 +700,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       await api.agentSessionRemove(sessionId);
       set((s) => ({
         sessions: s.sessions.filter((v) => v.sessionId !== sessionId),
+        gridIds: s.gridIds.filter((id) => id !== sessionId),
         route:
           s.route.page === "agents" && s.route.sessionId === sessionId
             ? { page: "agents" }

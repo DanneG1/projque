@@ -735,6 +735,254 @@ pub async fn git_switch(
     .await
 }
 
+/// Commit everything ("Save your work"). `message` is an audited free-form
+/// string — see ops::commit_all for validation; it is only ever the value
+/// of `-m`.
+#[tauri::command]
+pub async fn git_commit(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    message: String,
+) -> Result<GitInfo, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        ops::commit_all(&dir, &message)?;
+        Ok(state.refresh_git_info(&id, &dir))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn git_history(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    limit: Option<u32>,
+) -> Result<Vec<crate::git::GitCommit>, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        ops::history(&dir, limit.unwrap_or(20))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn git_snapshots(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<Vec<crate::git::backup::Snapshot>, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        crate::git::backup::list_snapshots(&dir)
+    })
+    .await
+}
+
+/// Restore an earlier version (commit or snapshot) as a NEW commit, after
+/// snapshotting the current state. `hash` is an audited free-form string —
+/// hex-validated and resolved against this repository's own objects
+/// (ops::restore), so it can never be an option or reach another repo.
+#[tauri::command]
+pub async fn git_restore(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    hash: String,
+) -> Result<GitInfo, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        ops::restore(&dir, &hash)?;
+        Ok(state.refresh_git_info(&id, &dir))
+    })
+    .await
+}
+
+// --- Advanced git view (behind the display.advancedGit toggle) ---
+
+#[tauri::command]
+pub async fn git_graph(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    limit: Option<u32>,
+) -> Result<Vec<crate::git::inspect::GraphCommit>, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        crate::git::inspect::graph(&dir, limit.unwrap_or(100))
+    })
+    .await
+}
+
+/// Structured diff of one commit vs its parent. Hash validated like
+/// git_restore (hex + rev-parse verify).
+#[tauri::command]
+pub async fn git_commit_diff(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    hash: String,
+) -> Result<Vec<crate::git::inspect::FileDiff>, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        crate::git::inspect::commit_diff(&dir, &hash)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn git_workdir_diff(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<Vec<crate::git::inspect::FileDiff>, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        crate::git::inspect::workdir_diff(&dir)
+    })
+    .await
+}
+
+/// Create a branch at HEAD and switch to it. `name` is an audited free-form
+/// string — strict charset + git check-ref-format (see ops::branch_create).
+#[tauri::command]
+pub async fn git_branch_create(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    name: String,
+) -> Result<GitInfo, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        ops::branch_create(&dir, &name)?;
+        Ok(state.refresh_git_info(&id, &dir))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn git_branch_delete(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    branch: String,
+) -> Result<GitInfo, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        ops::branch_delete(&dir, &branch)?;
+        Ok(state.refresh_git_info(&id, &dir))
+    })
+    .await
+}
+
+/// Explicit-click network operation: push the current branch to origin
+/// (upstream set on first push). Never forced.
+#[tauri::command]
+pub async fn git_push(state: State<'_, Arc<AppState>>, id: String) -> Result<GitInfo, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        ops::push_current(&dir)?;
+        Ok(state.refresh_git_info(&id, &dir))
+    })
+    .await
+}
+
+/// Merge the CURRENT branch into `target` (the user's mental model: "merge
+/// what I'm standing on into develop"). Switches to the target; stops on
+/// conflicts (reported back) — the only exits from that state are
+/// git_merge_complete and git_merge_abort.
+#[tauri::command]
+pub async fn git_merge_into(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    target: String,
+) -> Result<ops::MergeOutcome, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        let outcome = ops::merge_into(&dir, &target)?;
+        state.refresh_git_info(&id, &dir);
+        Ok(outcome)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn git_merge_abort(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<GitInfo, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        ops::merge_abort(&dir)?;
+        Ok(state.refresh_git_info(&id, &dir))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn git_merge_complete(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<GitInfo, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        ops::merge_complete(&dir)?;
+        Ok(state.refresh_git_info(&id, &dir))
+    })
+    .await
+}
+
+/// Files currently in conflict during an in-progress merge (repo-relative
+/// names from git's own output, display only).
+#[tauri::command]
+pub async fn git_conflicts(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<Vec<String>, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        ops::conflicted_files(&dir)
+    })
+    .await
+}
+
+/// Plain-language summary of uncommitted changes via the user's own Claude
+/// Code CLI. Explicit-click only — it spends the user's Claude usage.
+#[tauri::command]
+pub async fn git_change_summary(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<String, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        let (settings, _) = state.settings();
+        crate::assist::change_summary(&dir, &settings.path_additions)
+    })
+    .await
+}
+
 // ---------------------------------------------------------------------------
 // Embedded agent sessions
 
@@ -756,8 +1004,16 @@ pub async fn agent_session_start(
     let state = state.inner().clone();
     run_blocking(move || {
         let dir = state.resolve_dir(&project_id)?;
+        let project_label = project_label(&state, &project_id);
         let (settings, _) = state.settings();
         let agent = launcher::resolve_agent(&settings, agent_kind.as_deref())?;
+        // Safety net for "the agent broke my project": snapshot the working
+        // tree to a hidden ref before the agent can touch it (see
+        // git/backup.rs). Best-effort — never blocks the session.
+        if dir.join(".git").exists() {
+            let reason = format!("Before {} session", agent.label);
+            let _ = crate::git::backup::create_snapshot(&dir, &reason);
+        }
         let path_env = which::augmented_path(&settings.path_additions);
         let mut args = agent.args.clone();
         // Kickoff prompt: content into the user's own agent (write-level
@@ -778,6 +1034,7 @@ pub async fn agent_session_start(
             app,
             StartSpec {
                 project_id: &project_id,
+                project_label: &project_label,
                 kind: SessionKind::Agent,
                 agent_kind: &agent.kind,
                 agent_label: &agent.label,
@@ -855,10 +1112,10 @@ pub async fn agent_session_remove(
 #[tauri::command]
 pub async fn sessions_set_active(
     state: State<'_, Arc<AppState>>,
-    session_id: Option<String>,
+    session_ids: Vec<String>,
     app_focused: bool,
 ) -> Result<(), AppError> {
-    state.agents.set_active(session_id, app_focused);
+    state.agents.set_active(session_ids, app_focused);
     Ok(())
 }
 
@@ -912,6 +1169,7 @@ pub async fn run_session_start(
     let state = state.inner().clone();
     run_blocking(move || {
         let dir = state.resolve_dir(&project_id)?;
+        let project_label = project_label(&state, &project_id);
         // Re-derive the enumeration at launch time; the requested target
         // must match exactly (the git_switch validation pattern).
         let targets = run::detect_targets(&dir);
@@ -928,6 +1186,7 @@ pub async fn run_session_start(
             app,
             StartSpec {
                 project_id: &project_id,
+                project_label: &project_label,
                 kind: SessionKind::Run,
                 agent_kind: &runner,
                 agent_label: &target.label,
@@ -963,6 +1222,113 @@ pub async fn run_session_open_url(
 // GitHub CLI layer + project creation / cloning
 
 use crate::github::{self, GhStatus, PrStatus};
+
+/// Display name for a project id, falling back to the id itself.
+fn project_label(state: &Arc<AppState>, project_id: &str) -> String {
+    let (projects, _) = state.projects();
+    projects
+        .iter()
+        .find(|p| p.id == project_id)
+        .map(|p| p.name.clone())
+        .unwrap_or_else(|| project_id.to_string())
+}
+
+/// "YYYY-MM-DD" (UTC) without a date-crate dependency; civil-from-days per
+/// Howard Hinnant's algorithm.
+fn today_utc() -> String {
+    let secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    civil_date(secs)
+}
+
+fn civil_date(secs: u64) -> String {
+    let z = (secs / 86400) as i64 + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = (z - era * 146_097) as u64;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = yoe as i64 + era * 400 + i64::from(m <= 2);
+    format!("{y:04}-{m:02}-{d:02}")
+}
+
+/// Append a captured idea to IDEAS.md, creating the file on first use.
+/// With a project id the file lives in that project (an existing IDEAS.md
+/// must resolve inside the project — symlink escapes rejected, same rule as
+/// document reads); with `id: None` the idea is general and goes to the
+/// fixed-name IDEAS.md in the app's own config directory.
+#[tauri::command]
+pub async fn idea_capture(
+    state: State<'_, Arc<AppState>>,
+    id: Option<String>,
+    text: String,
+) -> Result<String, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        if text.len() > 4096 {
+            return Err(AppError::InvalidInput { detail: "idea text too long".into() });
+        }
+        let cleaned: String = text
+            .replace("\r\n", "\n")
+            .chars()
+            .map(|c| if c == '\n' || !c.is_control() { c } else { ' ' })
+            .collect();
+        let cleaned = cleaned.trim();
+        if cleaned.is_empty() {
+            return Err(AppError::InvalidInput { detail: "idea text is empty".into() });
+        }
+        let path = match &id {
+            Some(id) => {
+                let dir = std::fs::canonicalize(state.resolve_dir(id)?)
+                    .map_err(|e| AppError::Io { detail: e.to_string() })?;
+                let path = dir.join("IDEAS.md");
+                if path.exists() {
+                    let real = std::fs::canonicalize(&path)
+                        .map_err(|e| AppError::Io { detail: e.to_string() })?;
+                    if !real.starts_with(&dir) || !real.is_file() {
+                        return Err(AppError::InvalidInput {
+                            detail: "IDEAS.md is not a regular file inside the project".into(),
+                        });
+                    }
+                }
+                path
+            }
+            None => {
+                std::fs::create_dir_all(&state.config_dir)?;
+                state.config_dir.join("IDEAS.md")
+            }
+        };
+        let mut content = match std::fs::read_to_string(&path) {
+            Ok(existing) => existing,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => "# Ideas\n".to_string(),
+            Err(e) => return Err(AppError::Io { detail: e.to_string() }),
+        };
+        if !content.ends_with('\n') {
+            content.push('\n');
+        }
+        // One list item; continuation lines stay inside it via indentation.
+        let body = cleaned.replace('\n', "\n  ");
+        content.push_str(&format!("\n- [ ] {} *({})*\n", body, today_utc()));
+        std::fs::write(&path, content).map_err(|e| AppError::Io { detail: e.to_string() })?;
+        Ok("IDEAS.md".to_string())
+    })
+    .await
+}
+
+/// Mirror the in-app attention count on the dock/taskbar badge. Count only,
+/// no content; ignored on platforms without badge support.
+#[tauri::command]
+pub async fn app_set_badge(app: AppHandle, count: u32) -> Result<(), AppError> {
+    use tauri::Manager;
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.set_badge_count(if count == 0 { None } else { Some(i64::from(count)) });
+    }
+    Ok(())
+}
 
 #[tauri::command]
 pub async fn github_status(state: State<'_, Arc<AppState>>) -> Result<GhStatus, AppError> {
@@ -1144,4 +1510,273 @@ pub async fn project_clone(
         Ok(project::view(&project))
     })
     .await
+}
+
+// ---------------------------------------------------------------------------
+// Publish to GitHub Pages
+
+use crate::github::{PublishOutcome, PublishPreflight};
+
+/// Local-only dialog data: gh status, secrets scan, static-site detection.
+#[tauri::command]
+pub async fn publish_preflight(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<PublishPreflight, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        let (settings, _) = state.settings();
+        github::publish_preflight(&dir, &settings.path_additions)
+    })
+    .await
+}
+
+/// Explicit-consent network operation: push (creating the public repository
+/// if needed) and enable GitHub Pages. Free tier only; re-runs the secrets
+/// scan as defense in depth.
+#[tauri::command]
+pub async fn publish_run(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<PublishOutcome, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        let (settings, _) = state.settings();
+        github::publish(&dir, &settings.path_additions)
+    })
+    .await
+}
+
+// ---------------------------------------------------------------------------
+// Setup doctor
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DoctorItem {
+    pub id: String,
+    pub label: String,
+    pub ok: bool,
+    pub detail: Option<String>,
+    /// True when doctor_fix knows how to help with this item.
+    pub fixable: bool,
+}
+
+fn home_dir() -> std::path::PathBuf {
+    std::env::var_os("HOME")
+        .map(std::path::PathBuf::from)
+        .filter(|p| p.is_dir())
+        .unwrap_or_else(std::env::temp_dir)
+}
+
+#[tauri::command]
+pub async fn doctor_status(state: State<'_, Arc<AppState>>) -> Result<Vec<DoctorItem>, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let (settings, _) = state.settings();
+        let mut items = Vec::new();
+
+        let git_version = state.git_version();
+        items.push(DoctorItem {
+            id: "git".into(),
+            label: "Git installed".into(),
+            ok: git_version.is_some(),
+            detail: git_version.clone().or_else(|| Some("Install from git-scm.com or via Xcode command line tools".into())),
+            fixable: false,
+        });
+
+        if git_version.is_some() {
+            let home = home_dir();
+            let get = |key: &str| {
+                crate::git::runner::git(&home, &["config", "--get", key])
+                    .ok()
+                    .filter(|o| o.success)
+                    .map(|o| o.stdout.trim().to_string())
+                    .filter(|v| !v.is_empty())
+            };
+            let name = get("user.name");
+            let email = get("user.email");
+            let ok = name.is_some() && email.is_some();
+            items.push(DoctorItem {
+                id: "gitIdentity".into(),
+                label: "Git knows who you are".into(),
+                ok,
+                detail: if ok {
+                    Some(format!("{} <{}>", name.unwrap_or_default(), email.unwrap_or_default()))
+                } else {
+                    Some("Needed to save commits. Run: git config --global user.name \"Your Name\" and git config --global user.email you@example.com".into())
+                },
+                fixable: false,
+            });
+        }
+
+        let claude = which::resolve_program("claude", &settings.path_additions);
+        items.push(DoctorItem {
+            id: "claude".into(),
+            label: "Claude Code installed".into(),
+            ok: claude.is_some(),
+            detail: claude
+                .map(|p| p.display().to_string())
+                .or_else(|| Some("Install with: npm install -g @anthropic-ai/claude-code — then run claude once to log in".into())),
+            fixable: false,
+        });
+
+        if settings.agent.kind != "claude" {
+            let agent = launcher::resolve_agent(&settings, None);
+            items.push(DoctorItem {
+                id: "agent".into(),
+                label: format!(
+                    "Agent configured ({})",
+                    agent.as_ref().map(|a| a.label.clone()).unwrap_or_else(|_| settings.agent.kind.clone())
+                ),
+                ok: agent.is_ok(),
+                detail: agent.err().map(|e| e.to_string()),
+                fixable: false,
+            });
+        }
+
+        let gh = github::status(&settings.path_additions);
+        items.push(DoctorItem {
+            id: "gh".into(),
+            label: "GitHub CLI installed".into(),
+            ok: gh.installed,
+            detail: (!gh.installed).then(|| "Needed for creating repositories and publishing. Install from cli.github.com".into()),
+            fixable: false,
+        });
+        if gh.installed {
+            items.push(DoctorItem {
+                id: "ghAuth".into(),
+                label: "GitHub account connected".into(),
+                ok: gh.authenticated,
+                detail: (!gh.authenticated).then(|| "Fix opens your terminal with the GitHub login".into()),
+                fixable: !gh.authenticated,
+            });
+        }
+
+        let node = which::resolve_program("node", &settings.path_additions);
+        items.push(DoctorItem {
+            id: "node".into(),
+            label: "Node.js installed".into(),
+            ok: node.is_some(),
+            detail: node
+                .map(|p| p.display().to_string())
+                .or_else(|| Some("Optional — needed to run most web projects. Install from nodejs.org".into())),
+            fixable: false,
+        });
+
+        Ok(items)
+    })
+    .await
+}
+
+/// Run the guided fix for a doctor item. Closed set of kinds; each fix is a
+/// fixed argv opened in the user's own terminal, exactly like Open Agent.
+#[tauri::command]
+pub async fn doctor_fix(
+    app: AppHandle,
+    state: State<'_, Arc<AppState>>,
+    kind: String,
+) -> Result<(), AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let (settings, _) = state.settings();
+        match kind.as_str() {
+            "ghAuth" => {
+                let gh = which::resolve_program("gh", &settings.path_additions)
+                    .ok_or(AppError::GhUnavailable)?;
+                let cache_dir = app
+                    .path()
+                    .app_cache_dir()
+                    .map_err(|e| AppError::Io { detail: e.to_string() })?;
+                launcher::open_terminal_running(
+                    &settings,
+                    &home_dir(),
+                    gh,
+                    vec!["auth".into(), "login".into()],
+                    &cache_dir,
+                )
+            }
+            _ => Err(AppError::InvalidInput { detail: format!("no fix available for '{kind}'") }),
+        }
+    })
+    .await
+}
+
+// ---------------------------------------------------------------------------
+// Ideas checklist
+
+use crate::project::ideas::{self, IdeaItem};
+
+/// Resolve the IDEAS.md for a project, or the general one (config dir) for
+/// `id: None`. Returns None when the file does not exist yet.
+fn ideas_path(state: &Arc<AppState>, id: Option<&str>) -> Result<Option<std::path::PathBuf>, AppError> {
+    match id {
+        Some(id) => {
+            let dir = state.resolve_dir(id)?;
+            Ok(crate::project::docs::find_doc(&dir, crate::project::docs::DocKind::Ideas, None))
+        }
+        None => {
+            let path = state.config_dir.join("IDEAS.md");
+            Ok(path.is_file().then_some(path))
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn ideas_list(
+    state: State<'_, Arc<AppState>>,
+    id: Option<String>,
+) -> Result<Vec<IdeaItem>, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let Some(path) = ideas_path(&state, id.as_deref())? else {
+            return Ok(Vec::new());
+        };
+        let content = std::fs::read_to_string(&path)?;
+        Ok(ideas::parse(&content))
+    })
+    .await
+}
+
+/// Toggle one checklist item in IDEAS.md. The line handle is re-validated
+/// against the current file content; a mismatch (file edited meanwhile)
+/// fails with a friendly conflict instead of corrupting the file.
+#[tauri::command]
+pub async fn idea_set_done(
+    state: State<'_, Arc<AppState>>,
+    id: Option<String>,
+    line: u32,
+    done: bool,
+) -> Result<Vec<IdeaItem>, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let Some(path) = ideas_path(&state, id.as_deref())? else {
+            return Err(AppError::InvalidInput { detail: "IDEAS.md not found".into() });
+        };
+        let content = std::fs::read_to_string(&path)?;
+        let updated = ideas::set_done(&content, line, done).ok_or_else(|| AppError::InvalidInput {
+            detail: "IDEAS.md changed since it was loaded — reload and try again".into(),
+        })?;
+        std::fs::write(&path, &updated)?;
+        Ok(ideas::parse(&updated))
+    })
+    .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::civil_date;
+
+    #[test]
+    fn civil_date_from_unix_seconds() {
+        assert_eq!(civil_date(0), "1970-01-01");
+        assert_eq!(civil_date(86_399), "1970-01-01");
+        assert_eq!(civil_date(86_400), "1970-01-02");
+        assert_eq!(civil_date(1_709_164_800), "2024-02-29"); // leap day
+        assert_eq!(civil_date(1_788_048_000), "2026-08-30");
+        assert_eq!(civil_date(4_102_444_799), "2099-12-31");
+    }
 }
