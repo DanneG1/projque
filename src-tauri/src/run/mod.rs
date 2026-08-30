@@ -113,6 +113,27 @@ fn package_manager(dir: &Path) -> &'static str {
     }
 }
 
+/// Does this directory look like a project root by its own manifest files?
+/// Used by discovery to surface non-git projects (e.g. a folder that hasn't
+/// been `git init`'d yet).
+pub fn has_manifest(dir: &Path) -> bool {
+    const MANIFESTS: &[&str] = &[
+        "package.json",
+        "Cargo.toml",
+        "go.mod",
+        "pyproject.toml",
+        "pom.xml",
+        "build.gradle",
+        "build.gradle.kts",
+        "Gemfile",
+        "composer.json",
+    ];
+    if MANIFESTS.iter().any(|m| dir.join(m).is_file()) {
+        return true;
+    }
+    has_dotnet_project(dir)
+}
+
 pub fn has_dotnet_project(dir: &Path) -> bool {
     let Ok(entries) = std::fs::read_dir(dir) else { return false };
     entries.flatten().any(|entry| {

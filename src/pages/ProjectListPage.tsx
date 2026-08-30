@@ -112,6 +112,9 @@ export function ProjectListPage() {
         >
           <Icon name="search" size={14} /> Scan folders
         </button>
+        <button className="btn" onClick={() => void addProjectManual()}>
+          <Icon name="plus" size={14} /> Add folder
+        </button>
       </div>
 
       {!gitAvailable && (

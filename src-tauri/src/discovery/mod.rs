@@ -32,6 +32,8 @@ pub struct DiscoveredRepo {
     pub depth: usize,
     pub already_imported: bool,
     pub nested_inside: Option<String>,
+    /// True when a `.git` was found; false for a manifest-only project.
+    pub is_git: bool,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -103,8 +105,11 @@ pub fn scan(
                     continue;
                 }
             };
-            // `.git` can be a directory (normal repo) or a file (worktree).
-            if !entry.path().join(".git").exists() {
+            // A candidate is a git repo (`.git` dir or worktree file) OR a
+            // directory that looks like a project by its own manifest files
+            // (so a folder not yet `git init`'d still shows up).
+            let is_git = entry.path().join(".git").exists();
+            if !is_git && !crate::run::has_manifest(entry.path()) {
                 continue;
             }
             let canon = match std::fs::canonicalize(entry.path()) {
@@ -133,6 +138,7 @@ pub fn scan(
                 depth: entry.depth(),
                 already_imported,
                 nested_inside,
+                is_git,
             });
             seen.insert(canon.clone(), candidate_id.clone());
             table.insert(candidate_id, canon);
@@ -200,6 +206,21 @@ mod tests {
         assert!(!names.contains(&"dep"));
         assert_eq!(result.candidates.len(), table.len());
 
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn detects_manifest_only_projects_without_git() {
+        let root = std::env::temp_dir().join(format!("projque-manifest-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(root.join("node-proj")).unwrap();
+        std::fs::write(root.join("node-proj/package.json"), "{}").unwrap();
+        mkrepo(&root.join("git-proj"));
+        let (result, _) = scan(std::slice::from_ref(&root), 3, &[]);
+        let by_name = |n: &str| result.candidates.iter().find(|c| c.name == n);
+        assert!(by_name("node-proj").is_some(), "manifest-only project not found");
+        assert_eq!(by_name("node-proj").unwrap().is_git, false);
+        assert_eq!(by_name("git-proj").unwrap().is_git, true);
         let _ = std::fs::remove_dir_all(&root);
     }
 

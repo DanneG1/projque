@@ -98,3 +98,8 @@ button {
   color: var(--text);
   filter: none;
 }
+
+.btn-ghost[data-active] {
+  background: var(--bg-sunken);
+  color: var(--text);
+}

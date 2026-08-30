@@ -126,6 +126,15 @@ export default function App() {
         <button className={styles.brand} onClick={() => setRoute({ page: "list" })}>
           <span className={styles.glyph} aria-hidden>◧</span> ProjQue
         </button>
+        {route.page !== "list" && (
+          <button
+            className="btn btn-ghost"
+            onClick={() => setRoute({ page: "list" })}
+            title="Back to projects (Esc)"
+          >
+            <Icon name="chevron" size={15} style={{ transform: "scaleX(-1)" }} /> Projects
+          </button>
+        )}
         <div className={styles.spacer} />
         <button
           className="btn btn-primary"
@@ -144,11 +153,12 @@ export default function App() {
         <button
           className="btn btn-ghost"
           aria-label="Settings"
+          data-active={route.page === "settings" || undefined}
           onClick={() =>
             setRoute(route.page === "settings" ? { page: "list" } : { page: "settings" })
           }
         >
-          {route.page === "settings" ? "Back" : <Icon name="settings" size={16} />}
+          <Icon name="settings" size={16} />
         </button>
       </header>
       <ConfigRecoveryBanner />

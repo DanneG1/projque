@@ -6,6 +6,7 @@ export interface DiscoveredRepo {
   depth: number;
   alreadyImported: boolean;
   nestedInside?: string;
+  isGit: boolean;
 }
 
 export interface ScanIssue {
