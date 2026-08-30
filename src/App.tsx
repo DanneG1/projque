@@ -9,6 +9,7 @@ import { ProjectDetailPage } from "./pages/ProjectDetailPage";
 import { QuitConfirmDialog } from "./components/agent/QuitConfirmDialog";
 import { NewProjectDialog } from "./components/NewProjectDialog";
 import { Icon } from "./components/Icon";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import type { AgentSessionView } from "./models";
 
 const AgentsPage = lazy(() =>
@@ -163,15 +164,17 @@ export default function App() {
       </header>
       <ConfigRecoveryBanner />
       <main className={styles.main}>
-        {route.page === "list" && <ProjectListPage />}
-        {route.page === "settings" && <SettingsPage />}
-        {route.page === "import" && <ImportPage />}
-        {route.page === "detail" && <ProjectDetailPage projectId={route.projectId} />}
-        {route.page === "agents" && (
-          <Suspense fallback={null}>
-            <AgentsPage sessionId={route.sessionId} />
-          </Suspense>
-        )}
+        <ErrorBoundary key={route.page} onReset={() => setRoute({ page: "list" })}>
+          {route.page === "list" && <ProjectListPage />}
+          {route.page === "settings" && <SettingsPage />}
+          {route.page === "import" && <ImportPage />}
+          {route.page === "detail" && <ProjectDetailPage projectId={route.projectId} />}
+          {route.page === "agents" && (
+            <Suspense fallback={null}>
+              <AgentsPage sessionId={route.sessionId} />
+            </Suspense>
+          )}
+        </ErrorBoundary>
       </main>
       <Toasts />
       <QuitConfirmDialog />
