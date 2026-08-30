@@ -1,0 +1,39 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 4px 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chip:hover {
+  filter: brightness(1.03);
+}
+
+.chip[data-hot] {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-weak);
+}
+
+.points {
+  font-size: 10.5px;
+  color: var(--text-faint);
+  border-left: 1px solid var(--border);
+  padding-left: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chip[data-hot] .points {
+  color: var(--accent);
+  border-color: var(--accent);
+  opacity: 0.8;
+}

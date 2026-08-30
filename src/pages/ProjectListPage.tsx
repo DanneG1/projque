@@ -4,6 +4,7 @@ import { FilterTabs } from "../components/FilterTabs";
 import { ProjectCard } from "../components/ProjectCard";
 import { SearchBar } from "../components/SearchBar";
 import { SparkBanner } from "../components/SparkBanner";
+import { StreakChip } from "../components/StreakChip";
 import { Icon } from "../components/Icon";
 import { IdeasPanel } from "../components/IdeasPanel";
 import { favoriteShortcuts } from "../utils/shortcuts";
@@ -100,6 +101,7 @@ export function ProjectListPage() {
       <div className={styles.toolbar}>
         <SearchBar ref={searchRef} />
         <FilterTabs />
+        <StreakChip />
         <div className={styles.spacer} />
         <button
           className="btn btn-ghost"

@@ -27,6 +27,7 @@ export type IconName =
   | "clock"
   | "trash"
   | "star"
+  | "flame"
   | "locate";
 
 const PATHS: Record<IconName, ReactElement> = {
@@ -84,6 +85,13 @@ const PATHS: Record<IconName, ReactElement> = {
   ),
   trash: <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V7" strokeLinecap="round" strokeLinejoin="round" />,
   star: <path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8-4.2-4.1 5.9-.9z" strokeLinejoin="round" />,
+  flame: (
+    <path
+      d="M12 2.8c.7 3.2-3.5 4.9-3.5 8.7a4.5 4.5 0 0 0 9 0c0-2.6-1.5-4.3-2.6-5.9-.2 1.3-.8 2.2-1.7 2.7.3-1.8-.1-3.9-1.2-5.5zM10 16.5a2 2 0 0 0 4 0c0-1.2-.9-1.9-2-3-1.1 1.1-2 1.8-2 3z"
+      fill="currentColor"
+      stroke="none"
+    />
+  ),
   idea: (
     <path
       d="M9.5 17.5h5M10 20.5h4M12 3a6 6 0 0 0-3.9 10.6c.8.7 1.2 1.6 1.4 2.6l.1.8h4.8l.1-.8c.2-1 .6-1.9 1.4-2.6A6 6 0 0 0 12 3z"

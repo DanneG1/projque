@@ -1,7 +1,10 @@
 import { create } from "zustand";
 import { api } from "../api/ipc";
 import { parseAppError, userMessage, type AppError } from "../api/errors";
+import { computeActivity } from "../utils/activity";
+import { collectCelebrations } from "../utils/celebrate";
 import type {
+  ActivitySummary,
   AgentSessionView,
   ConfigStatus,
   ProjectStatus,
@@ -21,6 +24,7 @@ export type Route =
   | { page: "import" }
   | { page: "detail"; projectId: string }
   | { page: "git"; projectId?: string }
+  | { page: "progress" }
   | { page: "agents"; sessionId?: string };
 
 export type ProjectFilter = "all" | "favorites" | ProjectStatus;
@@ -46,6 +50,11 @@ interface AppStore {
   sessions: AgentSessionView[];
   /** Sessions shown together in the split view (order = pane order, max 4). */
   gridIds: string[];
+  /** Local activity data for streaks/progress, briefly cached. */
+  activity: { summary: ActivitySummary; fetchedAt: number } | null;
+  /** Set when something was just celebrated — the Progress page shows
+   *  confetti while this is fresh. */
+  celebratedAt: number | null;
   quitPrompt: number | null;
   toasts: Toast[];
   initialized: boolean;
@@ -88,6 +97,7 @@ interface AppStore {
   mergeInto: (id: string, target: string) => Promise<"merged" | "conflicts" | null>;
   mergeAbort: (id: string) => Promise<boolean>;
   mergeComplete: (id: string) => Promise<boolean>;
+  loadActivity: (opts?: { force?: boolean }) => Promise<void>;
   refreshSessions: () => Promise<void>;
   startAgentSession: (
     projectId: string,
@@ -140,6 +150,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
   gitBusy: {},
   sessions: [],
   gridIds: [],
+  activity: null,
+  celebratedAt: null,
   quitPrompt: null,
   newProjectOpen: false,
   newProjectSeed: null,
@@ -438,7 +450,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set((s) => ({ gitBusy: { ...s.gitBusy, [id]: true } }));
     try {
       const info = await api.gitCommit(id, message);
-      set((s) => ({ git: { ...s.git, [id]: info } }));
+      // A fresh commit changes streaks/points — recompute on next look.
+      set((s) => ({ git: { ...s.git, [id]: info }, activity: null }));
       get().notify("Committed", "Your work is saved in the project history.");
       return true;
     } catch (err) {
@@ -520,6 +533,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       const outcome = await api.gitMergeInto(id, target);
       await get().refreshGit({ force: true });
       if (outcome.status === "merged") {
+        set({ activity: null });
         get().notify(`Merged ${source} into ${target}`, `You are now on ${target}.`);
         return "merged";
       }
@@ -559,6 +573,26 @@ export const useAppStore = create<AppStore>((set, get) => ({
       return false;
     } finally {
       set((s) => ({ gitBusy: { ...s.gitBusy, [id]: false } }));
+    }
+  },
+
+  loadActivity: async (opts) => {
+    const cached = get().activity;
+    if (!opts?.force && cached && Date.now() - cached.fetchedAt < 60_000) return;
+    try {
+      const summary = await api.activitySummary();
+      set({ activity: { summary, fetchedAt: Date.now() } });
+      // Celebrate anything genuinely new (achievements, level-ups, records).
+      const done = get().projects.filter((p) => p.status === "done").length;
+      const messages = collectCelebrations(
+        computeActivity(summary, { doneProjects: done }),
+      );
+      if (messages.length > 0) {
+        set({ celebratedAt: Date.now() });
+        for (const m of messages) get().notify(m.title, m.detail);
+      }
+    } catch {
+      // Progress is decorative — never toast about it.
     }
   },
 

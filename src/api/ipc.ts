@@ -4,6 +4,7 @@
 
 import { invoke, type Channel } from "@tauri-apps/api/core";
 import type {
+  ActivitySummary,
   AddRootResult,
   AgentSessionView,
   BranchList,
@@ -164,6 +165,7 @@ export const api = {
     invoke<PublishPreflight>("publish_preflight", { id }),
   publishRun: (id: string) => invoke<PublishOutcome>("publish_run", { id }),
 
+  activitySummary: () => invoke<ActivitySummary>("activity_summary"),
   doctorStatus: () => invoke<DoctorItem[]>("doctor_status"),
   doctorFix: (kind: string) => invoke<void>("doctor_fix", { kind }),
 

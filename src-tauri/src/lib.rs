@@ -111,6 +111,7 @@ pub fn run() {
             commands::git_merge_abort,
             commands::git_merge_complete,
             commands::git_conflicts,
+            commands::activity_summary,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1766,6 +1766,96 @@ pub async fn idea_set_done(
     .await
 }
 
+// ---------------------------------------------------------------------------
+// Activity / progress (gamification)
+
+/// Raw material for the Progress page, computed entirely from local data:
+/// commit timestamps come from each repository's own log (branches only —
+/// snapshot refs excluded), idea counts from IDEAS.md files. Timestamps are
+/// bucketed into days on the frontend, where the user's timezone lives.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectActivity {
+    pub project_id: String,
+    /// Commit times (unix seconds) in the last ~53 weeks, newest first.
+    pub commit_timestamps: Vec<i64>,
+    /// All-time commit count across branches.
+    pub total_commits: u32,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivitySummary {
+    pub projects: Vec<ProjectActivity>,
+    pub ideas_open: u32,
+    pub ideas_done: u32,
+}
+
+#[tauri::command]
+pub async fn activity_summary(
+    state: State<'_, Arc<AppState>>,
+) -> Result<ActivitySummary, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let (projects, _) = state.projects();
+        let git_ready = state.git_version().is_some();
+        let mut out = Vec::new();
+        let mut ideas_open = 0u32;
+        let mut ideas_done = 0u32;
+
+        let count_ideas = |path: &std::path::Path, open: &mut u32, done: &mut u32| {
+            if let Ok(content) = std::fs::read_to_string(path) {
+                for item in ideas::parse(&content) {
+                    if item.done {
+                        *done += 1;
+                    } else {
+                        *open += 1;
+                    }
+                }
+            }
+        };
+
+        for project in &projects {
+            let Ok(dir) = state.resolve_dir(&project.id) else { continue };
+            if let Some(path) =
+                crate::project::docs::find_doc(&dir, crate::project::docs::DocKind::Ideas, None)
+            {
+                count_ideas(&path, &mut ideas_open, &mut ideas_done);
+            }
+            if !git_ready || !dir.join(".git").exists() {
+                continue;
+            }
+            let log = crate::git::runner::git(
+                &dir,
+                &["log", "--branches", "--since=371 days ago", "--pretty=format:%ct"],
+            );
+            let commit_timestamps: Vec<i64> = log
+                .ok()
+                .filter(|o| o.success)
+                .map(|o| o.stdout.lines().filter_map(|l| l.parse().ok()).collect())
+                .unwrap_or_default();
+            let total_commits = crate::git::runner::git(&dir, &["rev-list", "--count", "--branches"])
+                .ok()
+                .filter(|o| o.success)
+                .and_then(|o| o.stdout.trim().parse().ok())
+                .unwrap_or(0);
+            out.push(ProjectActivity {
+                project_id: project.id.clone(),
+                commit_timestamps,
+                total_commits,
+            });
+        }
+        // General ideas (config-dir IDEAS.md) count too — finishing anything
+        // should feel like progress.
+        let general = state.config_dir.join("IDEAS.md");
+        if general.is_file() {
+            count_ideas(&general, &mut ideas_open, &mut ideas_done);
+        }
+        Ok(ActivitySummary { projects: out, ideas_open, ideas_done })
+    })
+    .await
+}
+
 #[cfg(test)]
 mod tests {
     use super::civil_date;
