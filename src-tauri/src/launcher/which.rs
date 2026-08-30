@@ -65,6 +65,22 @@ pub fn resolve_program(program: &str, path_additions: &[String]) -> Option<PathB
 
 /// Is a macOS application (by `open -a` name) present?
 #[cfg(target_os = "macos")]
+/// Is a macOS application present anywhere LaunchServices knows about
+/// (standard app folders OR elsewhere, e.g. ~/Downloads), by display name?
+pub fn mac_app_present(app_name: &str) -> bool {
+    if mac_app_installed(app_name) {
+        return true;
+    }
+    // Fallback: ask Spotlight. Finds apps outside the standard folders.
+    std::process::Command::new("/usr/bin/mdfind")
+        .arg(format!("kMDItemFSName == '{app_name}.app'"))
+        .stdin(std::process::Stdio::null())
+        .output()
+        .map(|o| !o.stdout.is_empty())
+        .unwrap_or(false)
+}
+
+#[cfg(target_os = "macos")]
 pub fn mac_app_installed(app_name: &str) -> bool {
     Path::new(&format!("/Applications/{app_name}.app")).exists()
         || Path::new(&format!("/System/Applications/{app_name}.app")).exists()

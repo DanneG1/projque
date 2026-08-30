@@ -39,7 +39,7 @@ pub fn build_catalog(settings: &Settings) -> LauncherCatalog {
         kind: s.kind.into(),
         label: s.label.into(),
         program: s.program.into(),
-        installed: which::resolve_program(s.program, additions).is_some(),
+        installed: program_installed(s, additions),
     };
     let terminal_entry = |s: &TerminalSpec| CatalogEntry {
         kind: s.kind.into(),
@@ -107,9 +107,38 @@ fn resolve_tool(
 /// Open the configured editor with the project directory as its argument.
 pub fn open_editor(settings: &Settings, dir: &Path) -> Result<(), AppError> {
     let spec = catalog::find_editor(&settings.editor.kind);
-    let (program, mut args) = resolve_tool(&settings.editor, spec, settings)?;
-    args.push(dir.display().to_string());
-    spawn_detached(&program, &args, None)
+    match resolve_tool(&settings.editor, spec, settings) {
+        Ok((program, mut args)) => {
+            args.push(dir.display().to_string());
+            spawn_detached(&program, &args, None)
+        }
+        Err(AppError::ProgramNotFound { program }) => {
+            // macOS fallback: launch the .app via LaunchServices, which finds
+            // it anywhere (e.g. ~/Downloads) even without the CLI on PATH.
+            #[cfg(target_os = "macos")]
+            if let Some(app) = spec.and_then(|s| s.mac_app) {
+                if which::mac_app_present(app) {
+                    let open = Path::new("/usr/bin/open");
+                    let args = vec!["-a".to_string(), app.to_string(), dir.display().to_string()];
+                    return spawn_detached(open, &args, None);
+                }
+            }
+            Err(AppError::ProgramNotFound { program })
+        }
+        Err(e) => Err(e),
+    }
+}
+
+/// Is this tool available? CLI on PATH, or (macOS) its .app is registered.
+fn program_installed(spec: &ProgramSpec, path_additions: &[String]) -> bool {
+    if which::resolve_program(spec.program, path_additions).is_some() {
+        return true;
+    }
+    #[cfg(target_os = "macos")]
+    if let Some(app) = spec.mac_app {
+        return which::mac_app_present(app);
+    }
+    false
 }
 
 /// Open the configured terminal with cwd = project directory.

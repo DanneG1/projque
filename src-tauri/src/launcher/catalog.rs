@@ -18,25 +18,29 @@ pub struct ProgramSpec {
     pub platforms: &'static [&'static str],
     /// Agents only: accepts an initial prompt as a positional argument.
     pub prompt_arg: bool,
+    /// macOS .app display name, for detecting/launching a GUI editor via
+    /// LaunchServices when its CLI isn't on PATH (finds it anywhere,
+    /// including ~/Downloads). None for CLI-only tools (agents).
+    pub mac_app: Option<&'static str>,
 }
 
 pub const EDITORS: &[ProgramSpec] = &[
-    ProgramSpec { kind: "vscode", label: "Visual Studio Code", program: "code", args: &[], platforms: ALL, prompt_arg: false },
-    ProgramSpec { kind: "cursor", label: "Cursor", program: "cursor", args: &[], platforms: ALL, prompt_arg: false },
-    ProgramSpec { kind: "zed", label: "Zed", program: "zed", args: &[], platforms: &[MACOS, LINUX], prompt_arg: false },
-    ProgramSpec { kind: "sublime", label: "Sublime Text", program: "subl", args: &[], platforms: ALL, prompt_arg: false },
-    ProgramSpec { kind: "intellij", label: "IntelliJ IDEA", program: "idea", args: &[], platforms: ALL, prompt_arg: false },
-    ProgramSpec { kind: "rider", label: "JetBrains Rider", program: "rider", args: &[], platforms: ALL, prompt_arg: false },
-    ProgramSpec { kind: "webstorm", label: "WebStorm", program: "webstorm", args: &[], platforms: ALL, prompt_arg: false },
+    ProgramSpec { kind: "vscode", label: "Visual Studio Code", program: "code", args: &[], platforms: ALL, prompt_arg: false, mac_app: Some("Visual Studio Code") },
+    ProgramSpec { kind: "cursor", label: "Cursor", program: "cursor", args: &[], platforms: ALL, prompt_arg: false, mac_app: Some("Cursor") },
+    ProgramSpec { kind: "zed", label: "Zed", program: "zed", args: &[], platforms: &[MACOS, LINUX], prompt_arg: false, mac_app: Some("Zed") },
+    ProgramSpec { kind: "sublime", label: "Sublime Text", program: "subl", args: &[], platforms: ALL, prompt_arg: false, mac_app: Some("Sublime Text") },
+    ProgramSpec { kind: "intellij", label: "IntelliJ IDEA", program: "idea", args: &[], platforms: ALL, prompt_arg: false, mac_app: Some("IntelliJ IDEA") },
+    ProgramSpec { kind: "rider", label: "JetBrains Rider", program: "rider", args: &[], platforms: ALL, prompt_arg: false, mac_app: Some("Rider") },
+    ProgramSpec { kind: "webstorm", label: "WebStorm", program: "webstorm", args: &[], platforms: ALL, prompt_arg: false, mac_app: Some("WebStorm") },
 ];
 
 pub const AGENTS: &[ProgramSpec] = &[
-    ProgramSpec { kind: "claude", label: "Claude Code", program: "claude", args: &[], platforms: ALL, prompt_arg: true },
-    ProgramSpec { kind: "codex", label: "Codex CLI", program: "codex", args: &[], platforms: ALL, prompt_arg: true },
-    ProgramSpec { kind: "aider", label: "Aider", program: "aider", args: &[], platforms: ALL, prompt_arg: false },
-    ProgramSpec { kind: "gemini", label: "Gemini CLI", program: "gemini", args: &[], platforms: ALL, prompt_arg: true },
-    ProgramSpec { kind: "opencode", label: "opencode", program: "opencode", args: &[], platforms: ALL, prompt_arg: true },
-    ProgramSpec { kind: "cursor-agent", label: "Cursor Agent", program: "cursor-agent", args: &[], platforms: ALL, prompt_arg: false },
+    ProgramSpec { kind: "claude", label: "Claude Code", program: "claude", args: &[], platforms: ALL, prompt_arg: true, mac_app: None },
+    ProgramSpec { kind: "codex", label: "Codex CLI", program: "codex", args: &[], platforms: ALL, prompt_arg: true, mac_app: None },
+    ProgramSpec { kind: "aider", label: "Aider", program: "aider", args: &[], platforms: ALL, prompt_arg: false, mac_app: None },
+    ProgramSpec { kind: "gemini", label: "Gemini CLI", program: "gemini", args: &[], platforms: ALL, prompt_arg: true, mac_app: None },
+    ProgramSpec { kind: "opencode", label: "opencode", program: "opencode", args: &[], platforms: ALL, prompt_arg: true, mac_app: None },
+    ProgramSpec { kind: "cursor-agent", label: "Cursor Agent", program: "cursor-agent", args: &[], platforms: ALL, prompt_arg: false, mac_app: None },
 ];
 
 /// How a terminal is asked to open at a directory (and optionally run a
