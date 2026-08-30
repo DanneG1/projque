@@ -103,3 +103,17 @@ button {
   background: var(--bg-sunken);
   color: var(--text);
 }
+
+/* Native select: readable in both themes (color-scheme handles the popup). */
+select {
+  background: var(--bg-raised);
+  color: var(--text);
+  border: 1px solid var(--btn-border);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+}
+
+option {
+  background: var(--bg-raised);
+  color: var(--text);
+}

@@ -457,6 +457,8 @@ impl Registry {
 /// ANSI escapes (0x1b) and whitespace terminate the token naturally.
 fn find_local_url(chunk: &[u8]) -> Option<String> {
     let text = String::from_utf8_lossy(chunk);
+
+    // Pass 1: full http(s):// URLs.
     for (idx, _) in text.match_indices("http") {
         let rest = &text[idx..];
         let token: String = rest
@@ -471,25 +473,53 @@ fn find_local_url(chunk: &[u8]) -> Option<String> {
         let scheme = if token.starts_with("https://") { "https" } else { "http" };
         let host_port = after_scheme.split('/').next().unwrap_or("");
         let (host, port) = match host_port.rsplit_once(':') {
-            Some((h, p)) if p.chars().all(|c| c.is_ascii_digit()) && !p.is_empty() => {
-                (h, Some(p))
-            }
+            Some((h, p)) if p.chars().all(|c| c.is_ascii_digit()) && !p.is_empty() => (h, Some(p)),
             _ => (host_port, None),
         };
-        let normalized_host = match host {
-            "localhost" | "127.0.0.1" => Some("localhost"),
-            "0.0.0.0" | "[::]" | "[::1]" => Some("localhost"), // bind-all: reachable via localhost
-            _ => None,
-        };
-        let Some(host) = normalized_host else { continue };
+        if !is_local_host(host) {
+            continue;
+        }
         let path = after_scheme
             .split_once('/')
             .map(|(_, rest)| format!("/{rest}"))
             .unwrap_or_default();
         let port = port.map(|p| format!(":{p}")).unwrap_or_default();
-        return Some(format!("{scheme}://{host}{port}{path}"));
+        return Some(format!("{scheme}://localhost{port}{path}"));
     }
+
+    // Pass 2: bare "localhost:PORT" / "127.0.0.1:PORT" / "0.0.0.0:PORT".
+    for host in ["localhost", "127.0.0.1", "0.0.0.0", "[::1]"] {
+        if let Some(idx) = text.find(&format!("{host}:")) {
+            let after = &text[idx + host.len() + 1..];
+            let port: String = after.chars().take_while(|c| c.is_ascii_digit()).collect();
+            if !port.is_empty() {
+                return Some(format!("http://localhost:{port}"));
+            }
+        }
+    }
+
+    // Pass 3: "port NNNN" / "on port NNNN" phrasing (dev ports >= 1024 only,
+    // to avoid matching noise like SSH's port 22).
+    if let Some(idx) = text.to_lowercase().find("port ") {
+        let after = &text[idx + 5..];
+        let port: String = after
+            .trim_start()
+            .chars()
+            .take_while(|c| c.is_ascii_digit())
+            .collect();
+        if let Ok(n) = port.parse::<u32>() {
+            if (1024..=65535).contains(&n) {
+                return Some(format!("http://localhost:{n}"));
+            }
+        }
+    }
+
     None
+}
+
+/// Hosts that are reachable via localhost (bind-all addresses included).
+fn is_local_host(host: &str) -> bool {
+    matches!(host, "localhost" | "127.0.0.1" | "0.0.0.0" | "[::]" | "[::1]")
 }
 
 #[cfg(test)]
@@ -516,6 +546,17 @@ mod tests {
             find_local_url(b"[32mhttp://localhost:1420/[0m"),
             Some("http://localhost:1420/".to_string())
         );
+    }
+
+    #[test]
+    fn detects_bare_and_port_phrasing() {
+        // bare localhost:port
+        assert_eq!(find_local_url(b"  Local:   localhost:5173\n"), Some("http://localhost:5173".to_string()));
+        assert_eq!(find_local_url(b"listening on 0.0.0.0:8080"), Some("http://localhost:8080".to_string()));
+        // "port NNNN" phrasing
+        assert_eq!(find_local_url(b"Server running on port 3000"), Some("http://localhost:3000".to_string()));
+        // low ports (e.g. ssh 22) are not matched as dev servers
+        assert_eq!(find_local_url(b"connected to port 22"), None);
     }
 
     #[test]

@@ -20,7 +20,7 @@ export function GitSummary({ info }: { info: GitInfo | undefined }) {
         </span>
       )}
       {info.dirty ? (
-        <span className={styles.dirty}>● {info.changedFiles} changed</span>
+        <span className={styles.dirty}>{info.changedFiles} changed</span>
       ) : (
         <span className={styles.clean}>clean</span>
       )}

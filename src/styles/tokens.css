@@ -3,6 +3,7 @@
    blue source-list selection. Light is the hero; a graphite dark variant is
    provided. Existing token names are preserved so components need no churn. */
 :root {
+  color-scheme: light;
   /* surfaces */
   --bg: #ececee;
   --bg-raised: #ffffff;
@@ -66,6 +67,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --bg: #26262a;
     --bg-raised: #313137;
     --bg-raised-2: #34343a;
@@ -102,6 +104,7 @@
 }
 
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --bg: #26262a;
   --bg-raised: #313137;
   --bg-raised-2: #34343a;

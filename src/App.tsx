@@ -145,13 +145,14 @@ export default function App() {
         >
           <Icon name="plus" size={14} /> New
         </button>
-        <button className="btn" onClick={() => setRoute({ page: "agents" })}>
-          <span
-            className={styles.sessionDot}
-            data-attn={attentionCount > 0 || undefined}
-            data-live={runningSessions > 0 || undefined}
-          />
+        <button
+          className="btn"
+          data-attn={attentionCount > 0 || undefined}
+          title={attentionCount > 0 ? "A session needs your attention" : undefined}
+          onClick={() => setRoute({ page: "agents" })}
+        >
           Sessions{runningSessions > 0 ? ` ${runningSessions}` : ""}
+          {attentionCount > 0 && <span className={styles.attnFlag}>waiting</span>}
         </button>
         <button
           className="btn btn-ghost"

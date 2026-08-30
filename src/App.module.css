@@ -44,23 +44,21 @@
   flex: 1;
 }
 
-.sessionDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--text-faint);
-}
-
-.sessionDot[data-live] {
-  background: radial-gradient(circle at 35% 30%, #7fe08f, var(--status-active));
-}
-
-.sessionDot[data-attn] {
-  background: radial-gradient(circle at 35% 30%, #ffcf6b, var(--status-paused));
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--status-paused) 30%, transparent);
-}
-
 .main {
   flex: 1;
   overflow-y: auto;
+}
+
+/* attention flag on the Sessions button — a small tag, not a circle */
+.attnFlag {
+  margin-left: 6px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: var(--status-paused);
+  background: color-mix(in srgb, var(--status-paused) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--status-paused) 40%, transparent);
 }
