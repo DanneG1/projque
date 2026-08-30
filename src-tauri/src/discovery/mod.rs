@@ -31,7 +31,6 @@ pub struct DiscoveredRepo {
     pub root_index: usize,
     pub depth: usize,
     pub already_imported: bool,
-    pub nested_inside: Option<String>,
     /// True when a `.git` was found; false for a manifest-only project.
     pub is_git: bool,
 }
@@ -119,13 +118,20 @@ pub fn scan(
             if seen.contains_key(&canon) {
                 continue;
             }
+            // Once a project is found, everything inside it belongs to that
+            // project — never list nested sub-directories (src-tauri,
+            // functions, monorepo packages, a repo's own manifests) as their
+            // own projects. The top-level candidate in `seen` shadows all of
+            // its descendants.
+            if nearest_ancestor_candidate(&canon, &seen).is_some() {
+                continue;
+            }
             if candidates.len() >= MAX_CANDIDATES {
                 truncated = true;
                 break;
             }
             seq += 1;
             let candidate_id = format!("cand-{seq}");
-            let nested_inside = nearest_ancestor_candidate(&canon, &seen);
             let already_imported = imported_paths.iter().any(|p| p == &canon);
             candidates.push(DiscoveredRepo {
                 candidate_id: candidate_id.clone(),
@@ -137,7 +143,6 @@ pub fn scan(
                 root_index,
                 depth: entry.depth(),
                 already_imported,
-                nested_inside,
                 is_git,
             });
             seen.insert(canon.clone(), candidate_id.clone());
@@ -221,6 +226,25 @@ mod tests {
         assert!(by_name("node-proj").is_some(), "manifest-only project not found");
         assert_eq!(by_name("node-proj").unwrap().is_git, false);
         assert_eq!(by_name("git-proj").unwrap().is_git, true);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn nested_projects_not_listed() {
+        let root = std::env::temp_dir().join(format!("projque-nested-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        // A git repo whose sub-dirs have their own manifests (like src-tauri,
+        // functions, a monorepo package) — only the repo itself should show.
+        let repo = root.join("myapp");
+        mkrepo(&repo);
+        std::fs::write(repo.join("package.json"), "{}").unwrap();
+        std::fs::create_dir_all(repo.join("src-tauri")).unwrap();
+        std::fs::write(repo.join("src-tauri/Cargo.toml"), "[package]").unwrap();
+        std::fs::create_dir_all(repo.join("functions")).unwrap();
+        std::fs::write(repo.join("functions/package.json"), "{}").unwrap();
+        let (result, _) = scan(std::slice::from_ref(&root), 3, &[]);
+        let names: Vec<&str> = result.candidates.iter().map(|c| c.name.as_str()).collect();
+        assert_eq!(names, vec!["myapp"], "only the top-level project should be listed, got {names:?}");
         let _ = std::fs::remove_dir_all(&root);
     }
 

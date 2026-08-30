@@ -5,7 +5,6 @@ export interface DiscoveredRepo {
   rootIndex: number;
   depth: number;
   alreadyImported: boolean;
-  nestedInside?: string;
   isGit: boolean;
 }
 

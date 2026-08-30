@@ -69,7 +69,6 @@ export function ImportPage() {
             <span className={styles.name}>
               {c.name}
               {!c.isGit && <span className={styles.tag}>no git</span>}
-              {c.nestedInside && <span className={styles.tag}>nested</span>}
               {c.alreadyImported && <span className={styles.tag}>imported</span>}
             </span>
             <code className={styles.path}>{c.displayPath}</code>
