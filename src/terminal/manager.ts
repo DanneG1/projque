@@ -3,12 +3,22 @@
 // term.open() is deferred until the host is actually in the DOM — opening on
 // a detached element renders a blank/black terminal in WKWebView.
 
-import { Terminal } from "@xterm/xterm";
+import * as XtermMod from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { Channel } from "@tauri-apps/api/core";
 import "@xterm/xterm/css/xterm.css";
 import { api } from "../api/ipc";
 import { useAppStore } from "../store/useAppStore";
+
+// @xterm/xterm 6's ESM entry exposes only a default export ({ Terminal }) —
+// no named `Terminal`. Resolve it in a way that works under both Vite's dev
+// pre-bundle and the production rollup build.
+type XtermModule = typeof import("@xterm/xterm");
+const mod = XtermMod as unknown as {
+  Terminal?: XtermModule["Terminal"];
+  default?: { Terminal: XtermModule["Terminal"] };
+};
+const Terminal: XtermModule["Terminal"] = mod.Terminal ?? mod.default!.Terminal;
 
 interface Entry {
   term: Terminal;
