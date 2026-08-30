@@ -1,45 +1,48 @@
 // xterm lifecycle singleton, deliberately OUTSIDE React: one live Terminal
 // per session, kept alive across tab switches by reparenting its host div.
-// term.open() is deferred until the host is actually in the DOM — opening on
-// a detached element renders a blank/black terminal in WKWebView.
+// term.open() is deferred until the host is in the DOM (opening detached
+// renders blank in WKWebView), and the xterm constructor is resolved lazily
+// inside ensureEntry — resolving it at module load can throw under some
+// bundler/webview interop and abort module init, which would leave module
+// consts (e.g. `entries`) permanently in the temporal dead zone even though
+// the hoisted functions stay callable.
 
 import * as XtermMod from "@xterm/xterm";
-import { FitAddon } from "@xterm/addon-fit";
+import * as FitMod from "@xterm/addon-fit";
 import { Channel } from "@tauri-apps/api/core";
 import "@xterm/xterm/css/xterm.css";
 import { api } from "../api/ipc";
 import { useAppStore } from "../store/useAppStore";
 
-// This module owns singleton state (live xterm instances). Hot-swapping it
-// leaves stale/duplicated state and TDZ errors, so opt out of HMR — Vite
-// does a full reload when it changes instead.
-if (import.meta.hot) {
-  import.meta.hot.accept(() => {
-    import.meta.hot?.invalidate();
-  });
-}
-
-// @xterm/xterm 6's ESM entry exposes only a default export ({ Terminal }) —
-// no named `Terminal`. Resolve it in a way that works under both Vite's dev
-// pre-bundle and the production rollup build.
 type XtermModule = typeof import("@xterm/xterm");
-const mod = XtermMod as unknown as {
-  Terminal?: XtermModule["Terminal"];
-  default?: { Terminal: XtermModule["Terminal"] };
-};
-const Terminal: XtermModule["Terminal"] = mod.Terminal ?? mod.default!.Terminal;
 type XtermTerminal = InstanceType<XtermModule["Terminal"]>;
 
 interface Entry {
   term: XtermTerminal;
-  fit: FitAddon;
+  fit: InstanceType<typeof import("@xterm/addon-fit")["FitAddon"]>;
   channel: Channel<unknown>;
   hostDiv: HTMLDivElement;
   opened: boolean;
   attached: boolean;
 }
 
+// Declared first so it is always initialized before any function runs.
 const entries = new Map<string, Entry>();
+
+/** Resolve a constructor from a module namespace across interop shapes
+ *  (named export, default export, or default-wrapped). Never called at
+ *  module load. */
+function resolveCtor<T>(mod: unknown, name: string): T {
+  const m = mod as Record<string, unknown> & { default?: Record<string, unknown> };
+  const ctor = m[name] ?? m.default?.[name] ?? m.default;
+  if (typeof ctor !== "function") {
+    throw new Error(
+      `xterm: '${name}' constructor not found. Module keys: [${Object.keys(m).join(", ")}]` +
+        (m.default ? `; default keys: [${Object.keys(m.default).join(", ")}]` : ""),
+    );
+  }
+  return ctor as T;
+}
 
 function themeFromTokens() {
   const tokens = getComputedStyle(document.documentElement);
@@ -63,6 +66,8 @@ function writeChunk(term: XtermTerminal, message: unknown) {
 function ensureEntry(sessionId: string): Entry {
   let entry = entries.get(sessionId);
   if (!entry) {
+    const Terminal = resolveCtor<XtermModule["Terminal"]>(XtermMod, "Terminal");
+    const FitAddon = resolveCtor<typeof import("@xterm/addon-fit")["FitAddon"]>(FitMod, "FitAddon");
     const term = new Terminal({
       fontFamily: "Menlo, Monaco, ui-monospace, SFMono-Regular, Consolas, monospace",
       fontSize: 13,
@@ -86,18 +91,13 @@ function ensureEntry(sessionId: string): Entry {
   return entry;
 }
 
-/** Reparent the terminal into a mount point, opening it (once) now that the
- *  host is in the DOM, then fit + attach + focus. */
 export function mountTerminal(sessionId: string, parent: HTMLElement) {
   const entry = ensureEntry(sessionId);
-  if (entry.hostDiv.parentElement !== parent) {
-    parent.appendChild(entry.hostDiv);
-  }
+  if (entry.hostDiv.parentElement !== parent) parent.appendChild(entry.hostDiv);
   if (!entry.opened) {
-    entry.term.open(entry.hostDiv); // host is now connected to the document
+    entry.term.open(entry.hostDiv); // host is connected to the document now
     entry.opened = true;
   }
-  // Fit after layout settles, then attach the output channel exactly once.
   requestAnimationFrame(() => {
     fitTerminal(sessionId);
     entry.term.focus();
@@ -134,7 +134,6 @@ export function applyTheme() {
   for (const entry of entries.values()) entry.term.options.theme = theme;
 }
 
-/** Initial size for agent_session_start, measured against a probe div. */
 export function probeSize(parent: HTMLElement | null): { rows: number; cols: number } {
   if (!parent || parent.clientHeight === 0) return { rows: 30, cols: 100 };
   return {

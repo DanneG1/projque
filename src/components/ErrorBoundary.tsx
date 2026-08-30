@@ -49,15 +49,26 @@ export class ErrorBoundary extends Component<Props, State> {
           >
             {this.state.error.stack}
           </pre>
-          <button
-            className="btn"
-            onClick={() => {
-              this.setState({ error: null });
-              this.props.onReset();
-            }}
-          >
-            Back to projects
-          </button>
+          <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+            <button
+              className="btn"
+              onClick={() => {
+                const text = `${this.state.error?.message}\n\n${this.state.error?.stack ?? ""}`;
+                void navigator.clipboard.writeText(text).catch(() => {});
+              }}
+            >
+              Copy full error
+            </button>
+            <button
+              className="btn"
+              onClick={() => {
+                this.setState({ error: null });
+                this.props.onReset();
+              }}
+            >
+              Back to projects
+            </button>
+          </div>
         </div>
       );
     }
