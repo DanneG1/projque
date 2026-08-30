@@ -109,11 +109,13 @@ export default function App() {
     } else {
       document.documentElement.dataset.theme = theme;
     }
-    // Recolor live terminals; the module is only loaded once a session exists.
-    void import("./terminal/manager").then((m) => m.applyTheme());
+    // Notify any open terminals to recolor (manager self-subscribes) without
+    // importing the terminal module here — that would recreate a circular
+    // chunk dependency that leaves manager's bindings in the TDZ.
+    window.dispatchEvent(new Event("projque:themechange"));
     if (theme === "system") {
       const media = window.matchMedia("(prefers-color-scheme: dark)");
-      const onChange = () => void import("./terminal/manager").then((m) => m.applyTheme());
+      const onChange = () => window.dispatchEvent(new Event("projque:themechange"));
       media.addEventListener("change", onChange);
       return () => media.removeEventListener("change", onChange);
     }

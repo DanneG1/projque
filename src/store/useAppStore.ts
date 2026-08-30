@@ -419,14 +419,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   startAgentSession: async (projectId, agentKind, initialPrompt) => {
     try {
-      const pane = document.querySelector("[data-terminal-pane]");
-      const { probeSize } = await import("../terminal/manager");
-      const { rows, cols } = probeSize(pane as HTMLElement | null);
+      // Start at a sensible default size; the terminal's fit() corrects it
+      // immediately after mount. (Avoids importing the terminal module here,
+      // which would recreate a circular chunk dependency.)
       const session = await api.agentSessionStart(
         projectId,
         agentKind ?? null,
-        rows,
-        cols,
+        30,
+        100,
         initialPrompt,
       );
       set((s) => ({
@@ -440,10 +440,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   startRunSession: async (projectId, targetId) => {
     try {
-      const pane = document.querySelector("[data-terminal-pane]");
-      const { probeSize } = await import("../terminal/manager");
-      const { rows, cols } = probeSize(pane as HTMLElement | null);
-      const session = await api.runSessionStart(projectId, targetId, rows, cols);
+      const session = await api.runSessionStart(projectId, targetId, 30, 100);
       set((s) => ({
         sessions: [...s.sessions, session],
         route: { page: "agents", sessionId: session.sessionId },
@@ -499,8 +496,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
   removeSession: async (sessionId) => {
     try {
       await api.agentSessionRemove(sessionId);
-      const { disposeTerminal } = await import("../terminal/manager");
-      disposeTerminal(sessionId);
       set((s) => ({
         sessions: s.sessions.filter((v) => v.sessionId !== sessionId),
         route:

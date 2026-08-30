@@ -154,3 +154,9 @@ export function disposeTerminal(sessionId: string) {
     reg().delete(sessionId);
   }
 }
+
+// Recolor open terminals when the app theme changes, without index needing
+// to import this module (which would recreate the manager<->index cycle).
+if (typeof window !== "undefined") {
+  window.addEventListener("projque:themechange", () => applyTheme());
+}

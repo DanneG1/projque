@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAppStore } from "../../store/useAppStore";
+import { disposeTerminal } from "../../terminal/manager";
 import styles from "./SessionList.module.css";
 
 function elapsed(startedAt: number, now: number): string {
@@ -68,6 +69,7 @@ export function SessionList({ activeId }: { activeId: string }) {
                 title="Remove this session"
                 onClick={(e) => {
                   e.stopPropagation();
+                  disposeTerminal(session.sessionId);
                   void removeSession(session.sessionId);
                 }}
               >
