@@ -12,7 +12,7 @@ export interface PrStatus {
 }
 
 export interface SecretFinding {
-  /** Repository-relative path — display only. */
+  /** Repository-relative path - display only. */
   file: string;
   /** 1-based line, 0 when the finding is about the file itself. */
   line: number;

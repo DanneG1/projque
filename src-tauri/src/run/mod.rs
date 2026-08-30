@@ -1,6 +1,6 @@
 //! Run-target detection: how a project is started, derived exclusively from
 //! the project's OWN manifest files (package.json scripts, Cargo.toml,
-//! go.mod, *.csproj/*.sln). Nothing here is typed into the UI — the frontend
+//! go.mod, *.csproj/*.sln). Nothing here is typed into the UI - the frontend
 //! picks an enumerated `target_id`, and launch re-derives this enumeration
 //! and requires an exact match (the same validation pattern as git_switch).
 //! Running a target executes the project's own code: the identical,
@@ -58,7 +58,7 @@ pub fn detect_targets(dir: &Path) -> Vec<RunTarget> {
     targets
 }
 
-/// The argv for a detected target. Always an argv array — no shell.
+/// The argv for a detected target. Always an argv array - no shell.
 pub fn argv_for(target: &RunTarget) -> (String, Vec<String>) {
     match target.target_id.split_once(':') {
         Some(("pm", script)) => (

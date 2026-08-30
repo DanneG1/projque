@@ -1,8 +1,8 @@
 //! Plain-language explanations powered by the user's own Claude Code CLI.
 //!
-//! `claude --print` is spawned exactly like the embedded agent sessions —
+//! `claude --print` is spawned exactly like the embedded agent sessions -
 //! the allowlisted binary resolved on the augmented PATH, fixed argv, no
-//! shell — but headless: one prompt in, one text answer out. It runs only on
+//! shell - but headless: one prompt in, one text answer out. It runs only on
 //! an explicit click (it spends the user's Claude usage), with cwd pinned to
 //! the project so the model has repository context.
 
@@ -16,7 +16,7 @@ use crate::launcher::which;
 
 /// Summaries should feel snappy but Claude may take a while on big diffs.
 const SUMMARY_TIMEOUT: Duration = Duration::from_secs(120);
-/// Diff budget in the prompt — beyond this the diff is cut and the model is
+/// Diff budget in the prompt - beyond this the diff is cut and the model is
 /// told so. Keeps the call fast and cheap.
 const MAX_DIFF_BYTES: usize = 48 * 1024;
 
@@ -64,7 +64,7 @@ fn uncommitted_diff(dir: &Path) -> Result<String, AppError> {
             cut -= 1;
         }
         text.truncate(cut);
-        text.push_str("\n\n[diff truncated — summarize what is shown]");
+        text.push_str("\n\n[diff truncated - summarize what is shown]");
     }
     Ok(text)
 }

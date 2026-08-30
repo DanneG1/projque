@@ -1,7 +1,7 @@
 //! README / ROADMAP discovery and reading. All reads are confined to the
 //! project directory: a configured roadmap path is canonicalized and must
 //! still resolve inside the (canonical) project dir, which also defeats
-//! symlink escapes. Content is size-capped and treated as untrusted — the
+//! symlink escapes. Content is size-capped and treated as untrusted - the
 //! frontend renders it through a sanitizing markdown pipeline.
 
 use std::path::{Path, PathBuf};
@@ -41,7 +41,7 @@ pub fn find_doc(dir: &Path, kind: DocKind, configured: Option<&str>) -> Option<P
         DocKind::Readme => README_NAMES,
         DocKind::Ideas => IDEAS_NAMES,
     };
-    // Every candidate — default names included — goes through the same
+    // Every candidate - default names included - goes through the same
     // containment check, so a `README.md` symlink pointing outside the
     // project (e.g. -> /etc/passwd in a hostile repo) is never read.
     names.iter().find_map(|n| resolve_inside(dir, n))

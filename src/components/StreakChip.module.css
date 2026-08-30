@@ -19,9 +19,11 @@
 }
 
 .chip[data-hot] {
-  color: var(--accent);
-  border-color: var(--accent);
-  background: var(--accent-weak);
+  color: #ffffff;
+  border-color: var(--accent-border);
+  background: var(--brand-gradient);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow);
 }
 
 .points {
@@ -33,7 +35,7 @@
 }
 
 .chip[data-hot] .points {
-  color: var(--accent);
-  border-color: var(--accent);
-  opacity: 0.8;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.55);
+  opacity: 0.95;
 }

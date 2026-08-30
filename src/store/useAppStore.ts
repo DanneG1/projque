@@ -52,7 +52,7 @@ interface AppStore {
   gridIds: string[];
   /** Local activity data for streaks/progress, briefly cached. */
   activity: { summary: ActivitySummary; fetchedAt: number } | null;
-  /** Set when something was just celebrated — the Progress page shows
+  /** Set when something was just celebrated - the Progress page shows
    *  confetti while this is fresh. */
   celebratedAt: number | null;
   quitPrompt: number | null;
@@ -401,9 +401,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
       const behind = info.behind ?? 0;
       get().notify(
         behind > 0
-          ? `Fetched — ${behind} commit${behind === 1 ? "" : "s"} behind`
+          ? `Fetched - ${behind} commit${behind === 1 ? "" : "s"} behind`
           : before === null || behind === 0
-            ? "Fetched — up to date"
+            ? "Fetched - up to date"
             : "Fetched",
       );
     } catch (err) {
@@ -450,7 +450,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set((s) => ({ gitBusy: { ...s.gitBusy, [id]: true } }));
     try {
       const info = await api.gitCommit(id, message);
-      // A fresh commit changes streaks/points — recompute on next look.
+      // A fresh commit changes streaks/points - recompute on next look.
       set((s) => ({ git: { ...s.git, [id]: info }, activity: null }));
       get().notify("Committed", "Your work is saved in the project history.");
       return true;
@@ -584,15 +584,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
       set({ activity: { summary, fetchedAt: Date.now() } });
       // Celebrate anything genuinely new (achievements, level-ups, records).
       const done = get().projects.filter((p) => p.status === "done").length;
+      const live = get().projects.filter((p) => p.productionUrl).length;
       const messages = collectCelebrations(
-        computeActivity(summary, { doneProjects: done }),
+        computeActivity(summary, { doneProjects: done, liveProjects: live }),
       );
       if (messages.length > 0) {
         set({ celebratedAt: Date.now() });
         for (const m of messages) get().notify(m.title, m.detail);
       }
     } catch {
-      // Progress is decorative — never toast about it.
+      // Progress is decorative - never toast about it.
     }
   },
 

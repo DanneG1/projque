@@ -57,14 +57,14 @@ function FileSection({ file, defaultOpen }: { file: FileDiff; defaultOpen: boole
               </span>
             ))
           )}
-          {file.truncated && <span className={styles.meta}>… (large file — diff shortened)</span>}
+          {file.truncated && <span className={styles.meta}>… (large file - diff shortened)</span>}
         </pre>
       )}
     </div>
   );
 }
 
-/** Read-only unified diff renderer. Content is plain text spans — never
+/** Read-only unified diff renderer. Content is plain text spans - never
  *  interpreted as markup. */
 export function DiffView({ files }: { files: FileDiff[] }) {
   if (files.length === 0) {

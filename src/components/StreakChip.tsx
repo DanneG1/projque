@@ -15,9 +15,16 @@ export function StreakChip() {
     void loadActivity();
   }, [loadActivity]);
 
+  const projects = useAppStore((s) => s.projects);
   const data = useMemo(
-    () => (activity ? computeActivity(activity.summary) : null),
-    [activity],
+    () =>
+      activity
+        ? computeActivity(activity.summary, {
+            doneProjects: projects.filter((p) => p.status === "done").length,
+            liveProjects: projects.filter((p) => p.productionUrl).length,
+          })
+        : null,
+    [activity, projects],
   );
 
   if (!data) return null;
@@ -29,9 +36,9 @@ export function StreakChip() {
       title={
         data.currentStreak > 0
           ? data.todayCount > 0
-            ? `${data.currentStreak}-day streak — today already counts. ${data.restDaysBanked} rest day${data.restDaysBanked === 1 ? "" : "s"} banked. See your progress`
-            : `${data.currentStreak}-day streak — a commit today keeps it going (${data.restDaysBanked} rest day${data.restDaysBanked === 1 ? "" : "s"} banked if not). See your progress`
-          : "See your progress — streaks, points, and achievements"
+            ? `${data.currentStreak}-day streak - today already counts. ${data.restDaysBanked} rest day${data.restDaysBanked === 1 ? "" : "s"} banked. See your progress`
+            : `${data.currentStreak}-day streak - a commit today keeps it going (a banked rest day covers a single day off: ${data.restDaysBanked} available). See your progress`
+          : "See your progress - streaks, points, and achievements"
       }
       onClick={() => setRoute({ page: "progress" })}
     >

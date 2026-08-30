@@ -4,7 +4,7 @@ import type { GitInfo } from "../models";
 import { useAppStore } from "../store/useAppStore";
 import styles from "./MergeBanner.module.css";
 
-/** Shown whenever a merge is stopped on conflicts — regardless of the
+/** Shown whenever a merge is stopped on conflicts - regardless of the
  *  advanced-git toggle, because the repo is in a state the user must exit
  *  through one of exactly two doors: complete (after resolving) or abort. */
 export function MergeBanner({
@@ -35,7 +35,7 @@ export function MergeBanner({
       `This project has a git merge in progress that stopped on conflicts` +
       (list ? ` in these files: ${list}.` : ".") +
       ` Open the conflicted files, resolve each conflict sensibly so both sides' ` +
-      `intent is preserved, and remove all conflict markers. Do NOT run git commit — ` +
+      `intent is preserved, and remove all conflict markers. Do NOT run git commit - ` +
       `leave the resolved files for me to review and complete the merge myself. ` +
       `When done, explain the choices you made in simple language.`;
     void startAgentSession(projectId, undefined, prompt);
@@ -43,11 +43,11 @@ export function MergeBanner({
 
   return (
     <div className={styles.banner}>
-      <p className={styles.title}>Merge in progress — conflicts to resolve</p>
+      <p className={styles.title}>Merge in progress - conflicts to resolve</p>
       <p className={styles.text}>
         Both branches changed the same lines. Fix the files below (open your
         editor, or let the agent help), then complete the merge. Nothing is
-        final until you do — Abort returns everything to how it was before.
+        final until you do - Abort returns everything to how it was before.
       </p>
       {files.length > 0 && (
         <ul className={styles.files}>

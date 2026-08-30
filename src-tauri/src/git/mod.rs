@@ -87,7 +87,7 @@ pub struct GitInfo {
 }
 
 impl GitInfo {
-    /// A blank record in the Error state — used when the project directory
+    /// A blank record in the Error state - used when the project directory
     /// itself is unresolvable or git is missing.
     pub fn missing(project_id: &str) -> Self {
         Self::empty(project_id, GitState::Error)
@@ -140,7 +140,7 @@ pub fn fetch_info(project_id: &str, dir: &Path) -> GitInfo {
         }
     };
 
-    // Exit status is non-zero for a repo with no commits — that's fine,
+    // Exit status is non-zero for a repo with no commits - that's fine,
     // the commit line is simply omitted.
     let last_commit = runner::git(dir, &["log", "-1", "--pretty=format:%H%n%h%n%s%n%ct"])
         .ok()

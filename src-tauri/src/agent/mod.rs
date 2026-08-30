@@ -88,7 +88,7 @@ pub struct Registry {
     sessions: Arc<Mutex<HashMap<String, Session>>>,
     counter: AtomicU64,
     pub quit_confirmed: AtomicBool,
-    /// (currently visible sessions, app focused) — reported by the frontend
+    /// (currently visible sessions, app focused) - reported by the frontend
     /// so attention is never raised for what the user is looking at. More
     /// than one session is visible when the split/grid view is active.
     active: Arc<Mutex<(Vec<String>, bool)>>,
@@ -163,7 +163,7 @@ impl Registry {
         // Reader thread: PTY -> scrollback + live channel. Never locks the
         // registry; keeps draining even when the webview is detached so the
         // child can never block on a full pipe. On macOS, child exit
-        // surfaces as Ok(0) or Err(EIO) — both are EOF, not failures.
+        // surfaces as Ok(0) or Err(EIO) - both are EOF, not failures.
         {
             let output = output.clone();
             let mut reader = handles.reader;
@@ -282,7 +282,7 @@ impl Registry {
         Ok(url)
     }
 
-    /// Replay the scrollback, then install the live channel — both under the
+    /// Replay the scrollback, then install the live channel - both under the
     /// OutputState lock, so no bytes are lost or duplicated in between.
     pub fn attach(
         &self,
@@ -314,7 +314,7 @@ impl Registry {
             return Err(AppError::SessionExited { id: session_id.to_string() });
         }
         {
-            // The user is interacting — nothing is waiting on them anymore.
+            // The user is interacting - nothing is waiting on them anymore.
             let mut out = session.output.lock().unwrap();
             out.pending_since_input = false;
             out.attention = false;
@@ -443,7 +443,7 @@ impl Registry {
                 let _ = app
                     .notification()
                     .builder()
-                    .title(format!("{} — {}", view.agent_label, view.project_label))
+                    .title(format!("{} - {}", view.agent_label, view.project_label))
                     .body("Waiting for you")
                     .show();
             }
@@ -460,7 +460,7 @@ impl Registry {
     }
 }
 
-/// Scan a raw output chunk for the first local dev-server URL. ASCII scan —
+/// Scan a raw output chunk for the first local dev-server URL. ASCII scan -
 /// ANSI escapes (0x1b) and whitespace terminate the token naturally.
 fn find_local_url(chunk: &[u8]) -> Option<String> {
     let text = String::from_utf8_lossy(chunk);

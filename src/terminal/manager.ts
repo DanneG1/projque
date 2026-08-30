@@ -2,7 +2,7 @@
 // per session, kept alive across tab switches by reparenting its host div.
 // term.open() is deferred until the host is in the DOM (opening detached
 // renders blank in WKWebView), and the xterm constructor is resolved lazily
-// inside ensureEntry — resolving it at module load can throw under some
+// inside ensureEntry - resolving it at module load can throw under some
 // bundler/webview interop and abort module init, which would leave module
 // consts (e.g. `entries`) permanently in the temporal dead zone even though
 // the hoisted functions stay callable.
@@ -26,7 +26,7 @@ interface Entry {
 
 // A hoisted `var` (initialised to undefined, never in the temporal dead
 // zone) plus a lazy accessor makes the registry immune to circular-chunk
-// initialisation ordering — the failure mode that left `entries` in the TDZ.
+// initialisation ordering - the failure mode that left `entries` in the TDZ.
 // eslint-disable-next-line no-var
 var entriesMap: Map<string, Entry> | undefined;
 function reg(): Map<string, Entry> {

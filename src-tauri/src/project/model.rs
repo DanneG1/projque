@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-/// Persisted in `projects.json` — kept byte-compatible with the shape in the
+/// Persisted in `projects.json` - kept byte-compatible with the shape in the
 /// product spec so hand-editing and backups stay trivial. Derived data lives
 /// in `ProjectView`, never here.
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -21,6 +21,10 @@ pub struct Project {
     pub description_source: DescriptionSource,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub roadmap_file: Option<String>,
+    /// Where this project runs for real. Set by hand or automatically by a
+    /// successful publish. Presence = "shipped to production".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub production_url: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -70,4 +74,5 @@ pub struct ProjectPatch {
     pub description: Option<String>,
     pub description_source: Option<DescriptionSource>,
     pub roadmap_file: Option<String>,
+    pub production_url: Option<String>,
 }

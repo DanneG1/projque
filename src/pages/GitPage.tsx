@@ -12,7 +12,7 @@ import styles from "./GitPage.module.css";
 
 /** The standalone git client view: pick any git project on the left, work
  *  with branches / commits / merges / pushes in the middle, read diffs on
- *  the right. Same safe verbs as everywhere else — no rewriting, no forcing. */
+ *  the right. Same safe verbs as everywhere else - no rewriting, no forcing. */
 export function GitPage({ projectId }: { projectId?: string }) {
   const projects = useAppStore((s) => s.projects);
   const git = useAppStore((s) => s.git);
@@ -87,7 +87,7 @@ export function GitPage({ projectId }: { projectId?: string }) {
   if (repos.length === 0) {
     return (
       <div className={styles.empty}>
-        <p>No git projects yet — import or create a project first.</p>
+        <p>No git projects yet - import or create a project first.</p>
         <button className="btn" onClick={() => setRoute({ page: "list" })}>
           Back to projects
         </button>
@@ -161,8 +161,8 @@ export function GitPage({ projectId }: { projectId?: string }) {
                     title={
                       (b.current ? "Current branch" : `git switch ${b.name}`) +
                       (b.upstream
-                        ? ` — tracks ${b.upstream}`
-                        : " — local only, not on the remote yet")
+                        ? ` - tracks ${b.upstream}`
+                        : " - local only, not on the remote yet")
                     }
                     onClick={() => void switchBranch(project.id, b.name)}
                   >
@@ -178,7 +178,7 @@ export function GitPage({ projectId }: { projectId?: string }) {
                     <button
                       className={styles.branchDelete}
                       disabled={busy}
-                      title={`git branch -d ${b.name} — refuses if unmerged work would be lost`}
+                      title={`git branch -d ${b.name} - refuses if unmerged work would be lost`}
                       aria-label={`Delete branch ${b.name}`}
                       onClick={() => void deleteBranch(project.id, b.name)}
                     >
@@ -251,7 +251,7 @@ export function GitPage({ projectId }: { projectId?: string }) {
                     hasRemote && (
                       <span
                         className={styles.tracks}
-                        title="This branch only exists on your machine — the first Push publishes it to origin and connects them"
+                        title="This branch only exists on your machine - the first Push publishes it to origin and connects them"
                       >
                         local only
                       </span>
@@ -274,8 +274,8 @@ export function GitPage({ projectId }: { projectId?: string }) {
                   disabled={busy}
                   title={
                     upstream
-                      ? `git push — upload your commits to ${upstream}`
-                      : "git push -u origin — publishes this branch to origin and sets it to track the remote copy"
+                      ? `git push - upload your commits to ${upstream}`
+                      : "git push -u origin - publishes this branch to origin and sets it to track the remote copy"
                   }
                   onClick={() => void pushBranch(project.id)}
                 >
@@ -300,7 +300,7 @@ export function GitPage({ projectId }: { projectId?: string }) {
                     disabled={busy || !mergeTarget || gitInfo.dirty}
                     title={
                       gitInfo.dirty
-                        ? "Commit your changes first — a merge from a clean state can always be undone"
+                        ? "Commit your changes first - a merge from a clean state can always be undone"
                         : mergeTarget
                           ? `Brings your commits from ${current} into ${mergeTarget}; you'll end up on ${mergeTarget}`
                           : "Pick the branch to merge into"

@@ -9,7 +9,7 @@ use serde::Serialize;
 #[derive(Serialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct IdeaItem {
-    /// 0-based line number of the item's first line — the handle set_done
+    /// 0-based line number of the item's first line - the handle set_done
     /// takes back. Positional, not an opaque ID: validated again on write.
     pub line: u32,
     pub text: String,
@@ -88,7 +88,7 @@ pub fn parse(content: &str) -> Vec<IdeaItem> {
 
 /// Toggle the checkbox on the item starting at `line`. Returns the rewritten
 /// content, or None when that line is no longer a checklist item (the file
-/// changed since it was listed — the caller reports a friendly conflict).
+/// changed since it was listed - the caller reports a friendly conflict).
 pub fn set_done(content: &str, line: u32, done: bool) -> Option<String> {
     let mut lines: Vec<String> = content.lines().map(str::to_string).collect();
     let target = lines.get_mut(line as usize)?;

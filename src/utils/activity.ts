@@ -1,5 +1,5 @@
 // Progress computations. Timestamps are bucketed into LOCAL days here (the
-// backend deliberately ships raw unix seconds — timezones live with the UI).
+// backend deliberately ships raw unix seconds - timezones live with the UI).
 //
 // Design principle: motivate, never punish. Streaks come with automatic
 // rest days (earned by activity, spent silently on a missed day), an empty
@@ -24,7 +24,10 @@ export interface Achievement {
 }
 
 /** Rest-day rules: start with one in the bank, earn one per 5 active days,
- *  keep at most 3. A missed day consumes one automatically. */
+ *  keep at most 3. A SINGLE missed day consumes one automatically and the
+ *  streak survives; two or more missed days in a row always start a fresh
+ *  streak - otherwise a long history banks enough rest days to bridge real
+ *  gaps, and "current streak" quietly becomes "longest streak". */
 const REST_START = 1;
 const REST_EVERY = 5;
 const REST_CAP = 3;
@@ -101,7 +104,7 @@ function level(count: number): number {
 
 export function computeActivity(
   summary: ActivitySummary,
-  opts?: { doneProjects?: number },
+  opts?: { doneProjects?: number; liveProjects?: number },
 ): Activity {
   const dayCounts = new Map<string, number>();
   const now = Date.now() / 1000;
@@ -132,13 +135,14 @@ export function computeActivity(
 
   // Streak walk, oldest to newest, with automatic rest days. Deterministic
   // from history alone, so nothing needs to be stored. Today never counts
-  // against the streak — it is still winnable.
+  // against the streak - it is still winnable.
   const todayCount = dayCounts.get(dayKey(new Date())) ?? 0;
   let streak = 0;
   let longestStreak = 0;
   let bank = REST_START;
   let earned = 0;
   let restUsed = 0;
+  let missRun = 0; // consecutive missed days
   for (let i = 371; i >= 1; i--) {
     const active = (dayCounts.get(dayKey(daysAgo(i))) ?? 0) > 0;
     if (active) {
@@ -146,14 +150,19 @@ export function computeActivity(
       earned += 1;
       if (earned % REST_EVERY === 0) bank = Math.min(bank + 1, REST_CAP);
       longestStreak = Math.max(longestStreak, streak);
-    } else if (streak > 0 && bank > 0) {
-      bank -= 1;
-      restUsed += 1; // streak survives — a rest day, not a failure
+      missRun = 0;
     } else if (streak > 0) {
-      streak = 0;
-      restUsed = 0;
-      bank = REST_START;
-      earned = 0;
+      missRun += 1;
+      if (missRun === 1 && bank > 0) {
+        bank -= 1;
+        restUsed += 1; // one day off - a rest day, not a failure
+      } else {
+        streak = 0;
+        restUsed = 0;
+        bank = REST_START;
+        earned = 0;
+        missRun = 0;
+      }
     }
   }
   if (todayCount > 0) {
@@ -197,9 +206,11 @@ export function computeActivity(
     weeks.push(col);
   }
 
-  // Points: commits carry the habit, shipped ideas carry the meaning.
+  // Points: commits carry the habit, shipped ideas carry the meaning, and
+  // production is the summit - nothing beats a real URL.
+  const live = opts?.liveProjects ?? 0;
   const weekPoints = weekCommits * 3 + activeProjects7d * 5;
-  const totalPoints = totalCommits * 2 + summary.ideasDone * 10;
+  const totalPoints = totalCommits * 2 + summary.ideasDone * 10 + live * 50;
 
   let lvl = 1;
   while (levelThreshold(lvl + 1) <= totalPoints) lvl += 1;
@@ -223,6 +234,8 @@ export function computeActivity(
     { id: "multi", label: "Juggler", description: "5 projects active in the same month.", unlocked: activeProjects30d >= 5 },
     { id: "done1", label: "Finisher", description: "Marked a project as Done.", unlocked: done >= 1 },
     { id: "done3", label: "Curator", description: "Three finished projects on the shelf.", unlocked: done >= 3 },
+    { id: "live1", label: "In production", description: "A project with a real URL, live for the world.", unlocked: live >= 1 },
+    { id: "live3", label: "Portfolio", description: "Three projects live in production.", unlocked: live >= 3 },
   ];
 
   return {

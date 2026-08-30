@@ -1,7 +1,7 @@
 //! Opening terminals, with or without a command to run.
 //!
 //! Two strategies (see catalog.rs):
-//! - Argv terminals take cwd and command as plain arguments — no shell.
+//! - Argv terminals take cwd and command as plain arguments - no shell.
 //! - macOS GUI terminals (Terminal.app, iTerm2) have no such flags. Opening
 //!   a directory uses `open -a <App> <dir>`. Running the agent generates a
 //!   one-shot `.command` script (mode 0700, in our own cache dir, pruned
@@ -37,7 +37,7 @@ pub fn open(settings: &Settings, dir: &Path, agent: Option<AgentCommand>) -> Res
 
     let Some(spec) = spec else {
         return Err(AppError::InvalidInput {
-            detail: format!("unrecognized terminal '{}' — pick one in Settings", config.kind),
+            detail: format!("unrecognized terminal '{}' - pick one in Settings", config.kind),
         });
     };
 
@@ -52,7 +52,7 @@ pub fn open(settings: &Settings, dir: &Path, agent: Option<AgentCommand>) -> Res
     }
 }
 
-/// Per-terminal argument shapes. Everything is argv — the directory and the
+/// Per-terminal argument shapes. Everything is argv - the directory and the
 /// agent command are separate arguments, never a concatenated string.
 fn argv_invocation(kind: &str, dir: &Path, agent: Option<&AgentCommand>) -> Vec<String> {
     let dir_s = dir.display().to_string();
@@ -110,7 +110,7 @@ fn mac_app_open(_app: &str, _dir: &Path, _agent: Option<&AgentCommand>) -> Resul
 }
 
 /// Generate the one-shot launcher script for Terminal.app/iTerm2. Values are
-/// single-quote escaped as defence in depth — they already come from
+/// single-quote escaped as defence in depth - they already come from
 /// Rust-side canonicalization and the static catalog, not from the frontend.
 #[cfg(target_os = "macos")]
 fn write_command_file(agent: &AgentCommand, dir: &Path) -> Result<PathBuf, AppError> {

@@ -1,6 +1,6 @@
 // Celebration tracking: remembers what has already been cheered for (in
 // localStorage) so achievement unlocks, level-ups, and new personal records
-// each get exactly one moment. First run stores a silent baseline — nobody
+// each get exactly one moment. First run stores a silent baseline - nobody
 // wants nine toasts for their existing history.
 
 import type { Activity } from "./activity";
@@ -27,7 +27,7 @@ function save(seen: Seen) {
   try {
     localStorage.setItem(KEY, JSON.stringify(seen));
   } catch {
-    // Storage unavailable — celebrations just repeat; harmless.
+    // Storage unavailable - celebrations just repeat; harmless.
   }
 }
 
@@ -58,7 +58,7 @@ export function collectCelebrations(activity: Activity): CelebrationMessage[] {
   }
   if (activity.level > seen.level) {
     messages.push({
-      title: `Level ${activity.level} — ${activity.levelTitle} 🎉`,
+      title: `Level ${activity.level} - ${activity.levelTitle} 🎉`,
       detail: "Your contribution score keeps climbing.",
     });
   }

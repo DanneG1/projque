@@ -6,7 +6,7 @@ import { relativeTime } from "../utils/time";
 import styles from "./HistoryPanel.module.css";
 
 /** Commit history plus automatic backups, each restorable. Real git words,
- *  plain-language explanations — restore never loses anything (the current
+ *  plain-language explanations - restore never loses anything (the current
  *  state is snapshotted first, and the old version lands as a new commit). */
 export function HistoryPanel({
   projectId,
@@ -82,7 +82,7 @@ export function HistoryPanel({
         <button
           className="btn"
           disabled={busy}
-          title="Make your files match this version. Your current state is backed up automatically first — nothing is lost."
+          title="Make your files match this version. Your current state is backed up automatically first - nothing is lost."
           onClick={() => setConfirming(hash)}
         >
           Restore
@@ -101,10 +101,10 @@ export function HistoryPanel({
       </div>
       <p className={styles.hint}>
         Every commit is a version you can go back to. Restoring makes your
-        files match that version — it is recorded as a new commit, and your
+        files match that version - it is recorded as a new commit, and your
         current state is backed up first, so nothing is ever lost.
         {hasRunningSession && (
-          <strong> An agent is running in this project — stop it before restoring.</strong>
+          <strong> An agent is running in this project - stop it before restoring.</strong>
         )}
       </p>
       {confirming && (

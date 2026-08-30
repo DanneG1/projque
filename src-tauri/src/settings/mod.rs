@@ -25,7 +25,7 @@ pub struct Settings {
     #[serde(default)]
     pub display: DisplaySettings,
     /// Extra PATH entries for resolving launcher programs. File-only escape
-    /// hatch — the UI never sets this.
+    /// hatch - the UI never sets this.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub path_additions: Vec<String>,
 }

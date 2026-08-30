@@ -20,7 +20,7 @@ const IGNORED_DIRS: &[&str] = &[
 const MAX_CANDIDATES: usize = 500;
 
 /// A repository found during a scan. The frontend only ever gets the opaque
-/// `candidate_id` as a handle — `display_path` is for rendering and is never
+/// `candidate_id` as a handle - `display_path` is for rendering and is never
 /// accepted back.
 #[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -119,7 +119,7 @@ pub fn scan(
                 continue;
             }
             // Once a project is found, everything inside it belongs to that
-            // project — never list nested sub-directories (src-tauri,
+            // project - never list nested sub-directories (src-tauri,
             // functions, monorepo packages, a repo's own manifests) as their
             // own projects. The top-level candidate in `seen` shadows all of
             // its descendants.
@@ -202,7 +202,7 @@ mod tests {
         assert!(names.contains(&"beta"));
         // outside-target/gamma is only reachable through the symlink or by
         // being a sibling dir; the sibling IS inside the root so it will be
-        // found — but nothing under `nested/link/` may be traversed.
+        // found - but nothing under `nested/link/` may be traversed.
         assert!(!result
             .candidates
             .iter()
@@ -234,7 +234,7 @@ mod tests {
         let root = std::env::temp_dir().join(format!("projque-nested-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         // A git repo whose sub-dirs have their own manifests (like src-tauri,
-        // functions, a monorepo package) — only the repo itself should show.
+        // functions, a monorepo package) - only the repo itself should show.
         let repo = root.join("myapp");
         mkrepo(&repo);
         std::fs::write(repo.join("package.json"), "{}").unwrap();

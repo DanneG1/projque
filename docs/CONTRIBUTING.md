@@ -30,4 +30,4 @@ These are the properties the product is selling; CI will eventually enforce them
 
 ## Type mirroring
 
-Rust models (serde camelCase) are mirrored by hand in `src/models/` and `src/api/errors.ts`. If you change one side, change the other — the exhaustive switch in `errors.ts` will fail to compile if an error variant is missing.
+Rust models (serde camelCase) are mirrored by hand in `src/models/` and `src/api/errors.ts`. If you change one side, change the other - the exhaustive switch in `errors.ts` will fail to compile if an error variant is missing.

@@ -51,7 +51,7 @@ fn ok_line(out: runner::GitOutput) -> Option<String> {
 pub fn create_snapshot(dir: &Path, reason: &str) -> Result<Option<Snapshot>, AppError> {
     let Some(head) = runner::git(dir, &["rev-parse", "--verify", "-q", "HEAD"]).ok().and_then(ok_line)
     else {
-        return Ok(None); // no commits yet — nothing safe to diff against
+        return Ok(None); // no commits yet - nothing safe to diff against
     };
 
     // Build the working tree in a scratch index so the user's real index is

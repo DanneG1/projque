@@ -39,8 +39,11 @@ export function PublishPanel({
   const publish = async () => {
     setBusy(true);
     try {
-      setOutcome(await api.publishRun(projectId));
+      const result = await api.publishRun(projectId);
+      setOutcome(result);
       void refreshGit({ force: true });
+      // The backend records the Pages URL as the project's production link.
+      useAppStore.setState({ projects: await api.projectsList() });
     } catch (err) {
       reportError(err);
     } finally {
@@ -89,7 +92,7 @@ export function PublishPanel({
                   </li>
                   <li>
                     <strong>This is free.</strong> GitHub Pages has no charges
-                    for public projects — no payment details exist anywhere in
+                    for public projects - no payment details exist anywhere in
                     this flow.
                   </li>
                   <li>Publishing uses your own GitHub account.</li>
@@ -109,7 +112,7 @@ export function PublishPanel({
                 )}
                 {!preflight.hasCommits && (
                   <p className={styles.problem}>
-                    Nothing committed yet — commit your work first (the Git
+                    Nothing committed yet - commit your work first (the Git
                     section above).
                   </p>
                 )}
@@ -123,14 +126,14 @@ export function PublishPanel({
                 {preflight.findings.length > 0 && (
                   <div className={styles.problem}>
                     <strong>
-                      Publishing is blocked — these files look like they contain
+                      Publishing is blocked - these files look like they contain
                       secrets (passwords or API keys):
                     </strong>
                     <ul className={styles.findings}>
                       {preflight.findings.map((f, i) => (
                         <li key={i}>
                           <code>{f.file}</code>
-                          {f.line > 0 ? ` line ${f.line}` : ""} — {f.kind}
+                          {f.line > 0 ? ` line ${f.line}` : ""} - {f.kind}
                         </li>
                       ))}
                     </ul>
@@ -144,7 +147,7 @@ export function PublishPanel({
 
                 {preflight.dirty && (
                   <p className={styles.warn}>
-                    You have uncommitted changes — only committed work is
+                    You have uncommitted changes - only committed work is
                     published.
                   </p>
                 )}
@@ -183,7 +186,8 @@ export function PublishPanel({
                     Your site:&nbsp;<code>{outcome.pagesUrl}</code>
                     <br />
                     The first deployment can take a minute or two before the
-                    page goes live.
+                    page goes live. Saved as this project&apos;s production
+                    link - that&apos;s worth 50 points.
                   </p>
                 )}
                 {outcome.pagesError && (

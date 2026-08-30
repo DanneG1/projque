@@ -92,7 +92,7 @@ export function SettingsPage() {
           onChange={(kind) => void setTool("agent", kind)}
         />
         <p className={styles.hint}>
-          Tools are chosen from a fixed, audited list — ProjQue never runs
+          Tools are chosen from a fixed, audited list - ProjQue never runs
           arbitrary commands. Greyed-out entries were not found on this
           machine.
         </p>

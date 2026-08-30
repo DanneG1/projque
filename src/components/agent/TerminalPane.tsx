@@ -55,7 +55,7 @@ export function TerminalPane({
       <div className={styles.header}>
         <span className={styles.headerLabel}>
           {session.agentLabel}
-          {project && <span className={styles.headerProject}> — {project.name}</span>}
+          {project && <span className={styles.headerProject}> - {project.name}</span>}
         </span>
         {session.status.state === "running" && (
           <button
@@ -121,7 +121,7 @@ export function TerminalPane({
         <div className={styles.exitedBar}>
           <span className={styles.exitedText}>
             {session.agentLabel} exited
-            {session.status.code != null ? ` with code ${session.status.code}` : ""} — the
+            {session.status.code != null ? ` with code ${session.status.code}` : ""} - the
             output above is preserved until you remove the session.
           </span>
           <button

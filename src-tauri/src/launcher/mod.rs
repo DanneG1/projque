@@ -95,7 +95,7 @@ fn resolve_tool(
         (None, Some(spec)) => (spec.program, spec.args.iter().map(|s| s.to_string()).collect()),
         (None, None) => {
             return Err(AppError::InvalidInput {
-                detail: format!("unrecognized tool '{}' — pick one in Settings", config.kind),
+                detail: format!("unrecognized tool '{}' - pick one in Settings", config.kind),
             })
         }
     };
@@ -147,7 +147,7 @@ pub fn open_terminal(settings: &Settings, dir: &Path) -> Result<(), AppError> {
 }
 
 /// Open the configured terminal running a backend-chosen program (doctor
-/// fixes, e.g. `gh auth login`). Program and argv are fixed in Rust — this
+/// fixes, e.g. `gh auth login`). Program and argv are fixed in Rust - this
 /// is never reachable with frontend-supplied strings.
 pub fn open_terminal_running(
     settings: &Settings,
@@ -161,7 +161,7 @@ pub fn open_terminal_running(
 
 /// Open the configured terminal at the project directory, running the
 /// configured agent. The agent command comes from the static catalog (or the
-/// hand-edited settings override) — never from the frontend.
+/// hand-edited settings override) - never from the frontend.
 pub fn open_agent(settings: &Settings, dir: &Path, cache_dir: &Path) -> Result<(), AppError> {
     let spec = catalog::find_agent(&settings.agent.kind);
     let (program, args) = resolve_tool(&settings.agent, spec, settings)?;

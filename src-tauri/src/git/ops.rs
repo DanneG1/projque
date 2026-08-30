@@ -1,10 +1,10 @@
 //! The safe, deliberately small set of git operations the UI can trigger.
 //! Nothing here can rewrite history: the verbs are fetch, ff-only pull,
 //! branch listing/create/safe-delete, branch switch (which git itself
-//! refuses when it would clobber uncommitted changes — we never pass -f or
+//! refuses when it would clobber uncommitted changes - we never pass -f or
 //! --discard-changes), commit, log, restore-as-new-commit, push of the
 //! current branch, and merge (clean tree required; stops on conflicts; the
-//! only exits are complete-after-resolve or abort). Restore is additive —
+//! only exits are complete-after-resolve or abort). Restore is additive -
 //! it snapshots the current working tree to a hidden ref first (see
 //! backup.rs) and lands the old version as a NEW commit, so every state
 //! remains reachable. rebase / reset / clean / stash / branch -D (capital) /
@@ -117,7 +117,7 @@ pub fn pull_ff(dir: &Path) -> Result<(), AppError> {
 
 /// Switch branches. `branch` is frontend-supplied and therefore validated by
 /// exact byte match against a fresh enumeration of this repository's own
-/// `refs/heads`, re-run at call time — the value provably names a local ref,
+/// `refs/heads`, re-run at call time - the value provably names a local ref,
 /// so option or command injection is impossible. Defense in depth: leading
 /// '-' and control characters are rejected anyway.
 pub fn switch(dir: &Path, branch: &str) -> Result<(), AppError> {
@@ -137,7 +137,7 @@ pub fn switch(dir: &Path, branch: &str) -> Result<(), AppError> {
 
 /// Stage everything and commit. The message is an audited free-form IPC
 /// exception: it becomes the value of `-m` (a single argv element, so git
-/// can never parse it as an option) — sanitized to printable text plus
+/// can never parse it as an option) - sanitized to printable text plus
 /// newlines, length-capped.
 pub fn commit_all(dir: &Path, message: &str) -> Result<(), AppError> {
     let message: String = message
@@ -160,11 +160,11 @@ pub fn commit_all(dir: &Path, message: &str) -> Result<(), AppError> {
     if !out.success {
         let combined = format!("{} {}", out.stdout.trim(), out.stderr.trim());
         if combined.contains("nothing to commit") {
-            return Err(AppError::InvalidInput { detail: "nothing to commit — no changes".into() });
+            return Err(AppError::InvalidInput { detail: "nothing to commit - no changes".into() });
         }
         if combined.contains("Please tell me who you are") || combined.contains("empty ident") {
             return Err(AppError::GitFailed {
-                detail: "git needs your name first — see Setup check in Settings".into(),
+                detail: "git needs your name first - see Setup check in Settings".into(),
             });
         }
         return Err(AppError::GitFailed { detail: failure_detail(&out) });
@@ -177,7 +177,7 @@ pub fn history(dir: &Path, limit: u32) -> Result<Vec<super::GitCommit>, AppError
     let limit = limit.clamp(1, 100).to_string();
     let out = runner::git(dir, &["log", "-n", &limit, "--pretty=format:%H%x09%h%x09%ct%x09%s"])?;
     if !out.success {
-        // A repo with no commits yet: log exits non-zero — empty history.
+        // A repo with no commits yet: log exits non-zero - empty history.
         return Ok(Vec::new());
     }
     Ok(out
@@ -196,7 +196,7 @@ pub fn history(dir: &Path, limit: u32) -> Result<Vec<super::GitCommit>, AppError
 }
 
 /// Bring the working files back to the state of `hash` (a commit or a
-/// snapshot), recorded as a NEW commit on the current branch — history is
+/// snapshot), recorded as a NEW commit on the current branch - history is
 /// never rewritten, and the pre-restore working tree is snapshotted to a
 /// hidden ref first so nothing can be lost.
 ///
@@ -222,7 +222,7 @@ pub fn restore(dir: &Path, hash: &str) -> Result<(), AppError> {
         return Err(AppError::GitFailed { detail: failure_detail(&out) });
     }
 
-    // Commit the restored state — unless it matches HEAD already (restoring
+    // Commit the restored state - unless it matches HEAD already (restoring
     // uncommitted edits away), where there is nothing new to record.
     let staged = runner::git(dir, &["diff", "--cached", "--quiet"])?;
     if !staged.success {
@@ -265,7 +265,7 @@ pub fn branch_create(dir: &Path, name: &str) -> Result<(), AppError> {
     Ok(())
 }
 
-/// Delete a local branch — safe delete only (`-d` refuses unmerged work).
+/// Delete a local branch - safe delete only (`-d` refuses unmerged work).
 /// Validated exactly like switch: exact byte match against refs/heads.
 pub fn branch_delete(dir: &Path, branch: &str) -> Result<(), AppError> {
     if branch.starts_with('-') || branch.chars().any(|c| c.is_control() || c.is_whitespace()) {
@@ -277,7 +277,7 @@ pub fn branch_delete(dir: &Path, branch: &str) -> Result<(), AppError> {
     };
     if info.current {
         return Err(AppError::InvalidInput {
-            detail: "cannot delete the branch you are on — switch first".into(),
+            detail: "cannot delete the branch you are on - switch first".into(),
         });
     }
     let out = runner::git(dir, &["branch", "-d", branch])?;
@@ -297,7 +297,7 @@ pub enum MergeOutcome {
 }
 
 /// Merge `branch` into the current branch. Requires a clean tracked working
-/// tree (commit first — so aborting always returns to a known-good state).
+/// tree (commit first - so aborting always returns to a known-good state).
 /// The branch is validated by exact match against refs/heads, like switch.
 /// Never `-f`, never `-X theirs/ours`, never a rewrite: on conflicts git
 /// stops and we report the files; the ONLY exits are merge_complete (after
@@ -315,7 +315,7 @@ pub fn merge(dir: &Path, branch: &str) -> Result<MergeOutcome, AppError> {
     }
     if merge_in_progress(dir) {
         return Err(AppError::InvalidInput {
-            detail: "a merge is already in progress — complete or abort it first".into(),
+            detail: "a merge is already in progress - complete or abort it first".into(),
         });
     }
     let status = runner::git(dir, &["status", "--porcelain=v1", "-uno"])?;
@@ -344,12 +344,12 @@ pub fn merge_into(dir: &Path, target: &str) -> Result<MergeOutcome, AppError> {
     let source = head.stdout.trim().to_string();
     if !head.success || source.is_empty() || source == "HEAD" {
         return Err(AppError::InvalidInput {
-            detail: "not on a branch — switch to a branch first".into(),
+            detail: "not on a branch - switch to a branch first".into(),
         });
     }
     if merge_in_progress(dir) {
         return Err(AppError::InvalidInput {
-            detail: "a merge is already in progress — complete or abort it first".into(),
+            detail: "a merge is already in progress - complete or abort it first".into(),
         });
     }
     // Clean-tree check up front so we never switch away with loose changes.
@@ -433,7 +433,7 @@ pub fn merge_complete(dir: &Path) -> Result<(), AppError> {
 }
 
 /// Push the current branch to origin, setting upstream. Explicit click only
-/// (Push button / publish flow) — never a background action, never forced.
+/// (Push button / publish flow) - never a background action, never forced.
 pub fn push_current(dir: &Path) -> Result<(), AppError> {
     let out = runner::git_with_timeout(dir, &["push", "-u", "origin", "HEAD"], NET_TIMEOUT, true)?;
     if !out.success {
@@ -461,7 +461,7 @@ mod tests {
         assert!(out.success, "git {args:?} failed: {}", out.stderr);
     }
 
-    /// The user's workflow end-to-end: branch, commit, merge — including the
+    /// The user's workflow end-to-end: branch, commit, merge - including the
     /// conflict path (stop → resolve → complete) and abort. Skipped when git
     /// is not installed.
     #[test]
@@ -524,7 +524,7 @@ mod tests {
         assert!(merge(&dir, "feature/three").is_err());
         commit_all(&dir, "cleanup").unwrap();
 
-        // merge_into — the user-facing direction: standing on a feature
+        // merge_into - the user-facing direction: standing on a feature
         // branch, merge it INTO main; ends up standing on main, merged.
         branch_create(&dir, "feature/four").unwrap();
         std::fs::write(dir.join("four.txt"), "four\n").unwrap();

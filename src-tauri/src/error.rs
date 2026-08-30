@@ -2,7 +2,7 @@ use serde::Serialize;
 
 /// Every command returns `Result<T, AppError>`. The enum serializes as a
 /// discriminated union (`{ "kind": "...", ... }`) that the frontend mirrors
-/// in `src/api/errors.ts` — adding a variant here requires a matching edit there.
+/// in `src/api/errors.ts` - adding a variant here requires a matching edit there.
 #[derive(Debug, thiserror::Error, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum AppError {

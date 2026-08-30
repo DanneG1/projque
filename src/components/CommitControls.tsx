@@ -36,7 +36,7 @@ export function CommitControls({
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [summarizing, setSummarizing] = useState(false);
 
-  // During a merge the MergeBanner owns the commit step — a plain commit
+  // During a merge the MergeBanner owns the commit step - a plain commit
   // here would silently become the merge commit.
   if (!gitInfo.dirty || gitInfo.mergeInProgress) return null;
 
@@ -95,14 +95,14 @@ export function CommitControls({
         <button
           className="btn"
           disabled={busy || !message.trim()}
-          title="git commit — saves a snapshot of your project you can always return to"
+          title="git commit - saves a snapshot of your project you can always return to"
           onClick={() => void commit()}
         >
           {busy ? "Working…" : "Commit"}
         </button>
       </div>
       <p className={styles.hint}>
-        Commit — save a snapshot of your work you can return to at any time.
+        Commit - save a snapshot of your work you can return to at any time.
         {suggestion && suggestion !== message.trim() && (
           <button className={styles.useSuggestion} onClick={() => setMessage(suggestion)}>
             Use suggestion: “{suggestion}”

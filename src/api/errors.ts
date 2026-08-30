@@ -1,4 +1,4 @@
-// Mirror of src-tauri/src/error.rs — adding a Rust variant requires a
+// Mirror of src-tauri/src/error.rs - adding a Rust variant requires a
 // matching edit here; the exhaustive switch in userMessage() enforces it.
 
 export type AppError =
@@ -52,7 +52,7 @@ export function userMessage(err: AppError): UserMessage {
       return {
         title: `${err.file} could not be read`,
         detail: err.backupPath
-          ? `Your data is safe — the file was backed up to ${err.backupPath}.`
+          ? `Your data is safe - the file was backed up to ${err.backupPath}.`
           : err.detail,
       };
     case "configWrite":
@@ -69,7 +69,7 @@ export function userMessage(err: AppError): UserMessage {
     case "branchNotFound":
       return {
         title: `Branch "${err.branch}" not found`,
-        detail: "It may have been deleted — refresh and try again.",
+        detail: "It may have been deleted - refresh and try again.",
       };
     case "sessionNotFound":
       return { title: "Agent session not found", detail: "It may have been removed." };
@@ -78,7 +78,7 @@ export function userMessage(err: AppError): UserMessage {
     case "runTargetNotFound":
       return {
         title: "Run target no longer exists",
-        detail: "The project files may have changed — reopen the Run menu.",
+        detail: "The project files may have changed - reopen the Run menu.",
       };
     case "nameInvalid":
       return { title: "Invalid name", detail: err.detail };

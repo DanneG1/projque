@@ -1,6 +1,6 @@
 // The only place invoke() is called. Components go through the store,
 // the store goes through here. No paths or shell strings ever leave the
-// frontend — commands take opaque IDs and typed enum values only.
+// frontend - commands take opaque IDs and typed enum values only.
 
 import { invoke, type Channel } from "@tauri-apps/api/core";
 import type {

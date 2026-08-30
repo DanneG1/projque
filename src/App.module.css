@@ -50,7 +50,7 @@
   overflow-y: auto;
 }
 
-/* attention flag on the Sessions button — a small tag, not a circle */
+/* attention flag on the Sessions button - a small tag, not a circle */
 .attnFlag {
   margin-left: 6px;
   font-size: 9.5px;

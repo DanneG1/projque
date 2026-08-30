@@ -1,5 +1,5 @@
 //! The complete IPC surface. Command bodies contain only validation and
-//! delegation — business logic lives in the service modules. The frontend
+//! delegation - business logic lives in the service modules. The frontend
 //! never sends filesystem paths or shell strings: only opaque IDs and
 //! closed enum values cross this boundary.
 
@@ -159,6 +159,7 @@ pub(crate) fn add_project_at(state: &AppState, path: std::path::PathBuf) -> Resu
             description: None,
             description_source: Default::default(),
             roadmap_file: None,
+            production_url: None,
         };
         projects.push(new.clone());
         Ok(new)
@@ -175,6 +176,20 @@ pub async fn project_update(
     run_blocking(move || {
         if let Some(roadmap) = patch.roadmap_file.as_deref() {
             validate_roadmap_file(roadmap)?;
+        }
+        if let Some(url) = patch.production_url.as_deref() {
+            let url = url.trim();
+            // Same shape rules as open_external_url: scheme allowlist, no
+            // whitespace/control, bounded. Empty clears the field.
+            let ok = url.is_empty()
+                || (url.len() <= 2048
+                    && !url.chars().any(|c| c.is_control() || c.is_whitespace())
+                    && (url.starts_with("https://") || url.starts_with("http://")));
+            if !ok {
+                return Err(AppError::InvalidInput {
+                    detail: "enter an http:// or https:// URL".into(),
+                });
+            }
         }
         let updated = state.update_projects(|projects| {
             let project = projects
@@ -204,6 +219,10 @@ pub async fn project_update(
             if let Some(roadmap) = patch.roadmap_file {
                 let trimmed = roadmap.trim().to_string();
                 project.roadmap_file = (!trimmed.is_empty()).then_some(trimmed);
+            }
+            if let Some(url) = patch.production_url {
+                let trimmed = url.trim().to_string();
+                project.production_url = (!trimmed.is_empty()).then_some(trimmed);
             }
             Ok(project.clone())
         })?;
@@ -645,7 +664,7 @@ pub async fn project_document(
     .await
 }
 
-/// The single command that accepts a free-form string — documented as the
+/// The single command that accepts a free-form string - documented as the
 /// audited exception in SECURITY.md. A scheme-allowlisted URL can only ever
 /// reach the OS default browser.
 #[tauri::command]
@@ -736,7 +755,7 @@ pub async fn git_switch(
 }
 
 /// Commit everything ("Save your work"). `message` is an audited free-form
-/// string — see ops::commit_all for validation; it is only ever the value
+/// string - see ops::commit_all for validation; it is only ever the value
 /// of `-m`.
 #[tauri::command]
 pub async fn git_commit(
@@ -784,7 +803,7 @@ pub async fn git_snapshots(
 }
 
 /// Restore an earlier version (commit or snapshot) as a NEW commit, after
-/// snapshotting the current state. `hash` is an audited free-form string —
+/// snapshotting the current state. `hash` is an audited free-form string -
 /// hex-validated and resolved against this repository's own objects
 /// (ops::restore), so it can never be an option or reach another repo.
 #[tauri::command]
@@ -852,7 +871,7 @@ pub async fn git_workdir_diff(
 }
 
 /// Create a branch at HEAD and switch to it. `name` is an audited free-form
-/// string — strict charset + git check-ref-format (see ops::branch_create).
+/// string - strict charset + git check-ref-format (see ops::branch_create).
 #[tauri::command]
 pub async fn git_branch_create(
     state: State<'_, Arc<AppState>>,
@@ -901,7 +920,7 @@ pub async fn git_push(state: State<'_, Arc<AppState>>, id: String) -> Result<Git
 
 /// Merge the CURRENT branch into `target` (the user's mental model: "merge
 /// what I'm standing on into develop"). Switches to the target; stops on
-/// conflicts (reported back) — the only exits from that state are
+/// conflicts (reported back) - the only exits from that state are
 /// git_merge_complete and git_merge_abort.
 #[tauri::command]
 pub async fn git_merge_into(
@@ -967,7 +986,7 @@ pub async fn git_conflicts(
 }
 
 /// Plain-language summary of uncommitted changes via the user's own Claude
-/// Code CLI. Explicit-click only — it spends the user's Claude usage.
+/// Code CLI. Explicit-click only - it spends the user's Claude usage.
 #[tauri::command]
 pub async fn git_change_summary(
     state: State<'_, Arc<AppState>>,
@@ -1009,7 +1028,7 @@ pub async fn agent_session_start(
         let agent = launcher::resolve_agent(&settings, agent_kind.as_deref())?;
         // Safety net for "the agent broke my project": snapshot the working
         // tree to a hidden ref before the agent can touch it (see
-        // git/backup.rs). Best-effort — never blocks the session.
+        // git/backup.rs). Best-effort - never blocks the session.
         if dir.join(".git").exists() {
             let reason = format!("Before {} session", agent.label);
             let _ = crate::git::backup::create_snapshot(&dir, &reason);
@@ -1067,7 +1086,7 @@ pub async fn agent_session_attach(
 }
 
 /// Keystrokes into a PTY the user started, running an allowlisted agent in
-/// their own project directory — the trust level of typing in Terminal.app.
+/// their own project directory - the trust level of typing in Terminal.app.
 #[tauri::command]
 pub async fn agent_session_write(
     state: State<'_, Arc<AppState>>,
@@ -1107,7 +1126,7 @@ pub async fn agent_session_remove(
 }
 
 /// Frontend reports which session is on screen and whether the app is
-/// focused — IDs only; used to suppress attention for what the user is
+/// focused - IDs only; used to suppress attention for what the user is
 /// already looking at.
 #[tauri::command]
 pub async fn sessions_set_active(
@@ -1202,7 +1221,7 @@ pub async fn run_session_start(
     .await
 }
 
-/// Open the URL the run session itself printed (stored backend-side —
+/// Open the URL the run session itself printed (stored backend-side -
 /// no URL ever crosses IPC).
 #[tauri::command]
 pub async fn run_session_open_url(
@@ -1258,7 +1277,7 @@ fn civil_date(secs: u64) -> String {
 
 /// Append a captured idea to IDEAS.md, creating the file on first use.
 /// With a project id the file lives in that project (an existing IDEAS.md
-/// must resolve inside the project — symlink escapes rejected, same rule as
+/// must resolve inside the project - symlink escapes rejected, same rule as
 /// document reads); with `id: None` the idea is general and goes to the
 /// fixed-name IDEAS.md in the app's own config directory.
 #[tauri::command]
@@ -1365,7 +1384,7 @@ pub async fn github_pr_status(
     .await
 }
 
-/// Opens the PR URL stored by the last github_pr_status call — no URL
+/// Opens the PR URL stored by the last github_pr_status call - no URL
 /// crosses IPC.
 #[tauri::command]
 pub async fn github_open_pr(state: State<'_, Arc<AppState>>, id: String) -> Result<(), AppError> {
@@ -1386,7 +1405,7 @@ pub async fn github_open_pr(state: State<'_, Arc<AppState>>, id: String) -> Resu
 #[serde(rename_all = "camelCase")]
 pub struct CreateProjectResult {
     pub project: ProjectView,
-    /// Set when the local project was created but `gh repo create` failed —
+    /// Set when the local project was created but `gh repo create` failed -
     /// the caller shows this as a warning, not a failure.
     pub remote_error: Option<String>,
 }
@@ -1461,7 +1480,7 @@ pub async fn project_create(
 }
 
 /// Clone a repository into a configured project root and import it.
-/// Audited exception: `url` — shape-validated (scheme prefix, no
+/// Audited exception: `url` - shape-validated (scheme prefix, no
 /// whitespace/control, length cap; prefixes exclude a leading '-') and
 /// passed to git as a single argv element after `--`.
 #[tauri::command]
@@ -1546,7 +1565,20 @@ pub async fn publish_run(
         let dir = state.resolve_dir(&id)?;
         require_git(&state)?;
         let (settings, _) = state.settings();
-        github::publish(&dir, &settings.path_additions)
+        let outcome = github::publish(&dir, &settings.path_additions)?;
+        // A live Pages URL is this project's production link - record it
+        // (first publish only; a hand-set URL is never overwritten).
+        if let Some(url) = &outcome.pages_url {
+            let _ = state.update_projects(|projects| {
+                if let Some(p) = projects.iter_mut().find(|p| p.id == id) {
+                    if p.production_url.is_none() {
+                        p.production_url = Some(url.clone());
+                    }
+                }
+                Ok(())
+            });
+        }
+        Ok(outcome)
     })
     .await
 }
@@ -1566,7 +1598,9 @@ pub struct DoctorItem {
 }
 
 fn home_dir() -> std::path::PathBuf {
+    // HOME on unix, USERPROFILE on Windows.
     std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
         .map(std::path::PathBuf::from)
         .filter(|p| p.is_dir())
         .unwrap_or_else(std::env::temp_dir)
@@ -1620,7 +1654,7 @@ pub async fn doctor_status(state: State<'_, Arc<AppState>>) -> Result<Vec<Doctor
             ok: claude.is_some(),
             detail: claude
                 .map(|p| p.display().to_string())
-                .or_else(|| Some("Install with: npm install -g @anthropic-ai/claude-code — then run claude once to log in".into())),
+                .or_else(|| Some("Install with: npm install -g @anthropic-ai/claude-code - then run claude once to log in".into())),
             fixable: false,
         });
 
@@ -1663,7 +1697,7 @@ pub async fn doctor_status(state: State<'_, Arc<AppState>>) -> Result<Vec<Doctor
             ok: node.is_some(),
             detail: node
                 .map(|p| p.display().to_string())
-                .or_else(|| Some("Optional — needed to run most web projects. Install from nodejs.org".into())),
+                .or_else(|| Some("Optional - needed to run most web projects. Install from nodejs.org".into())),
             fixable: false,
         });
 
@@ -1758,7 +1792,7 @@ pub async fn idea_set_done(
         };
         let content = std::fs::read_to_string(&path)?;
         let updated = ideas::set_done(&content, line, done).ok_or_else(|| AppError::InvalidInput {
-            detail: "IDEAS.md changed since it was loaded — reload and try again".into(),
+            detail: "IDEAS.md changed since it was loaded - reload and try again".into(),
         })?;
         std::fs::write(&path, &updated)?;
         Ok(ideas::parse(&updated))
@@ -1770,7 +1804,7 @@ pub async fn idea_set_done(
 // Activity / progress (gamification)
 
 /// Raw material for the Progress page, computed entirely from local data:
-/// commit timestamps come from each repository's own log (branches only —
+/// commit timestamps come from each repository's own log (branches only -
 /// snapshot refs excluded), idea counts from IDEAS.md files. Timestamps are
 /// bucketed into days on the frontend, where the user's timezone lives.
 #[derive(Serialize)]
@@ -1845,7 +1879,7 @@ pub async fn activity_summary(
                 total_commits,
             });
         }
-        // General ideas (config-dir IDEAS.md) count too — finishing anything
+        // General ideas (config-dir IDEAS.md) count too - finishing anything
         // should feel like progress.
         let general = state.config_dir.join("IDEAS.md");
         if general.is_file() {

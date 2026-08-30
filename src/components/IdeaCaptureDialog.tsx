@@ -88,7 +88,7 @@ export function IdeaCaptureDialog() {
         <label className={styles.field}>
           Save to
           <select value={projectId} onChange={(e) => setProjectId(e.target.value)}>
-            <option value={GENERAL}>No project — general idea</option>
+            <option value={GENERAL}>No project - general idea</option>
             {eligible.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -98,8 +98,8 @@ export function IdeaCaptureDialog() {
         </label>
         <p className={styles.hint}>
           {targetId === null
-            ? "Saved to your general idea list on the Projects page — maybe a future project."
-            : <>Appended to the project’s <code>IDEAS.md</code> — agents and future you will find it there.</>}
+            ? "Saved to your general idea list on the Projects page - maybe a future project."
+            : <>Appended to the project’s <code>IDEAS.md</code> - agents and future you will find it there.</>}
         </p>
         <div className={styles.actions}>
           <button className="btn" onClick={close}>

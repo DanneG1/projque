@@ -136,7 +136,7 @@ export default function App() {
       document.documentElement.dataset.theme = theme;
     }
     // Notify any open terminals to recolor (manager self-subscribes) without
-    // importing the terminal module here — that would recreate a circular
+    // importing the terminal module here - that would recreate a circular
     // chunk dependency that leaves manager's bindings in the TDZ.
     window.dispatchEvent(new Event("projque:themechange"));
     if (theme === "system") {
@@ -180,7 +180,7 @@ export default function App() {
         </button>
         <button
           className="btn"
-          title="Git — branches, commits, merges and pushes across your projects"
+          title="Git - branches, commits, merges and pushes across your projects"
           data-active={route.page === "git" || undefined}
           onClick={() => setRoute({ page: "git" })}
         >

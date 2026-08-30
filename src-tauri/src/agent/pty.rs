@@ -1,5 +1,5 @@
-//! portable-pty wrapper. The agent binary runs DIRECTLY on the PTY — never a
-//! shell — with cwd pinned to the resolved project directory and a PATH
+//! portable-pty wrapper. The agent binary runs DIRECTLY on the PTY - never a
+//! shell - with cwd pinned to the resolved project directory and a PATH
 //! augmented the same way as external launches (GUI apps inherit a minimal
 //! environment).
 
@@ -55,7 +55,7 @@ pub fn spawn(
         .master
         .try_clone_reader()
         .map_err(|e| launch_err(e.to_string()))?;
-    // take_writer succeeds exactly once — stored in the session.
+    // take_writer succeeds exactly once - stored in the session.
     let writer = pair
         .master
         .take_writer()

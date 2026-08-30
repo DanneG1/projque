@@ -77,7 +77,7 @@ export function RepoPanel({
             gitInfo.remoteUrl && (
               <span
                 className={styles.tracks}
-                title="This branch only exists on your machine — the first Push publishes it to origin and connects them"
+                title="This branch only exists on your machine - the first Push publishes it to origin and connects them"
               >
                 local only
               </span>
@@ -118,8 +118,8 @@ export function RepoPanel({
             disabled={busy}
             title={
               upstream
-                ? `git push — upload your commits to ${upstream}`
-                : "git push -u origin — publishes this branch to origin and sets it to track the remote copy"
+                ? `git push - upload your commits to ${upstream}`
+                : "git push -u origin - publishes this branch to origin and sets it to track the remote copy"
             }
             onClick={() => void pushBranch(projectId)}
           >
@@ -149,7 +149,7 @@ export function RepoPanel({
               disabled={busy || !mergeTarget || gitInfo.dirty}
               title={
                 gitInfo.dirty
-                  ? "Commit your changes first — a merge from a clean state can always be safely undone"
+                  ? "Commit your changes first - a merge from a clean state can always be safely undone"
                   : mergeTarget
                     ? `Brings your commits from ${current} into ${mergeTarget}; you'll end up on ${mergeTarget}`
                     : "Pick the branch to merge into"
@@ -163,7 +163,7 @@ export function RepoPanel({
       </div>
       {gitInfo.dirty && !gitInfo.mergeInProgress && (
         <p className={styles.hint}>
-          Merging needs a clean state — commit your changes first, so a merge
+          Merging needs a clean state - commit your changes first, so a merge
           can always be undone safely.
         </p>
       )}

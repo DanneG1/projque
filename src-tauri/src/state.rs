@@ -24,7 +24,7 @@ pub struct AppState {
     git_cache: Mutex<HashMap<String, (GitInfo, Instant)>>,
     git_version: Mutex<Option<Option<String>>>,
     pub agents: Registry,
-    /// Last fetched PR status per project — github_open_pr opens the stored
+    /// Last fetched PR status per project - github_open_pr opens the stored
     /// URL so nothing crosses IPC.
     pub pr_cache: Mutex<HashMap<String, PrStatus>>,
 }

@@ -1,5 +1,5 @@
 //! Pre-publish secrets scan. Publishing makes the repository public, and the
-//! audience ProjQue serves pastes API keys into source files — so every file
+//! audience ProjQue serves pastes API keys into source files - so every file
 //! that would be pushed (`git ls-files -co --exclude-standard`: tracked plus
 //! untracked-but-not-ignored) is checked for high-signal credential shapes
 //! before the first push. Deliberately precise over exhaustive: every
@@ -19,7 +19,7 @@ const MAX_FINDINGS: usize = 50;
 #[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct SecretFinding {
-    /// Repository-relative path — display only, never used to open anything.
+    /// Repository-relative path - display only, never used to open anything.
     pub file: String,
     /// 1-based line, 0 when the finding is about the file itself.
     pub line: u32,

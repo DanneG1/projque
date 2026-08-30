@@ -30,7 +30,7 @@ export function GitSummary({ info }: { info: GitInfo | undefined }) {
         <>
           <span className={styles.sep}>·</span>
           <span className={styles.commit} title={info.lastCommit.subject}>
-            {info.lastCommit.subject} — {relativeTime(info.lastCommit.timestamp)}
+            {info.lastCommit.subject} - {relativeTime(info.lastCommit.timestamp)}
           </span>
         </>
       )}

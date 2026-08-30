@@ -36,7 +36,7 @@ export function ImportPage() {
 
       {truncated && (
         <p className={styles.notice}>
-          The scan stopped early — too many repositories. Narrow your project
+          The scan stopped early - too many repositories. Narrow your project
           folders or reduce the scan depth.
         </p>
       )}
@@ -82,7 +82,7 @@ export function ImportPage() {
           <ul>
             {errors.map((e, i) => (
               <li key={i}>
-                <code>{e.path}</code> — {e.detail}
+                <code>{e.path}</code> - {e.detail}
               </li>
             ))}
           </ul>

@@ -12,7 +12,7 @@ use crate::error::AppError;
 
 use super::runner;
 
-/// Per-file patch cap — beyond this the patch is cut and flagged.
+/// Per-file patch cap - beyond this the patch is cut and flagged.
 const MAX_FILE_PATCH: usize = 48 * 1024;
 /// Whole-response cap: remaining files keep their header but lose the patch.
 const MAX_TOTAL_PATCH: usize = 640 * 1024;

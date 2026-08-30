@@ -2,16 +2,16 @@
 
 > **Your local project shelf.** Keep track of what you're building, see where you left off, and jump back into any project instantly.
 
-ProjQue is a local-first, fully offline desktop app for developers juggling many local projects. It shows every project in one place — status, description, current branch, working-tree state, last commit, roadmap — with quick actions to jump back in, plus safe git controls (fetch, fast-forward pull, branch switching — never anything destructive):
+ProjQue is a local-first, fully offline desktop app for developers juggling many local projects. It shows every project in one place - status, description, current branch, working-tree state, last commit, roadmap - with quick actions to jump back in, plus safe git controls (fetch, fast-forward pull, branch switching - never anything destructive):
 
-- **Folder** — open the project in your file manager
-- **Editor** — open it in your configured editor
-- **Terminal** — open a terminal at the project directory
-- **Run** — start the application itself (`npm run dev`, `cargo run`, …) in an embedded terminal; targets are auto-detected from the project's own files (package.json scripts with npm/yarn/pnpm/bun picked from the lockfile, Cargo.toml, go.mod, .NET projects), and when the dev server prints its localhost URL an **Open in browser** button appears
-- **Agent** — run your configured LLM coding agent (Claude Code, Codex, Aider, …) in an embedded terminal inside Projque — manage several agents across different projects at once from the Agents view (external-terminal launch is still available from the project detail page)
-- **Repository** — open the GitHub remote in your browser
+- **Folder** - open the project in your file manager
+- **Editor** - open it in your configured editor
+- **Terminal** - open a terminal at the project directory
+- **Run** - start the application itself (`npm run dev`, `cargo run`, …) in an embedded terminal; targets are auto-detected from the project's own files (package.json scripts with npm/yarn/pnpm/bun picked from the lockfile, Cargo.toml, go.mod, .NET projects), and when the dev server prints its localhost URL an **Open in browser** button appears
+- **Agent** - run your configured LLM coding agent (Claude Code, Codex, Aider, …) in an embedded terminal inside Projque - manage several agents across different projects at once from the Agents view (external-terminal launch is still available from the project detail page)
+- **Repository** - open the GitHub remote in your browser
 
-Beyond the shelf itself: **create a new project** from inside Projque (folder + git init + README + first commit, optionally a GitHub repository via `gh`, optionally launching your agent with a kickoff prompt so it scaffolds the project for you), **clone a repository** straight into a project root, get **notified when a background agent needs you** (bell or gone-quiet detection), and **check PR & CI status** for the current branch via the GitHub CLI. `gh` is optional — every GitHub feature hides gracefully without it.
+Beyond the shelf itself: **create a new project** from inside Projque (folder + git init + README + first commit, optionally a GitHub repository via `gh`, optionally launching your agent with a kickoff prompt so it scaffolds the project for you), **clone a repository** straight into a project root, get **notified when a background agent needs you** (bell or gone-quiet detection), and **check PR & CI status** for the current branch via the GitHub CLI. `gh` is optional - every GitHub feature hides gracefully without it.
 
 ## What this app does not do
 
@@ -66,7 +66,7 @@ Two pretty-printed JSON files, safe to hand-edit and non-critical if lost (resca
 }
 ```
 
-Advanced, file-only options: `"command"`/`"args"` on any tool override the catalog entry (run as argv, never through a shell), and `"pathAdditions": ["/some/bin"]` extends the search path for launcher programs — useful because GUI-launched apps don't inherit your shell's PATH.
+Advanced, file-only options: `"command"`/`"args"` on any tool override the catalog entry (run as argv, never through a shell), and `"pathAdditions": ["/some/bin"]` extends the search path for launcher programs - useful because GUI-launched apps don't inherit your shell's PATH.
 
 ## Supported tools
 
@@ -74,21 +74,21 @@ Advanced, file-only options: `"command"`/`"args"` on any tool override the catal
 |---|---|---|
 | VS Code, Cursor, Zed, Sublime Text, IntelliJ IDEA, Rider, WebStorm | Terminal.app, iTerm2, Windows Terminal, kitty, Alacritty, WezTerm, Ghostty, GNOME Terminal, Konsole | Claude Code, Codex CLI, Aider, Gemini CLI, opencode, Cursor Agent |
 
-**Adding a tool is a one-line pull request** — a single const entry in
+**Adding a tool is a one-line pull request** - a single const entry in
 [`src-tauri/src/launcher/catalog.rs`](src-tauri/src/launcher/catalog.rs). A great first issue.
 
 ## Troubleshooting
 
 - **"code not found" (or any tool):** the CLI isn't on the PATH Projque can see. Install the tool's shell command, or add its directory to `pathAdditions` in `settings.json`.
 - **Git info missing:** git isn't installed or isn't on PATH. Everything else keeps working.
-- **Settings were reset:** the previous file failed to parse and was backed up next to the original as `*.invalid-<timestamp>.bak` — nothing is deleted.
+- **Settings were reset:** the previous file failed to parse and was backed up next to the original as `*.invalid-<timestamp>.bak` - nothing is deleted.
 
 ## Docs
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — how it's put together, the trust boundary, how to extend it
-- [docs/SECURITY.md](docs/SECURITY.md) — threat model and the invariants that keep this app boring
-- [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) — dev loop and PR rules
-- [docs/requirements.md](docs/requirements.md) — the original product spec
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - how it's put together, the trust boundary, how to extend it
+- [docs/SECURITY.md](docs/SECURITY.md) - threat model and the invariants that keep this app boring
+- [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) - dev loop and PR rules
+- [docs/requirements.md](docs/requirements.md) - the original product spec
 
 ## License
 

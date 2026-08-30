@@ -84,7 +84,7 @@ export function SparkBanner() {
     try {
       localStorage.setItem(DISMISS_KEY, todayStr());
     } catch {
-      // storage unavailable — dismiss for this session only
+      // storage unavailable - dismiss for this session only
     }
     setDismissed(true);
   };
@@ -109,7 +109,7 @@ export function SparkBanner() {
         has been {quietFor(pick.p, pick.last)}
         {hint ? (
           <>
-            {" — still on its list: "}
+            {" - still on its list: "}
             <em className={styles.hint}>“{hint}”</em>
           </>
         ) : (

@@ -22,7 +22,7 @@ export function ProjectCard({
   const relocateProject = useAppStore((s) => s.relocateProject);
   const gitInfo = useAppStore((s) => s.git[project.id]);
   const setRoute = useAppStore((s) => s.setRoute);
-  // Select the stable array reference and derive locally — returning a fresh
+  // Select the stable array reference and derive locally - returning a fresh
   // .filter() array from the selector would make the store subscription loop.
   const allSessions = useAppStore((s) => s.sessions);
   const sessions = allSessions.filter(
@@ -73,6 +73,11 @@ export function ProjectCard({
         {shortcut !== undefined && (
           <span className={styles.kbdHint} title={`Jump here with ⌘${shortcut}`}>
             ⌘{shortcut}
+          </span>
+        )}
+        {project.productionUrl && (
+          <span className={styles.live} title={`Live at ${project.productionUrl}`}>
+            live
           </span>
         )}
         <StatusBadge status={project.status} />

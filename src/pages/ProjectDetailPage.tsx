@@ -35,6 +35,8 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
   const [showReadme, setShowReadme] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState<string | null>(null);
   const [showRepo, setShowRepo] = useState(false);
+  const [prodDraft, setProdDraft] = useState<string | null>(null);
+  const openExternalUrl = useAppStore((s) => s.openExternalUrl);
 
   const hasRoadmap = project?.hasRoadmap ?? false;
   const hasReadme = project?.hasReadme ?? false;
@@ -161,6 +163,56 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
             <code className={styles.path}>{gitInfo.repositoryUrl}</code>
           </div>
         )}
+        <div className={styles.metaRow}>
+          <span className={styles.metaLabel}>Production</span>
+          {prodDraft !== null ? (
+            <input
+              className={styles.prodInput}
+              autoFocus
+              type="text"
+              placeholder="https://my-app.example.com"
+              value={prodDraft}
+              maxLength={2048}
+              onChange={(e) => setProdDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setProdDraft(null);
+                if (e.key === "Enter") {
+                  void updateProject(project.id, { productionUrl: prodDraft.trim() });
+                  setProdDraft(null);
+                }
+              }}
+              onBlur={() => {
+                void updateProject(project.id, { productionUrl: prodDraft.trim() });
+                setProdDraft(null);
+              }}
+            />
+          ) : project.productionUrl ? (
+            <>
+              <code
+                className={styles.path}
+                title="Click to edit"
+                onClick={() => setProdDraft(project.productionUrl ?? "")}
+              >
+                {project.productionUrl}
+              </code>
+              <button
+                className="btn"
+                title="Open the live application in your browser"
+                onClick={() => void openExternalUrl(project.productionUrl!)}
+              >
+                Open live <Icon name="external" size={12} />
+              </button>
+            </>
+          ) : (
+            <button
+              className={styles.prodAdd}
+              title="Where does this project run for real? Counts toward your contribution score."
+              onClick={() => setProdDraft("")}
+            >
+              Add production URL…
+            </button>
+          )}
+        </div>
         <QuickActions project={project} gitInfo={gitInfo} />
         {project.pathExists && <GuidedActions projectId={project.id} />}
         {project.pathExists && (
@@ -247,7 +299,7 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
         {roadmap ? (
           <>
             {roadmap.truncated && (
-              <p className={styles.faint}>Large file — showing the first part only.</p>
+              <p className={styles.faint}>Large file - showing the first part only.</p>
             )}
             <MarkdownView markdown={roadmap.markdown} />
           </>

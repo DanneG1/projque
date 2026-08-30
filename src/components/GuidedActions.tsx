@@ -17,7 +17,7 @@ const ACTIONS: GuidedAction[] = [
     label: "Fix a problem",
     hint: "Describe what's broken; the agent finds and fixes it",
     placeholder:
-      "What isn't working? Describe what you did, what happened, and what you expected — paste any error message you saw.",
+      "What isn't working? Describe what you did, what happened, and what you expected - paste any error message you saw.",
     prompt: (input) =>
       `Something in this project isn't working. Here is what the user observed:\n\n${input}\n\nFind the cause and fix it. When you're done, explain what was wrong and what you changed in simple, non-technical language.`,
   },
@@ -35,21 +35,21 @@ const ACTIONS: GuidedAction[] = [
     label: "Improve the look",
     hint: "Polish the design, layout, and colors",
     placeholder:
-      "Anything specific? (Optional — e.g. “make it feel more modern”, “bigger text”, “calmer colors”.)",
+      "Anything specific? (Optional - e.g. “make it feel more modern”, “bigger text”, “calmer colors”.)",
     prompt: (input) =>
-      `Improve the visual design of this project${input ? ` with this direction from the user:\n\n${input}` : ""}.\n\nKeep changes tasteful and consistent — spacing, typography, colors, and layout. Do not change how the project works. Afterwards, summarize what you improved in simple terms.`,
+      `Improve the visual design of this project${input ? ` with this direction from the user:\n\n${input}` : ""}.\n\nKeep changes tasteful and consistent - spacing, typography, colors, and layout. Do not change how the project works. Afterwards, summarize what you improved in simple terms.`,
   },
   {
     id: "explain",
     label: "Explain this project",
-    hint: "Get a plain-language tour — nothing is changed",
+    hint: "Get a plain-language tour - nothing is changed",
     placeholder: null,
     prompt: () =>
       `Explain this project to someone who is not a programmer: what it does, how it is organized, what state it is in, and what might be worth doing next. Use simple language. Do not change any files.`,
   },
 ];
 
-/** Guided ways to start the agent — a well-formed prompt is composed from
+/** Guided ways to start the agent - a well-formed prompt is composed from
  *  the user's plain-language description, so the first move is made for
  *  them. The prompt reaches the agent through the existing initial_prompt
  *  path (same trust as typing into the session). */

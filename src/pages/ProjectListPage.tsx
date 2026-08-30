@@ -131,7 +131,7 @@ export function ProjectListPage() {
 
       {!gitAvailable && (
         <p className={styles.gitNote}>
-          Git was not found on this machine — branch and commit information is
+          Git was not found on this machine - branch and commit information is
           hidden. Everything else works.
         </p>
       )}

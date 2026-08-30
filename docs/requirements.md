@@ -1,4 +1,4 @@
-# Local Project Hub — Requirements & Implementation Guide
+# Local Project Hub - Requirements & Implementation Guide
 
 ## 1. Overview
 
@@ -1089,7 +1089,7 @@ Do not expose configuration that users rarely need.
 
 # 23. Implementation Plan
 
-## Phase 1 — Application Shell
+## Phase 1 - Application Shell
 
 Create the basic Tauri + React application.
 
@@ -1105,7 +1105,7 @@ At the end of this phase, the application should launch and persist simple setti
 
 ---
 
-## Phase 2 — Project Configuration
+## Phase 2 - Project Configuration
 
 Implement `projects.json`.
 
@@ -1133,7 +1133,7 @@ At the end of this phase, the application is already useful as a simple project 
 
 ---
 
-## Phase 3 — Project Discovery
+## Phase 3 - Project Discovery
 
 Implement root folder configuration.
 
@@ -1150,7 +1150,7 @@ Do not automatically import everything.
 
 ---
 
-## Phase 4 — Quick Actions
+## Phase 4 - Quick Actions
 
 Implement:
 
@@ -1167,7 +1167,7 @@ At this point, the application becomes useful as a daily project launcher.
 
 ---
 
-## Phase 5 — Local Git Information
+## Phase 5 - Local Git Information
 
 Create `GitService`.
 
@@ -1188,7 +1188,7 @@ Do not introduce persistent caching in Version 1 unless performance requires it.
 
 ---
 
-## Phase 6 — README and ROADMAP
+## Phase 6 - README and ROADMAP
 
 Implement local Markdown discovery.
 
@@ -1206,7 +1206,7 @@ At this point, Version 1 contains the complete intended product concept.
 
 ---
 
-## Phase 7 — UX Refinement
+## Phase 7 - UX Refinement
 
 Focus on:
 

@@ -17,6 +17,7 @@ export interface ProjectView {
   description?: string;
   descriptionSource: DescriptionSource;
   roadmapFile?: string;
+  productionUrl?: string;
   pathExists: boolean;
   isGitRepo: boolean;
   hasReadme: boolean;
@@ -41,6 +42,7 @@ export interface ProjectPatch {
   description?: string;
   descriptionSource?: DescriptionSource;
   roadmapFile?: string;
+  productionUrl?: string;
 }
 
 export const STATUS_ORDER: ProjectStatus[] = [

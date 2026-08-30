@@ -91,7 +91,7 @@ pub fn mac_app_installed(app_name: &str) -> bool {
 }
 
 /// The PATH used for embedded agent sessions: the process PATH plus the
-/// usual install locations plus the file-only `pathAdditions` setting —
+/// usual install locations plus the file-only `pathAdditions` setting -
 /// same resolution universe as `resolve_program`.
 pub fn augmented_path(path_additions: &[String]) -> std::ffi::OsString {
     let path_var = std::env::var_os("PATH").unwrap_or_default();

@@ -106,7 +106,7 @@ fn failure_detail(out: &GhOutput) -> String {
 }
 
 /// Installed + authenticated probe. `gh auth status` reads the local hosts
-/// file — no network.
+/// file - no network.
 pub fn status(path_additions: &[String]) -> GhStatus {
     let installed = which::resolve_program("gh", path_additions).is_some();
     if !installed {
@@ -148,7 +148,7 @@ pub fn pr_status(dir: &Path, path_additions: &[String]) -> Result<Option<PrStatu
         path_additions,
     )?;
     if !out.success {
-        // gh exits non-zero with "no pull requests found" — not an error.
+        // gh exits non-zero with "no pull requests found" - not an error.
         if out.stderr.to_lowercase().contains("no pull requests found") {
             return Ok(None);
         }
@@ -219,7 +219,7 @@ pub struct PublishPreflight {
 pub struct PublishOutcome {
     pub repo_url: Option<String>,
     pub pages_url: Option<String>,
-    /// Pages enablement failed but the push succeeded — shown as a warning.
+    /// Pages enablement failed but the push succeeded - shown as a warning.
     pub pages_error: Option<String>,
 }
 
@@ -251,7 +251,7 @@ pub fn publish_preflight(dir: &Path, path_additions: &[String]) -> Result<Publis
 
 /// The publish itself: push (creating the public repository first if there
 /// is no remote yet), then enable GitHub Pages when the project is a static
-/// site. Refuses to run while the secrets scan reports findings — the
+/// site. Refuses to run while the secrets scan reports findings - the
 /// frontend surfaces them before this is ever called; this re-check only
 /// defends against a bypassed dialog.
 pub fn publish(dir: &Path, path_additions: &[String]) -> Result<PublishOutcome, AppError> {
@@ -259,7 +259,7 @@ pub fn publish(dir: &Path, path_additions: &[String]) -> Result<PublishOutcome, 
     if !findings.is_empty() {
         let files: Vec<&str> = findings.iter().map(|f| f.file.as_str()).take(5).collect();
         return Err(AppError::InvalidInput {
-            detail: format!("publish blocked — possible secrets in: {}", files.join(", ")),
+            detail: format!("publish blocked - possible secrets in: {}", files.join(", ")),
         });
     }
 
@@ -279,7 +279,7 @@ pub fn publish(dir: &Path, path_additions: &[String]) -> Result<PublishOutcome, 
         crate::git::ops::push_current(dir)?;
     }
 
-    // Owner/name straight from gh itself — never derived from the URL string.
+    // Owner/name straight from gh itself - never derived from the URL string.
     let view = run_gh(dir, &["repo", "view", "--json", "nameWithOwner,url"], NET_TIMEOUT, path_additions)?;
     if !view.success {
         return Err(AppError::GhFailed { detail: failure_detail(&view) });
@@ -303,7 +303,7 @@ pub fn publish(dir: &Path, path_additions: &[String]) -> Result<PublishOutcome, 
         .filter(|b| !b.is_empty() && b != "HEAD")
         .ok_or_else(|| AppError::GitFailed { detail: "could not determine current branch".into() })?;
 
-    // Enable Pages; 409 means it is already enabled — not an error.
+    // Enable Pages; 409 means it is already enabled - not an error.
     let api_path = format!("repos/{nwo}/pages");
     let enable = run_gh(
         dir,
