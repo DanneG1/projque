@@ -19,9 +19,10 @@ const mod = XtermMod as unknown as {
   default?: { Terminal: XtermModule["Terminal"] };
 };
 const Terminal: XtermModule["Terminal"] = mod.Terminal ?? mod.default!.Terminal;
+type XtermTerminal = InstanceType<XtermModule["Terminal"]>;
 
 interface Entry {
-  term: Terminal;
+  term: XtermTerminal;
   fit: FitAddon;
   channel: Channel<unknown>;
   hostDiv: HTMLDivElement;
@@ -44,7 +45,7 @@ function themeFromTokens() {
   };
 }
 
-function writeChunk(term: Terminal, message: unknown) {
+function writeChunk(term: XtermTerminal, message: unknown) {
   if (message instanceof ArrayBuffer) term.write(new Uint8Array(message));
   else if (typeof message === "string") term.write(message);
   else if (Array.isArray(message)) term.write(new Uint8Array(message));
