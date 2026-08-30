@@ -9,9 +9,8 @@
 
 import * as XtermMod from "@xterm/xterm";
 import * as FitMod from "@xterm/addon-fit";
-import { Channel } from "@tauri-apps/api/core";
+import { invoke, Channel } from "@tauri-apps/api/core";
 import "@xterm/xterm/css/xterm.css";
-import { api } from "../api/ipc";
 
 type XtermModule = typeof import("@xterm/xterm");
 type XtermTerminal = InstanceType<XtermModule["Terminal"]>;
@@ -86,7 +85,7 @@ function ensureEntry(sessionId: string): Entry {
     hostDiv.style.height = "100%";
     term.onData((data) => {
       // The backend resets attention on write; no store call needed here.
-      void api.agentSessionWrite(sessionId, data).catch(() => {});
+      void invoke("agent_session_write", { sessionId, data }).catch(() => {});
     });
     const channel = new Channel<unknown>();
     channel.onmessage = (message) => writeChunk(term, message);
@@ -108,7 +107,7 @@ export function mountTerminal(sessionId: string, parent: HTMLElement) {
     entry.term.focus();
     if (!entry.attached) {
       entry.attached = true;
-      void api.agentSessionAttach(sessionId, entry.channel).catch(() => {
+      void invoke("agent_session_attach", { sessionId, channel: entry.channel }).catch(() => {
         entry.attached = false;
       });
     }
@@ -130,7 +129,7 @@ export function fitTerminal(sessionId: string) {
   }
   const { rows, cols } = entry.term;
   if (rows > 0 && cols > 0) {
-    void api.agentSessionResize(sessionId, rows, cols).catch(() => {});
+    void invoke("agent_session_resize", { sessionId, rows, cols }).catch(() => {});
   }
 }
 
