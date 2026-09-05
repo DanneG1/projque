@@ -46,7 +46,25 @@ interface NotifyOptions {
   onClick?: () => void;
   /** Milliseconds before auto-dismiss (default 4000). */
   ttl?: number;
+  /** Session this is about - viewing it marks the inbox entry read. */
+  sessionId?: string;
+  /** Keep out of the inbox (default: everything but plain "info" is kept). */
+  transient?: boolean;
 }
+
+/** A notification worth keeping after its toast is gone. */
+export interface InboxItem {
+  id: number;
+  at: number;
+  title: string;
+  detail?: string;
+  variant: Toast["variant"];
+  read: boolean;
+  sessionId?: string;
+  onClick?: () => void;
+}
+
+const INBOX_CAP = 60;
 
 /** One "check all projects" pass. Results land in `audits`; this tracks
  *  progress and remembers which projects were clean before any fix, so the
@@ -97,6 +115,9 @@ interface AppStore {
   celebratedAt: number | null;
   quitPrompt: number | null;
   toasts: Toast[];
+  /** Newest first. */
+  inbox: InboxItem[];
+  inboxOpen: boolean;
   initialized: boolean;
   scan: {
     result: ScanResult | null;
@@ -208,6 +229,15 @@ interface AppStore {
   reportError: (err: unknown) => AppError;
   notify: (title: string, detail?: string, opts?: NotifyOptions) => void;
   dismissToast: (id: number) => void;
+  setInboxOpen: (open: boolean) => void;
+  markInboxRead: (id: number | "all") => void;
+  clearInbox: () => void;
+  setNotifications: (patch: {
+    system?: boolean;
+    quietHours?: boolean;
+    quietFrom?: number;
+    quietTo?: number;
+  }) => Promise<void>;
 }
 
 let toastSeq = 0;
@@ -251,6 +281,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
   ideaOpen: false,
   ideasVersion: 0,
   toasts: [],
+  inbox: [],
+  inboxOpen: false,
   initialized: false,
   scan: { result: null, selected: new Set<string>(), scanning: false, importing: false },
 
@@ -319,6 +351,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   setRoute: (route) => set({ route }),
+
+  setNotifications: async (patch) => {
+    try {
+      const settings = await api.settingsSetNotifications(patch);
+      set({ settings });
+    } catch (err) {
+      get().reportError(err);
+    }
+  },
 
   setDisplay: async (patch) => {
     try {
@@ -900,6 +941,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     get().notify(`${view.agentLabel} is waiting for you`, view.projectLabel, {
       variant: "attention",
       ttl: 8000,
+      sessionId: view.sessionId,
       onClick: () => get().setRoute({ page: "agents", sessionId: view.sessionId }),
     });
   },
@@ -1055,6 +1097,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
         sessions: s.sessions.map((v) =>
           sessionIds.includes(v.sessionId) ? { ...v, needsAttention: false } : v,
         ),
+        inbox: s.inbox.map((i) =>
+          i.sessionId && sessionIds.includes(i.sessionId) && !i.read ? { ...i, read: true } : i,
+        ),
       }));
     }
   },
@@ -1121,7 +1166,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
               ? "Changes are waiting for your review."
               : "Open the session to see what happened."
             : `Stopped with code ${code}. Open the session to see why.`,
-          { variant: code === 0 || code === null ? "success" : "error", ttl: 8000, onClick: openSession },
+          { variant: code === 0 || code === null ? "success" : "error", ttl: 8000, sessionId: view.sessionId, onClick: openSession },
         );
       }
     } else if (view.targetId === "audit:fix") {
@@ -1168,11 +1213,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
         passed
           ? `${view.projectLabel} is verified.`
           : `${view.projectLabel}: look at the output, or ask the agent to fix it.`,
-        { variant: passed ? "success" : "error", ttl: 8000, onClick: openSession },
+        { variant: passed ? "success" : "error", ttl: 8000, sessionId: view.sessionId, onClick: openSession },
       );
     } else if (code !== null && code !== 0) {
       get().notify(`${view.agentLabel} exited (code ${code})`, view.projectLabel, {
         variant: "error",
+        sessionId: view.sessionId,
         onClick: openSession,
       });
     }
@@ -1195,22 +1241,50 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const appError = parseAppError(err);
     const msg = userMessage(appError);
     const toast: Toast = { id: ++toastSeq, variant: "error", ...msg };
-    set((s) => ({ toasts: [...s.toasts, toast] }));
+    set((s) => ({
+      toasts: [...s.toasts, toast],
+      inbox: [
+        { id: toast.id, at: Date.now(), title: msg.title, detail: msg.detail, variant: "error" as const, read: false },
+        ...s.inbox,
+      ].slice(0, INBOX_CAP),
+    }));
     setTimeout(() => get().dismissToast(toast.id), 6000);
     return appError;
   },
 
   notify: (title, detail, opts) => {
-    const toast: Toast = {
-      id: ++toastSeq,
-      variant: opts?.variant ?? "info",
-      title,
-      detail,
-      onClick: opts?.onClick,
-    };
-    set((s) => ({ toasts: [...s.toasts, toast] }));
+    const variant = opts?.variant ?? "info";
+    const toast: Toast = { id: ++toastSeq, variant, title, detail, onClick: opts?.onClick };
+    const keep = !opts?.transient && variant !== "info";
+    set((s) => ({
+      toasts: [...s.toasts, toast],
+      inbox: keep
+        ? [
+            {
+              id: toast.id,
+              at: Date.now(),
+              title,
+              detail,
+              variant,
+              read: false,
+              sessionId: opts?.sessionId,
+              onClick: opts?.onClick,
+            },
+            ...s.inbox,
+          ].slice(0, INBOX_CAP)
+        : s.inbox,
+    }));
     setTimeout(() => get().dismissToast(toast.id), opts?.ttl ?? 4000);
   },
 
   dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+
+  setInboxOpen: (open) => set({ inboxOpen: open }),
+
+  markInboxRead: (id) =>
+    set((s) => ({
+      inbox: s.inbox.map((i) => (id === "all" || i.id === id ? { ...i, read: true } : i)),
+    })),
+
+  clearInbox: () => set({ inbox: [], inboxOpen: false }),
 }));

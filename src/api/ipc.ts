@@ -49,6 +49,12 @@ export const api = {
   settingsGet: () => invoke<Settings>("settings_get"),
   settingsSetDisplay: (patch: { showArchived?: boolean; theme?: Theme }) =>
     invoke<Settings>("settings_set_display", patch),
+  settingsSetNotifications: (patch: {
+    system?: boolean;
+    quietHours?: boolean;
+    quietFrom?: number;
+    quietTo?: number;
+  }) => invoke<Settings>("settings_set_notifications", patch),
 
   projectsList: () => invoke<ProjectView[]>("projects_list"),
   projectAddManual: () => invoke<ProjectView | null>("project_add_manual"),

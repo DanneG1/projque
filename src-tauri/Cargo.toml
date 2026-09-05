@@ -23,3 +23,5 @@ thiserror = "2"
 walkdir = "2.5"
 portable-pty = "0.9"
 tauri-plugin-notification = "2"
+# Local hour for notification quiet hours (localtime_r); already in the tree.
+libc = "0.2"

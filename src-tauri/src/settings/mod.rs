@@ -24,6 +24,8 @@ pub struct Settings {
     pub agent: ToolConfig,
     #[serde(default)]
     pub display: DisplaySettings,
+    #[serde(default)]
+    pub notifications: NotificationSettings,
     /// Extra PATH entries for resolving launcher programs. File-only escape
     /// hatch - the UI never sets this.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -40,6 +42,7 @@ impl Default for Settings {
             terminal: default_terminal(),
             agent: default_agent(),
             display: DisplaySettings::default(),
+            notifications: NotificationSettings::default(),
             path_additions: Vec::new(),
         }
     }
@@ -75,6 +78,56 @@ pub struct DisplaySettings {
     pub theme: Theme,
 }
 
+/// System notifications (agent finished / waiting, test verdicts). In-app
+/// toasts and the inbox are unaffected by these.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationSettings {
+    #[serde(default = "default_true")]
+    pub system: bool,
+    /// Suppress system notifications between quiet_from and quiet_to (hours, local time).
+    #[serde(default)]
+    pub quiet_hours: bool,
+    #[serde(default = "default_quiet_from")]
+    pub quiet_from: u8,
+    #[serde(default = "default_quiet_to")]
+    pub quiet_to: u8,
+}
+
+fn default_true() -> bool {
+    true
+}
+fn default_quiet_from() -> u8 {
+    22
+}
+fn default_quiet_to() -> u8 {
+    8
+}
+
+impl Default for NotificationSettings {
+    fn default() -> Self {
+        Self { system: true, quiet_hours: false, quiet_from: 22, quiet_to: 8 }
+    }
+}
+
+impl NotificationSettings {
+    /// Whether a system notification may be shown at `hour` (0-23).
+    pub fn allows_at(&self, hour: u8) -> bool {
+        if !self.system {
+            return false;
+        }
+        if !self.quiet_hours || self.quiet_from == self.quiet_to {
+            return true;
+        }
+        let quiet = if self.quiet_from < self.quiet_to {
+            hour >= self.quiet_from && hour < self.quiet_to
+        } else {
+            hour >= self.quiet_from || hour < self.quiet_to
+        };
+        !quiet
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum Theme {
@@ -108,4 +161,31 @@ fn default_terminal() -> ToolConfig {
 
 fn default_agent() -> ToolConfig {
     ToolConfig::of("claude")
+}
+
+#[cfg(test)]
+mod notification_tests {
+    use super::NotificationSettings;
+
+    #[test]
+    fn quiet_hours_wrap_past_midnight() {
+        let n = NotificationSettings { system: true, quiet_hours: true, quiet_from: 22, quiet_to: 8 };
+        assert!(!n.allows_at(23));
+        assert!(!n.allows_at(3));
+        assert!(!n.allows_at(7));
+        assert!(n.allows_at(8));
+        assert!(n.allows_at(12));
+        assert!(n.allows_at(21));
+    }
+
+    #[test]
+    fn quiet_hours_same_day_and_off_switch() {
+        let n = NotificationSettings { system: true, quiet_hours: true, quiet_from: 9, quiet_to: 17 };
+        assert!(!n.allows_at(12));
+        assert!(n.allows_at(18));
+        let off = NotificationSettings { system: false, ..n.clone() };
+        assert!(!off.allows_at(18));
+        let disabled = NotificationSettings { quiet_hours: false, ..n };
+        assert!(disabled.allows_at(12));
+    }
 }

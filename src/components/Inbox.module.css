@@ -1,0 +1,137 @@
+.count {
+  margin-left: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-text);
+  background: var(--accent);
+  border-radius: 99px;
+  padding: 0 5px;
+  line-height: 15px;
+  min-width: 15px;
+  text-align: center;
+}
+
+.panel {
+  position: fixed;
+  top: 46px;
+  right: 12px;
+  width: 360px;
+  max-height: min(70vh, 560px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
+  z-index: 90;
+  animation: inboxIn 0.14s ease-out;
+}
+
+@keyframes inboxIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: 12px;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.empty {
+  margin: 0;
+  padding: 16px 12px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+}
+
+.item {
+  padding: 8px 12px 8px 14px;
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.item:last-child {
+  border-bottom: 0;
+}
+
+.item[data-clickable] {
+  cursor: pointer;
+}
+
+.item[data-clickable]:hover {
+  background: var(--bg-raised-2);
+}
+
+.item[data-variant="success"] {
+  border-left-color: var(--status-active);
+}
+.item[data-variant="attention"] {
+  border-left-color: var(--status-paused);
+}
+.item[data-variant="error"] {
+  border-left-color: var(--danger);
+}
+.item[data-variant="info"] {
+  border-left-color: var(--status-maintenance);
+}
+
+.itemTitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.item[data-unread] .itemTitle {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.itemDetail {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.itemTime {
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-top: 3px;
+}

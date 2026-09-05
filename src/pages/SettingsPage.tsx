@@ -9,10 +9,13 @@ const THEMES: { value: Theme; label: string }[] = [
   { value: "dark", label: "Dark" },
 ];
 
+const HOURS = Array.from({ length: 24 }, (_, h) => h);
+
 export function SettingsPage() {
   const settings = useAppStore((s) => s.settings);
   const configStatus = useAppStore((s) => s.configStatus);
   const setDisplay = useAppStore((s) => s.setDisplay);
+  const setNotifications = useAppStore((s) => s.setNotifications);
   const openConfigDir = useAppStore((s) => s.openConfigDir);
   const addProjectRoot = useAppStore((s) => s.addProjectRoot);
   const removeProjectRoot = useAppStore((s) => s.removeProjectRoot);
@@ -121,6 +124,54 @@ export function SettingsPage() {
             ))}
           </select>
         </label>
+      </section>
+
+      <section className={styles.section}>
+        <h2>Notifications</h2>
+        <label className={styles.row}>
+          <input
+            type="checkbox"
+            checked={settings.notifications.system}
+            onChange={(e) => setNotifications({ system: e.target.checked })}
+          />
+          System notifications when ProjQue is in the background (agent finished or waiting, test results)
+        </label>
+        <label className={styles.row}>
+          <input
+            type="checkbox"
+            disabled={!settings.notifications.system}
+            checked={settings.notifications.quietHours}
+            onChange={(e) => setNotifications({ quietHours: e.target.checked })}
+          />
+          Quiet hours - no system notifications from
+          <select
+            disabled={!settings.notifications.system || !settings.notifications.quietHours}
+            value={settings.notifications.quietFrom}
+            onChange={(e) => setNotifications({ quietFrom: Number(e.target.value) })}
+          >
+            {HOURS.map((h) => (
+              <option key={h} value={h}>
+                {String(h).padStart(2, "0")}:00
+              </option>
+            ))}
+          </select>
+          to
+          <select
+            disabled={!settings.notifications.system || !settings.notifications.quietHours}
+            value={settings.notifications.quietTo}
+            onChange={(e) => setNotifications({ quietTo: Number(e.target.value) })}
+          >
+            {HOURS.map((h) => (
+              <option key={h} value={h}>
+                {String(h).padStart(2, "0")}:00
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className={styles.hint}>
+          In-app toasts and the notification bell are always on; this only controls what
+          reaches the system notification center.
+        </p>
       </section>
 
       <section className={styles.section}>

@@ -548,9 +548,41 @@ impl Registry {
     }
 }
 
+/// System notification, honoring the user's notification settings
+/// (off switch and quiet hours).
 fn notify(app: &AppHandle, title: &str, body: &str) {
+    use tauri::Manager;
     use tauri_plugin_notification::NotificationExt;
+    let allowed = app
+        .try_state::<Arc<crate::state::AppState>>()
+        .map(|s| s.settings().0.notifications.allows_at(local_hour()))
+        .unwrap_or(true);
+    if !allowed {
+        return;
+    }
     let _ = app.notification().builder().title(title).body(body).show();
+}
+
+/// Local hour of day (0-23) without pulling in a date crate: UTC seconds
+/// plus the offset `date +%z` would give, read once per call from libc.
+fn local_hour() -> u8 {
+    let secs = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0) as i64;
+    let offset = local_utc_offset_secs();
+    (((secs + offset).rem_euclid(86_400)) / 3600) as u8
+}
+
+#[cfg(unix)]
+fn local_utc_offset_secs() -> i64 {
+    // localtime_r fills tm_gmtoff on macOS/Linux/BSD.
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0) as libc::time_t;
+    let mut tm: libc::tm = unsafe { std::mem::zeroed() };
+    unsafe { libc::localtime_r(&now, &mut tm) };
+    tm.tm_gmtoff as i64
+}
+
+#[cfg(not(unix))]
+fn local_utc_offset_secs() -> i64 {
+    0
 }
 
 /// What to say when a session ends and the window is not focused. Plain

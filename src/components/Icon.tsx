@@ -4,6 +4,7 @@
 import type { CSSProperties, ReactElement } from "react";
 
 export type IconName =
+  | "bell"
   | "idea"
   | "split"
   | "stop"
@@ -115,6 +116,12 @@ const PATHS: Record<IconName, ReactElement> = {
   ),
   stop: <rect x="6" y="6" width="12" height="12" rx="1.5" fill="currentColor" stroke="none" />,
   close: <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />,
+  bell: (
+    <>
+      <path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16z" strokeLinejoin="round" />
+      <path d="M10 20a2 2 0 0 0 4 0" strokeLinecap="round" />
+    </>
+  ),
   locate: (
     <>
       <circle cx="12" cy="10" r="3" />

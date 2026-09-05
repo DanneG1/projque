@@ -11,6 +11,15 @@ export interface DisplaySettings {
   theme: Theme;
 }
 
+export interface NotificationSettings {
+  /** System (OS) notifications on/off. Toasts and the inbox are always on. */
+  system: boolean;
+  quietHours: boolean;
+  /** Hours 0-23, local time; quietFrom > quietTo wraps past midnight. */
+  quietFrom: number;
+  quietTo: number;
+}
+
 export interface Settings {
   configVersion: number;
   projectRoots: string[];
@@ -19,6 +28,7 @@ export interface Settings {
   terminal: ToolConfig;
   agent: ToolConfig;
   display: DisplaySettings;
+  notifications: NotificationSettings;
   pathAdditions?: string[];
 }
 

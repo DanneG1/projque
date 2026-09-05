@@ -21,6 +21,7 @@ const AgentsPage = lazy(() =>
   import("./pages/AgentsPage").then((m) => ({ default: m.AgentsPage })),
 );
 import { ConfigRecoveryBanner } from "./components/ConfigRecoveryBanner";
+import { InboxButton, InboxPanel } from "./components/Inbox";
 import { Toasts } from "./components/Toasts";
 import styles from "./App.module.css";
 
@@ -38,6 +39,7 @@ export default function App() {
   const attentionCount = useAppStore(
     (s) => s.sessions.filter((v) => v.needsAttention).length,
   );
+  const unreadCount = useAppStore((s) => s.inbox.filter((i) => !i.read).length);
 
   // Keep the backend informed of focus so attention isn't raised for what
   // the user is already looking at (every visible pane in split view).
@@ -60,10 +62,12 @@ export default function App() {
     void init();
   }, [init]);
 
-  // Mirror the attention count on the dock/taskbar badge.
+  // Dock/taskbar badge: whatever is waiting for a person - sessions that
+  // need input plus unread notifications (a finished agent, a failed check).
+  const badge = Math.max(attentionCount, unreadCount);
   useEffect(() => {
-    void api.appSetBadge(attentionCount).catch(() => {});
-  }, [attentionCount]);
+    void api.appSetBadge(badge).catch(() => {});
+  }, [badge]);
 
   useEffect(() => {
     const disposers: Promise<() => void>[] = [
@@ -201,6 +205,7 @@ export default function App() {
           Sessions{runningSessions > 0 ? ` ${runningSessions}` : ""}
           {attentionCount > 0 && <span className={styles.attnFlag}>waiting</span>}
         </button>
+        <InboxButton />
         <button
           className="btn btn-ghost"
           aria-label="Settings"
@@ -213,6 +218,7 @@ export default function App() {
         </button>
       </header>
       <ConfigRecoveryBanner />
+      <InboxPanel />
       <main className={styles.main}>
         <ErrorBoundary key={route.page} onReset={() => setRoute({ page: "list" })}>
           {route.page === "list" && <ProjectListPage />}

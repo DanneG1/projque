@@ -30,7 +30,7 @@ ProjQue is built for working *with* an agent rather than reading code: you descr
 - **Explain this error** - when a run session prints something error-shaped, one click gets a plain-language explanation and an **Ask the agent to fix it** hand-off.
 - **Roadmap & ideas as to-do lists** - checklist items in `ROADMAP.md` and `IDEAS.md` get a checkbox and **Build this**.
 - **Live activity** - a project that is doing something shows it: an animated bar per running thing (*Claude is working · 4m*, *waiting for you*, *Running tests*, *Checking packages…*) on the project card and page, fed by a two-second liveness pulse from the session itself.
-- **Notifications** - when an agent finishes, a package check or test run completes, or an agent stops to ask you something, you get a clickable toast that jumps to it - and a system notification when the ProjQue window isn't focused.
+- **Notifications** - when an agent finishes, a package check or test run completes, or an agent stops to ask you something, you get a clickable toast that jumps to it - and a system notification when the ProjQue window isn't focused (switchable, with quiet hours, in Settings). The bell in the header keeps everything that happened until you clear it; the dock badge counts what is waiting for you.
 - **Suggestions** - each project gets a short "what to do next" list from the data ProjQue already has: long time since (or never) a package check, vulnerabilities found, changes not committed, commits not pushed, newer commits online, changed since the tests last passed, no version history, no README, no description. The most useful one sits on the card with a one-click action; the full list is on the project page. Anything can be hidden for a week.
 
 ## What this app does not do

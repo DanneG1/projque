@@ -74,6 +74,35 @@ pub async fn settings_set_display(
     .await
 }
 
+#[tauri::command]
+pub async fn settings_set_notifications(
+    state: State<'_, Arc<AppState>>,
+    system: Option<bool>,
+    quiet_hours: Option<bool>,
+    quiet_from: Option<u8>,
+    quiet_to: Option<u8>,
+) -> Result<Settings, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        state.update_settings(|s| {
+            let n = &mut s.notifications;
+            if let Some(v) = system {
+                n.system = v;
+            }
+            if let Some(v) = quiet_hours {
+                n.quiet_hours = v;
+            }
+            if let Some(v) = quiet_from {
+                n.quiet_from = v.min(23);
+            }
+            if let Some(v) = quiet_to {
+                n.quiet_to = v.min(23);
+            }
+        })
+    })
+    .await
+}
+
 /// All blocking work (filesystem, git, process spawns) runs off the async
 /// runtime so the webview's IPC thread is never blocked.
 pub(crate) async fn run_blocking<T, F>(f: F) -> Result<T, AppError>
