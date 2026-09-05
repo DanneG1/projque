@@ -117,6 +117,59 @@ pub async fn watch_sync(app: AppHandle, state: State<'_, Arc<AppState>>) -> Resu
     .await
 }
 
+fn clean_text(s: &str, max: usize) -> String {
+    s.replace("\r\n", "\n")
+        .chars()
+        .filter(|c| *c == '\n' || !c.is_control())
+        .take(max)
+        .collect::<String>()
+        .trim()
+        .to_string()
+}
+
+/// Save (id = existing) or add (id = None) a prompt. Audited free-form
+/// strings: label ≤ 60 chars, prompt ≤ 4000, control characters stripped;
+/// they are stored in settings.json and only ever used as an agent's
+/// initial prompt.
+#[tauri::command]
+pub async fn settings_prompt_save(
+    state: State<'_, Arc<AppState>>,
+    id: Option<String>,
+    label: String,
+    prompt: String,
+) -> Result<Settings, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let label = clean_text(&label, 60);
+        let prompt = clean_text(&prompt, 4000);
+        if label.is_empty() || prompt.is_empty() {
+            return Err(AppError::InvalidInput { detail: "a prompt needs a name and some text".into() });
+        }
+        state.update_settings(|s| {
+            if let Some(existing) = id.as_ref().and_then(|id| s.prompts.iter_mut().find(|p| &p.id == id)) {
+                existing.label = label.clone();
+                existing.prompt = prompt.clone();
+                return;
+            }
+            if s.prompts.len() >= crate::settings::MAX_PROMPTS {
+                return;
+            }
+            let id = format!("p{}", now_secs());
+            s.prompts.push(crate::settings::SavedPrompt { id, label: label.clone(), prompt: prompt.clone() });
+        })
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn settings_prompt_delete(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<Settings, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || state.update_settings(|s| s.prompts.retain(|p| p.id != id))).await
+}
+
 /// All blocking work (filesystem, git, process spawns) runs off the async
 /// runtime so the webview's IPC thread is never blocked.
 pub(crate) async fn run_blocking<T, F>(f: F) -> Result<T, AppError>

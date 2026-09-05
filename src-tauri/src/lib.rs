@@ -108,6 +108,8 @@ pub fn run() {
             commands::experiment_discard,
             commands::project_disk_usage,
             commands::project_disk_clean,
+            commands::settings_prompt_save,
+            commands::settings_prompt_delete,
             commands::doctor_status,
             commands::doctor_fix,
             commands::ideas_list,

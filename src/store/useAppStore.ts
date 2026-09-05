@@ -269,6 +269,8 @@ interface AppStore {
   setInboxOpen: (open: boolean) => void;
   markInboxRead: (id: number | "all") => void;
   clearInbox: () => void;
+  savePrompt: (id: string | null, label: string, prompt: string) => Promise<boolean>;
+  deletePrompt: (id: string) => Promise<void>;
   setNotifications: (patch: {
     system?: boolean;
     quietHours?: boolean;
@@ -425,6 +427,26 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   setRoute: (route) => set({ route }),
+
+  savePrompt: async (id, label, prompt) => {
+    try {
+      const settings = await api.settingsPromptSave(id, label, prompt);
+      set({ settings });
+      return true;
+    } catch (err) {
+      get().reportError(err);
+      return false;
+    }
+  },
+
+  deletePrompt: async (id) => {
+    try {
+      const settings = await api.settingsPromptDelete(id);
+      set({ settings });
+    } catch (err) {
+      get().reportError(err);
+    }
+  },
 
   setNotifications: async (patch) => {
     try {

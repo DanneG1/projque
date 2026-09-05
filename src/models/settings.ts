@@ -20,6 +20,13 @@ export interface NotificationSettings {
   quietTo: number;
 }
 
+export interface SavedPrompt {
+  id: string;
+  label: string;
+  /** `{input}` asks for a description when the prompt is used. */
+  prompt: string;
+}
+
 export interface Settings {
   configVersion: number;
   projectRoots: string[];
@@ -29,6 +36,7 @@ export interface Settings {
   agent: ToolConfig;
   display: DisplaySettings;
   notifications: NotificationSettings;
+  prompts?: SavedPrompt[];
   pathAdditions?: string[];
 }
 

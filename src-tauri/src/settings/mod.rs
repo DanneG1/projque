@@ -26,6 +26,9 @@ pub struct Settings {
     pub display: DisplaySettings,
     #[serde(default)]
     pub notifications: NotificationSettings,
+    /// User-saved agent prompts, shown next to the guided actions.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub prompts: Vec<SavedPrompt>,
     /// Extra PATH entries for resolving launcher programs. File-only escape
     /// hatch - the UI never sets this.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -43,6 +46,7 @@ impl Default for Settings {
             agent: default_agent(),
             display: DisplaySettings::default(),
             notifications: NotificationSettings::default(),
+            prompts: Vec::new(),
             path_additions: Vec::new(),
         }
     }
@@ -77,6 +81,19 @@ pub struct DisplaySettings {
     #[serde(default)]
     pub theme: Theme,
 }
+
+/// A reusable agent prompt. `{input}` in the text asks for a description
+/// when used. Free-form text - it only ever becomes an agent's initial
+/// prompt (the same audited path as typing into the session).
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct SavedPrompt {
+    pub id: String,
+    pub label: String,
+    pub prompt: String,
+}
+
+pub const MAX_PROMPTS: usize = 40;
 
 /// System notifications (agent finished / waiting, test verdicts). In-app
 /// toasts and the inbox are unaffected by these.

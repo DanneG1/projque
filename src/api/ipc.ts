@@ -56,6 +56,9 @@ export const api = {
     quietFrom?: number;
     quietTo?: number;
   }) => invoke<Settings>("settings_set_notifications", patch),
+  settingsPromptSave: (id: string | null, label: string, prompt: string) =>
+    invoke<Settings>("settings_prompt_save", { id, label, prompt }),
+  settingsPromptDelete: (id: string) => invoke<Settings>("settings_prompt_delete", { id }),
 
   projectsList: () => invoke<ProjectView[]>("projects_list"),
   watchSync: () => invoke<void>("watch_sync"),
