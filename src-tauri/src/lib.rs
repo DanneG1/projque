@@ -1,6 +1,7 @@
 mod agent;
 mod assist;
 mod audit;
+mod timelog;
 mod transcript;
 mod watch;
 mod commands;

@@ -302,6 +302,17 @@ impl Registry {
                             let _ = crate::transcript::save(&state.config_dir, &view, &bytes);
                         }
                     }
+                    {
+                        use tauri::Manager;
+                        if let Some(state) = app.try_state::<Arc<crate::state::AppState>>() {
+                            let ended = SystemTime::now()
+                                .duration_since(UNIX_EPOCH)
+                                .map(|d| d.as_secs() as i64)
+                                .unwrap_or(0);
+                            let kind = if view.kind == SessionKind::Agent { "agent" } else { "run" };
+                            crate::timelog::record(&state.config_dir, &view.project_id, kind, view.started_at, ended);
+                        }
+                    }
                     let _ = app.emit("agent:session-exited", &view);
                     // The in-app toast covers a focused window; when the user
                     // is elsewhere, tell them the way the attention path does.

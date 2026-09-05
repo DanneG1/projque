@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useAppStore } from "../store/useAppStore";
 import { Icon } from "../components/Icon";
 import { computeActivity } from "../utils/activity";
+import { formatElapsed } from "../utils/time";
 import styles from "./ProgressPage.module.css";
 
 const CELL = 11;
@@ -192,6 +193,37 @@ export function ProgressPage() {
             ))}
           </ul>
         </section>
+
+        {data.timeWeek.length > 0 && (
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>
+              Time this week{" "}
+              <span className={styles.faint}>
+                {formatElapsed(data.timeWeekTotal)} in sessions · {formatElapsed(data.timeAllTotal)} all time
+              </span>
+            </h2>
+            <ul className={styles.topList}>
+              {data.timeWeek.map((t) => (
+                <li key={t.projectId}>
+                  <button
+                    className={styles.topBtn}
+                    onClick={() => setRoute({ page: "detail", projectId: t.projectId })}
+                  >
+                    <span className={styles.topName}>{name(t.projectId)}</span>
+                    <span className={styles.topBar}>
+                      <span
+                        className={styles.topFill}
+                        style={{ width: `${(t.seconds / data.timeWeek[0].seconds) * 100}%` }}
+                      />
+                    </span>
+                    <span className={styles.topCount}>{formatElapsed(t.seconds)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <p className={styles.faint}>Counted from agent and run sessions inside ProjQue; a session is capped at four hours.</p>
+          </section>
+        )}
 
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Most active this month</h2>

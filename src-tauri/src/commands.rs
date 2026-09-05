@@ -2549,6 +2549,8 @@ pub struct ActivitySummary {
     pub projects: Vec<ProjectActivity>,
     pub ideas_open: u32,
     pub ideas_done: u32,
+    /// Finished sessions (agent and run), for time-on-project.
+    pub sessions: Vec<crate::timelog::SessionRecord>,
 }
 
 #[tauri::command]
@@ -2611,7 +2613,8 @@ pub async fn activity_summary(
         if general.is_file() {
             count_ideas(&general, &mut ideas_open, &mut ideas_done);
         }
-        Ok(ActivitySummary { projects: out, ideas_open, ideas_done })
+        let sessions = crate::timelog::load(&state.config_dir);
+        Ok(ActivitySummary { projects: out, ideas_open, ideas_done, sessions })
     })
     .await
 }

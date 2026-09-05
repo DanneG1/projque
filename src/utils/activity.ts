@@ -68,6 +68,10 @@ export interface Activity {
   activeProjects30d: number;
   /** projectId -> commits in the last 30 days, sorted desc, top 5. */
   topProjects: { projectId: string; commits: number }[];
+  /** Seconds in agent/run sessions over the last 7 days, per project (top 5). */
+  timeWeek: { projectId: string; seconds: number }[];
+  timeWeekTotal: number;
+  timeAllTotal: number;
   ideasOpen: number;
   ideasDone: number;
   weekPoints: number;
@@ -238,6 +242,24 @@ export function computeActivity(
     { id: "live3", label: "Portfolio", description: "Three projects live in production.", unlocked: live >= 3 },
   ];
 
+  // Time on project: session durations, clipped to the 7-day window.
+  const timeByProject = new Map<string, number>();
+  let timeWeekTotal = 0;
+  let timeAllTotal = 0;
+  for (const s of summary.sessions ?? []) {
+    const dur = Math.max(0, s.endedAt - s.startedAt);
+    timeAllTotal += dur;
+    const inWindow = Math.max(0, s.endedAt - Math.max(s.startedAt, cutoff7));
+    if (inWindow > 0) {
+      timeWeekTotal += inWindow;
+      timeByProject.set(s.projectId, (timeByProject.get(s.projectId) ?? 0) + inWindow);
+    }
+  }
+  const timeWeek = [...timeByProject.entries()]
+    .map(([projectId, seconds]) => ({ projectId, seconds }))
+    .sort((a, b) => b.seconds - a.seconds)
+    .slice(0, 5);
+
   return {
     weeks,
     currentStreak: streak,
@@ -252,6 +274,9 @@ export function computeActivity(
     activeProjects7d,
     activeProjects30d,
     topProjects: per30.slice(0, 5),
+    timeWeek,
+    timeWeekTotal,
+    timeAllTotal,
     ideasOpen: summary.ideasOpen,
     ideasDone: summary.ideasDone,
     weekPoints,
