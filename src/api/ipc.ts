@@ -11,6 +11,7 @@ import type {
   AuditSupport,
   DiskUsage,
   EnvStatus,
+  OutdatedReport,
   TranscriptMeta,
   BranchList,
   CommitPreflight,
@@ -223,6 +224,7 @@ export const api = {
     invoke<ProjectView>("project_mark_verified", { id, passed }),
   projectDeployInfo: (id: string) => invoke<DeployInfo>("project_deploy_info", { id }),
   projectDebt: (id: string) => invoke<DebtInfo>("project_debt", { id }),
+  projectOutdated: (id: string) => invoke<OutdatedReport>("project_outdated", { id }),
   projectAuditSupport: (id: string) => invoke<AuditSupport>("project_audit_support", { id }),
   projectAuditRun: (id: string) =>
     invoke<[AuditReport, ProjectView]>("project_audit_run", { id }),

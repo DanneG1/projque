@@ -188,6 +188,25 @@ export interface AuditReport {
   canAutoFix: boolean;
 }
 
+export interface OutdatedItem {
+  name: string;
+  current: string;
+  wanted: string;
+  latest: string;
+  /** "major" | "minor" | "patch" */
+  kind: string;
+  direct: boolean;
+}
+
+export interface OutdatedReport {
+  manager: string;
+  total: number;
+  major: number;
+  /** Updatable within the declared version ranges (`npm update`). */
+  withinRange: number;
+  items: OutdatedItem[];
+}
+
 export interface AuditSupport {
   manager: string;
   supported: boolean;

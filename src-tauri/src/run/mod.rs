@@ -108,6 +108,19 @@ pub fn detect_audit_fix_target(dir: &Path) -> Option<RunTarget> {
     })
 }
 
+/// `npm update` / `pnpm update` as a visible run session ("Update within
+/// the allowed versions"): stays inside each package's declared range, so
+/// nothing crosses a major version.
+pub fn detect_update_target(dir: &Path) -> Option<RunTarget> {
+    let pm = package_manager(dir);
+    (dir.join("package.json").is_file() && matches!(pm, "npm" | "pnpm")).then(|| RunTarget {
+        target_id: format!("update:{pm}"),
+        label: format!("{pm} update"),
+        runner: pm.into(),
+        detail: Some("update packages within their allowed versions".into()),
+    })
+}
+
 /// Every launchable target including the test and audit-fix targets, for
 /// launch-time validation of a frontend-supplied id.
 pub fn all_targets(dir: &Path) -> Vec<RunTarget> {
@@ -116,6 +129,9 @@ pub fn all_targets(dir: &Path) -> Vec<RunTarget> {
         targets.push(t);
     }
     if let Some(t) = detect_audit_fix_target(dir) {
+        targets.push(t);
+    }
+    if let Some(t) = detect_update_target(dir) {
         targets.push(t);
     }
     targets
@@ -131,6 +147,8 @@ pub fn argv_for(target: &RunTarget) -> (String, Vec<String>) {
         Some(("test", "dotnet")) => ("dotnet".into(), vec!["test".into()]),
         Some(("test", "pytest")) => ("python3".into(), vec!["-m".into(), "pytest".into()]),
         Some(("audit", "fix")) => ("npm".into(), vec!["audit".into(), "fix".into()]),
+        Some(("update", "npm")) => ("npm".into(), vec!["update".into()]),
+        Some(("update", "pnpm")) => ("pnpm".into(), vec!["update".into()]),
         Some(("pm", script)) => (
             target.runner.clone(),
             vec!["run".to_string(), script.to_string()],

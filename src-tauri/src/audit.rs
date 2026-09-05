@@ -61,6 +61,108 @@ pub struct AuditSupport {
     pub reason: Option<String>,
 }
 
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct OutdatedItem {
+    pub name: String,
+    pub current: String,
+    pub wanted: String,
+    pub latest: String,
+    /// "major" (latest crosses a major version) | "minor" | "patch"
+    pub kind: String,
+    pub direct: bool,
+}
+
+#[derive(Serialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct OutdatedReport {
+    pub manager: String,
+    pub total: u32,
+    pub major: u32,
+    /// Updatable within the declared ranges (`npm update` handles these).
+    pub within_range: u32,
+    pub items: Vec<OutdatedItem>,
+}
+
+fn major_of(v: &str) -> Option<u64> {
+    v.trim_start_matches(|c: char| !c.is_ascii_digit()).split('.').next()?.parse().ok()
+}
+
+fn bump_kind(current: &str, latest: &str) -> &'static str {
+    let c: Vec<u64> = current.split('.').filter_map(|p| p.parse().ok()).collect();
+    let l: Vec<u64> = latest.split('.').filter_map(|p| p.parse().ok()).collect();
+    match (major_of(current), major_of(latest)) {
+        (Some(a), Some(b)) if b > a => "major",
+        _ if c.get(1) != l.get(1) => "minor",
+        _ => "patch",
+    }
+}
+
+/// `npm outdated --json` / `pnpm outdated --format json`. Both exit 1 when
+/// anything is outdated, so only the JSON matters. Read-only for the
+/// project; contacts the registry like audit.
+pub fn outdated(dir: &Path, path_additions: &[String]) -> Result<OutdatedReport, AppError> {
+    let support = support(dir);
+    if support.manager != "npm" && support.manager != "pnpm" {
+        return Err(AppError::InvalidInput {
+            detail: support.reason.unwrap_or_else(|| "not a package-manager project".into()),
+        });
+    }
+    let manager = support.manager;
+    let program = which::resolve_program(&manager, path_additions)
+        .ok_or_else(|| AppError::ProgramNotFound { program: manager.clone() })?;
+    let args: &[&str] = if manager == "pnpm" {
+        &["outdated", "--format", "json"]
+    } else {
+        &["outdated", "--json"]
+    };
+    let stdout = run_capture(&program, args, dir, path_additions).or_else(|e| {
+        // npm prints nothing at all when nothing is outdated.
+        if matches!(&e, AppError::LaunchFailed { detail, .. } if detail == "audit produced no output") {
+            Ok("{}".to_string())
+        } else {
+            Err(e)
+        }
+    })?;
+    let json: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap_or(serde_json::json!({}));
+    let mut items: Vec<OutdatedItem> = Vec::new();
+    if let Some(map) = json.as_object() {
+        for (name, v) in map {
+            let s = |k: &str| v.get(k).and_then(|x| x.as_str()).unwrap_or("").to_string();
+            let current = s("current");
+            let latest = s("latest");
+            let wanted = {
+                let w = s("wanted");
+                if w.is_empty() { latest.clone() } else { w }
+            };
+            if current.is_empty() || latest.is_empty() || current == latest {
+                continue;
+            }
+            let direct = if manager == "pnpm" {
+                true // pnpm lists direct dependencies only by default
+            } else {
+                v.get("dependent").and_then(|d| d.as_str()).map(|d| !d.contains('/')).unwrap_or(true)
+            };
+            items.push(OutdatedItem {
+                name: name.clone(),
+                kind: bump_kind(&current, &latest).into(),
+                current,
+                wanted,
+                latest,
+                direct,
+            });
+        }
+    }
+    items.sort_by(|a, b| {
+        let rank = |k: &str| match k { "major" => 0, "minor" => 1, _ => 2 };
+        rank(&a.kind).cmp(&rank(&b.kind)).then(a.name.cmp(&b.name))
+    });
+    items.truncate(MAX_ITEMS);
+    let major = items.iter().filter(|i| i.kind == "major").count() as u32;
+    let within_range = items.iter().filter(|i| i.wanted != i.current).count() as u32;
+    Ok(OutdatedReport { manager, total: items.len() as u32, major, within_range, items })
+}
+
 pub fn support(dir: &Path) -> AuditSupport {
     if !dir.join("package.json").is_file() {
         return AuditSupport { manager: "none".into(), supported: false, reason: None };
@@ -325,5 +427,18 @@ mod tests {
         let r = parse_report(&json);
         assert_eq!(r.total, 0);
         assert!(r.items.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod outdated_tests {
+    use super::bump_kind;
+
+    #[test]
+    fn classifies_bumps() {
+        assert_eq!(bump_kind("1.2.3", "2.0.0"), "major");
+        assert_eq!(bump_kind("1.2.3", "1.3.0"), "minor");
+        assert_eq!(bump_kind("1.2.3", "1.2.9"), "patch");
+        assert_eq!(bump_kind("0.9.0", "0.10.0"), "minor");
     }
 }

@@ -2243,6 +2243,22 @@ pub async fn transcripts_open_folder(
     .await
 }
 
+/// Explicit-click network operation: `npm outdated` / `pnpm outdated`
+/// against the registry. Read-only for the project.
+#[tauri::command]
+pub async fn project_outdated(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<crate::audit::OutdatedReport, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        let (settings, _) = state.settings();
+        crate::audit::outdated(&dir, &settings.path_additions)
+    })
+    .await
+}
+
 // ---------------------------------------------------------------------------
 // Setup doctor
 

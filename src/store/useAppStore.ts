@@ -1484,6 +1484,24 @@ export const useAppStore = create<AppStore>((set, get) => ({
             );
           }
         });
+    } else if (view.targetId?.startsWith("update:")) {
+      void get()
+        .refreshGit({ force: true })
+        .then(() => {
+          const info = get().git[view.projectId];
+          const changed = info?.dirty ? info.changedFiles : 0;
+          get().notify(
+            changed > 0 ? "Packages updated" : "Nothing to update",
+            changed > 0
+              ? `${view.projectLabel}: ${changed} changed file${changed === 1 ? "" : "s"} ready to commit. Run the tests first if you have them.`
+              : `${view.projectLabel}: everything was already at its allowed version.`,
+            {
+              variant: changed > 0 ? "success" : "info",
+              ttl: 8000,
+              onClick: () => get().setRoute({ page: "detail", projectId: view.projectId }),
+            },
+          );
+        });
     } else if (isTestRun) {
       // A test run's exit code is its verdict; stamp it on the project.
       const passed = code === 0;
@@ -1513,7 +1531,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
     // The post-session review needs fresh git state for this project; a
     // dev server or test run can also leave files behind, so always refresh.
-    if (view.targetId !== "audit:fix") void get().refreshGit({ force: true });
+    if (view.targetId !== "audit:fix" && !view.targetId?.startsWith("update:")) {
+      void get().refreshGit({ force: true });
+    }
   },
 
   setQuitPrompt: (count) => set({ quitPrompt: count }),

@@ -6,6 +6,7 @@ import { relativeTime } from "../utils/time";
 import { AuditPanel } from "./AuditPanel";
 import { DiskRow } from "./DiskPanel";
 import { EnvPanel } from "./EnvPanel";
+import { OutdatedPanel } from "./OutdatedPanel";
 import { Icon } from "./Icon";
 import styles from "./SetupPanel.module.css";
 
@@ -152,6 +153,8 @@ export function SetupPanel({ project }: { project: ProjectView }) {
       <EnvPanel projectId={project.id} isGitRepo={project.isGitRepo} />
 
       <AuditPanel project={project} />
+
+      <OutdatedPanel project={project} />
 
       <DiskRow projectId={project.id} />
 
