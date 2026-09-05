@@ -1,4 +1,5 @@
 import { useAppStore } from "../store/useAppStore";
+import { DiskOverview } from "../components/DiskPanel";
 import type { CatalogEntry, Theme } from "../models";
 import { DoctorPanel } from "../components/DoctorPanel";
 import styles from "./SettingsPage.module.css";
@@ -172,6 +173,16 @@ export function SettingsPage() {
           In-app toasts and the notification bell are always on; this only controls what
           reaches the system notification center.
         </p>
+      </section>
+
+      <section className={styles.section}>
+        <h2>Disk space</h2>
+        <p className={styles.hint}>
+          Installed packages, build output and caches add up across many projects. Everything
+          listed here is recreated the next time a project is installed or built - your code and
+          history are never touched.
+        </p>
+        <DiskOverview />
       </section>
 
       <section className={styles.section}>

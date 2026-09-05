@@ -2058,6 +2058,39 @@ pub async fn experiment_discard(
 }
 
 // ---------------------------------------------------------------------------
+// Reclaimable disk space
+
+#[tauri::command]
+pub async fn project_disk_usage(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<crate::project::disk::DiskUsage, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        Ok(crate::project::disk::scan(&dir))
+    })
+    .await
+}
+
+/// Delete regenerable folders. `rels` are display keys from a scan; the
+/// backend re-scans and refuses anything not on the allowlist or not a
+/// plain directory inside the project.
+#[tauri::command]
+pub async fn project_disk_clean(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    rels: Vec<String>,
+) -> Result<u64, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        crate::project::disk::clean(&dir, &rels)
+    })
+    .await
+}
+
+// ---------------------------------------------------------------------------
 // Setup doctor
 
 #[derive(Serialize)]

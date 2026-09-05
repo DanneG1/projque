@@ -4,6 +4,7 @@ import type { DebtInfo, DeployInfo, ProjectView, RunTarget, ToolCheck } from "..
 import { useAppStore } from "../store/useAppStore";
 import { relativeTime } from "../utils/time";
 import { AuditPanel } from "./AuditPanel";
+import { DiskRow } from "./DiskPanel";
 import { Icon } from "./Icon";
 import styles from "./SetupPanel.module.css";
 
@@ -148,6 +149,8 @@ export function SetupPanel({ project }: { project: ProjectView }) {
       )}
 
       <AuditPanel project={project} />
+
+      <DiskRow projectId={project.id} />
 
       {testTarget && (
         <div className={styles.row}>

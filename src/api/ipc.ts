@@ -9,6 +9,7 @@ import type {
   AgentSessionView,
   AuditReport,
   AuditSupport,
+  DiskUsage,
   BranchList,
   CommitPreflight,
   DebtInfo,
@@ -193,6 +194,9 @@ export const api = {
     invoke<[ProjectView, GitInfo]>("experiment_start", { id, label }),
   experimentKeep: (id: string) =>
     invoke<[MergeOutcome, ProjectView, GitInfo]>("experiment_keep", { id }),
+  projectDiskUsage: (id: string) => invoke<DiskUsage>("project_disk_usage", { id }),
+  projectDiskClean: (id: string, rels: string[]) =>
+    invoke<number>("project_disk_clean", { id, rels }),
   experimentDiscard: (id: string) =>
     invoke<[ProjectView, GitInfo]>("experiment_discard", { id }),
 

@@ -127,6 +127,18 @@ export interface Experiment {
   startedAt: number;
 }
 
+export interface DiskEntry {
+  /** Project-relative folder, display only (and the clean key). */
+  rel: string;
+  label: string;
+  bytes: number;
+}
+
+export interface DiskUsage {
+  totalBytes: number;
+  entries: DiskEntry[];
+}
+
 export interface AuditStamp {
   at: number;
   total: number;
