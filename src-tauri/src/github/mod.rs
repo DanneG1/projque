@@ -334,6 +334,40 @@ pub fn publish(dir: &Path, path_additions: &[String]) -> Result<PublishOutcome, 
     Ok(PublishOutcome { repo_url, pages_url, pages_error: None })
 }
 
+/// Back up a project that has no remote: create a PRIVATE repository under
+/// the user's account and push. Same secrets gate as publish - private is
+/// not a reason to upload credentials. Returns the repository URL.
+pub fn backup(dir: &Path, path_additions: &[String]) -> Result<String, AppError> {
+    let findings = secrets::scan(dir)?;
+    if !findings.is_empty() {
+        let files: Vec<&str> = findings.iter().map(|f| f.file.as_str()).take(5).collect();
+        return Err(AppError::InvalidInput {
+            detail: format!("backup blocked - possible secrets in: {}", files.join(", ")),
+        });
+    }
+    let info = crate::git::fetch_info("backup", dir);
+    if info.last_commit.is_none() {
+        return Err(AppError::InvalidInput { detail: "commit your work before backing it up".into() });
+    }
+    if info.remote_url.is_some() {
+        return Err(AppError::InvalidInput { detail: "this project already has a remote".into() });
+    }
+    let name = dir
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or_else(|| AppError::InvalidInput { detail: "unreadable project folder name".into() })?
+        .to_string();
+    validate_name(&name)?;
+    repo_create(dir, &name, true, path_additions)?;
+    let view = run_gh(dir, &["repo", "view", "--json", "url"], NET_TIMEOUT, path_additions)?;
+    if !view.success {
+        return Err(AppError::GhFailed { detail: failure_detail(&view) });
+    }
+    let json: serde_json::Value = serde_json::from_str(&view.stdout)
+        .map_err(|e| AppError::GhFailed { detail: e.to_string() })?;
+    Ok(json.get("url").and_then(|v| v.as_str()).unwrap_or("").to_string())
+}
+
 /// Validate a project/repository name: also used as the directory name.
 pub fn validate_name(name: &str) -> Result<(), AppError> {
     let ok = !name.is_empty()

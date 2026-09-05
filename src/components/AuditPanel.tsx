@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api/ipc";
 import type { AuditSupport, ProjectView } from "../models";
 import { useAppStore } from "../store/useAppStore";
+import { auditAgentPrompt } from "../utils/prompts";
 import { relativeTime } from "../utils/time";
 import { Icon } from "./Icon";
 import styles from "./AuditPanel.module.css";
@@ -59,15 +60,8 @@ export function AuditPanel({ project }: { project: ProjectView }) {
   }, [fixRunning]);
 
   const askAgent = () => {
-    const stuck = (report?.items ?? []).filter((i) => i.fix !== "yes");
-    const list = stuck
-      .slice(0, 30)
-      .map((i) => `- ${i.name} (${i.severity}${i.direct ? ", used directly" : ", pulled in by another package"})${i.title ? `: ${i.title}` : ""}${i.fix === "major" ? " - fix needs a major version upgrade" : " - no fixed version yet"}`)
-      .join("\n");
-    const prompt =
-      `A dependency vulnerability check (${report?.manager ?? "npm"} audit) found packages that cannot be fixed automatically:\n\n${list}\n\n` +
-      `Update this project so these are resolved, carefully: upgrade one package at a time, read what changed between versions, adjust the project's code where a major upgrade requires it, and run the project's build and tests after each step. If a vulnerability has no fixed version, say so and suggest what to do (replace the package, or explain why it does not matter here). Do not commit - ProjQue shows a review when you're done. Finish with a plain-language summary of what you updated and anything that still needs attention.`;
-    void startAgentSession(project.id, undefined, prompt);
+    if (!report) return;
+    void startAgentSession(project.id, undefined, auditAgentPrompt(report));
   };
 
   if (!support || support.manager === "none") return null;

@@ -48,6 +48,26 @@ interface NotifyOptions {
   ttl?: number;
 }
 
+/** One "check all projects" pass. Results land in `audits`; this tracks
+ *  progress and remembers which projects were clean before any fix, so the
+ *  commit offer never sweeps up unrelated uncommitted work. */
+export interface AuditSweep {
+  status: "idle" | "running" | "done";
+  /** Projects included, in check order. */
+  ids: string[];
+  done: number;
+  /** Project currently being checked. */
+  current: string | null;
+  errors: Record<string, string>;
+  /** Working tree was clean when the sweep started. */
+  cleanBefore: Record<string, boolean>;
+  /** Projects an "Update safely" run was started for during this sweep. */
+  fixed: Record<string, boolean>;
+  /** Projects whose update was committed from the sweep summary. */
+  committed: Record<string, boolean>;
+  cancel: boolean;
+}
+
 interface AppStore {
   route: Route;
   settings: Settings | null;
@@ -67,6 +87,7 @@ interface AppStore {
   busy: Record<string, string>;
   /** Last package check per project this run (the stamp lives on the project). */
   audits: Record<string, AuditReport>;
+  sweep: AuditSweep;
   /** Sessions shown together in the split view (order = pane order, max 4). */
   gridIds: string[];
   /** Local activity data for streaks/progress, briefly cached. */
@@ -142,13 +163,19 @@ interface AppStore {
   ideasVersion: number;
   /** projectId null = general idea (saved app-wide, not in any project). */
   captureIdea: (projectId: string | null, text: string) => Promise<boolean>;
-  startRunSession: (projectId: string, targetId: string) => Promise<void>;
+  startRunSession: (
+    projectId: string,
+    targetId: string,
+    opts?: { navigate?: boolean },
+  ) => Promise<void>;
   openSessionUrl: (sessionId: string) => Promise<void>;
   sessionUrlDetected: (sessionId: string, url: string) => void;
   sessionErrorDetected: (sessionId: string) => void;
   /** Commit (when a message is given) then ff-only pull and push, as one action. */
   commitAndPush: (id: string, message: string | null, allowSecrets?: boolean) => Promise<boolean>;
   fixIgnores: (id: string, kinds: string[]) => Promise<boolean>;
+  /** Create a private GitHub repository for a project with no remote and push. */
+  backupToGithub: (id: string) => Promise<boolean>;
   /** Undo everything an agent session did: restore its pre-session point,
    *  removing files it created (the current state is snapshotted first). */
   undoSession: (projectId: string, undoHash: string) => Promise<boolean>;
@@ -156,7 +183,15 @@ interface AppStore {
   setPulses: (pulses: SessionPulse[]) => void;
   setBusy: (projectId: string, label: string | null) => void;
   /** Run the package vulnerability check (explicit click - contacts the registry). */
-  runAudit: (projectId: string) => Promise<void>;
+  runAudit: (projectId: string, opts?: { quiet?: boolean }) => Promise<AuditReport | null>;
+  /** Check every auditable project in turn (explicit click, one at a time). */
+  auditAll: () => Promise<void>;
+  cancelSweep: () => void;
+  dismissSweep: () => void;
+  /** Start "Update safely" for a project found in the sweep, staying on this page. */
+  sweepFix: (projectId: string) => Promise<void>;
+  /** Commit a package update made by the sweep with a fixed message. */
+  sweepCommit: (projectId: string) => Promise<boolean>;
   /** Start the project's test command as a run session, if it has one. */
   runTests: (projectId: string) => Promise<void>;
   clearSessionAttention: (sessionId: string) => void;
@@ -177,6 +212,20 @@ interface AppStore {
 
 let toastSeq = 0;
 
+function emptySweep(): AuditSweep {
+  return {
+    status: "idle",
+    ids: [],
+    done: 0,
+    current: null,
+    errors: {},
+    cleanBefore: {},
+    fixed: {},
+    committed: {},
+    cancel: false,
+  };
+}
+
 export const useAppStore = create<AppStore>((set, get) => ({
   route: { page: "list" },
   settings: null,
@@ -192,6 +241,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   pulses: {},
   busy: {},
   audits: {},
+  sweep: emptySweep(),
   gridIds: [],
   activity: null,
   celebratedAt: null,
@@ -730,12 +780,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
     await get().startAgentSession(projectId, undefined, CLEANUP_PROMPT);
   },
 
-  startRunSession: async (projectId, targetId) => {
+  startRunSession: async (projectId, targetId, opts) => {
     try {
       const session = await api.runSessionStart(projectId, targetId, 30, 100);
       set((s) => ({
         sessions: [...s.sessions, session],
-        route: { page: "agents", sessionId: session.sessionId },
+        route:
+          opts?.navigate === false ? s.route : { page: "agents", sessionId: session.sessionId },
       }));
     } catch (err) {
       get().reportError(err);
@@ -786,6 +837,25 @@ export const useAppStore = create<AppStore>((set, get) => ({
       const info = await api.gitIgnoreFix(id, kinds);
       set((s) => ({ git: { ...s.git, [id]: info } }));
       get().notify("Updated .gitignore", "Those files will stay out of your commits.");
+      return true;
+    } catch (err) {
+      get().reportError(err);
+      return false;
+    } finally {
+      set((s) => ({ gitBusy: { ...s.gitBusy, [id]: false } }));
+    }
+  },
+
+  backupToGithub: async (id) => {
+    set((s) => ({ gitBusy: { ...s.gitBusy, [id]: true } }));
+    try {
+      const [url, info] = await api.githubBackup(id);
+      set((s) => ({ git: { ...s.git, [id]: info } }));
+      get().notify("Backed up to GitHub", `Private repository created${url ? ` at ${url}` : ""}.`, {
+        variant: "success",
+        ttl: 8000,
+        onClick: url ? () => void get().openExternalUrl(url) : undefined,
+      });
       return true;
     } catch (err) {
       get().reportError(err);
@@ -864,8 +934,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
   },
 
-  runAudit: async (projectId) => {
-    if (get().busy[projectId]) return;
+  runAudit: async (projectId, opts) => {
+    if (get().busy[projectId]) return null;
     const project = get().projects.find((p) => p.id === projectId);
     const name = project?.name ?? "project";
     get().setBusy(projectId, "Checking packages");
@@ -875,6 +945,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         audits: { ...s.audits, [projectId]: report },
         projects: s.projects.map((p) => (p.id === updated.id ? updated : p)),
       }));
+      if (opts?.quiet) return report;
       const goto = () => get().setRoute({ page: "detail", projectId });
       if (report.total === 0) {
         get().notify(`${name}: no known vulnerabilities`, `${report.dependencies} packages checked.`, {
@@ -890,11 +961,83 @@ export const useAppStore = create<AppStore>((set, get) => ({
           { variant: "attention", ttl: 8000, onClick: goto },
         );
       }
+      return report;
     } catch (err) {
+      if (opts?.quiet) throw err;
       get().reportError(err);
+      return null;
     } finally {
       get().setBusy(projectId, null);
     }
+  },
+
+  auditAll: async () => {
+    if (get().sweep.status === "running") return;
+    const ids = get()
+      .projects.filter((p) => p.pathExists && p.auditable && p.status !== "archived")
+      .map((p) => p.id);
+    if (ids.length === 0) {
+      get().notify("Nothing to check", "No project here uses a package manager the check supports.");
+      return;
+    }
+    // Fresh git state first: the commit offer later depends on knowing
+    // which projects were clean before anything was updated.
+    await get().refreshGit({ force: true });
+    const cleanBefore: Record<string, boolean> = {};
+    for (const id of ids) cleanBefore[id] = !(get().git[id]?.dirty ?? true);
+    set({ sweep: { ...emptySweep(), status: "running", ids, cleanBefore } });
+
+    for (const id of ids) {
+      if (get().sweep.cancel) break;
+      set((s) => ({ sweep: { ...s.sweep, current: id } }));
+      try {
+        await get().runAudit(id, { quiet: true });
+      } catch (err) {
+        const message = userMessage(parseAppError(err));
+        set((s) => ({
+          sweep: { ...s.sweep, errors: { ...s.sweep.errors, [id]: message.detail ?? message.title } },
+        }));
+      }
+      set((s) => ({ sweep: { ...s.sweep, done: s.sweep.done + 1, current: null } }));
+    }
+
+    const sweep = get().sweep;
+    set({ sweep: { ...sweep, status: "done", current: null } });
+    const checked = sweep.ids.slice(0, sweep.done);
+    const affected = checked.filter((id) => (get().audits[id]?.total ?? 0) > 0);
+    const fixable = affected.reduce((n, id) => n + (get().audits[id]?.fixable ?? 0), 0);
+    if (affected.length === 0) {
+      get().notify(
+        "All packages look fine",
+        `${checked.length} project${checked.length === 1 ? "" : "s"} checked, no known vulnerabilities.`,
+        { variant: "success" },
+      );
+    } else {
+      get().notify(
+        `${affected.length} project${affected.length === 1 ? " has" : "s have"} vulnerable packages`,
+        fixable > 0
+          ? `${fixable} can be updated safely - see the summary on the projects page.`
+          : "See the summary on the projects page.",
+        { variant: "attention", ttl: 8000, onClick: () => get().setRoute({ page: "list" }) },
+      );
+    }
+  },
+
+  cancelSweep: () => set((s) => ({ sweep: { ...s.sweep, cancel: true } })),
+
+  dismissSweep: () => set({ sweep: emptySweep() }),
+
+  sweepFix: async (projectId) => {
+    set((s) => ({ sweep: { ...s.sweep, fixed: { ...s.sweep.fixed, [projectId]: true } } }));
+    await get().startRunSession(projectId, "audit:fix", { navigate: false });
+  },
+
+  sweepCommit: async (projectId) => {
+    const ok = await get().commitAll(projectId, "Update vulnerable packages");
+    if (ok) {
+      set((s) => ({ sweep: { ...s.sweep, committed: { ...s.sweep.committed, [projectId]: true } } }));
+    }
+    return ok;
   },
 
   clearSessionAttention: (sessionId) => {
@@ -989,6 +1132,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
       void get()
         .refreshGit({ force: true })
         .then(() => {
+          // The sweep summary shows counts; refresh them (the Packages row
+          // on the project page does the same when it is open).
+          if (get().sweep.fixed[view.projectId]) {
+            void get().runAudit(view.projectId, { quiet: true }).catch(() => {});
+          }
           const info = get().git[view.projectId];
           const changed = info?.dirty ? info.changedFiles : 0;
           const goto = () => get().setRoute({ page: "detail", projectId: view.projectId });

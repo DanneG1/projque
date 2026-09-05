@@ -9,6 +9,7 @@ export type SuggestionAction =
   | { kind: "pull"; label: string }
   | { kind: "tests"; label: string }
   | { kind: "agent"; label: string; prompt: string }
+  | { kind: "backup"; label: string }
   | { kind: "status"; label: string; status: ProjectStatus };
 
 export interface Suggestion {
@@ -101,6 +102,16 @@ export function suggestionsFor(
         ? `Nothing has been committed for ${daysAgo(lastCommit!, nowSecs).replace(" ago", "")}. Committing keeps a version you can go back to.`
         : "Committing keeps a version you can go back to.",
       action: { kind: "detail", label: "Commit" },
+    });
+  }
+
+  if (g && g.remoteUrl === null && g.lastCommit && (active || project.status === "paused" || project.status === "done")) {
+    out.push({
+      id: "no-remote",
+      priority: 18,
+      title: "Only exists on this computer",
+      detail: "A private GitHub repository is a free backup - if this disk dies, the project is gone.",
+      action: { kind: "backup", label: "Back up to GitHub" },
     });
   }
 

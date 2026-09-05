@@ -180,6 +180,7 @@ export const api = {
   publishPreflight: (id: string) =>
     invoke<PublishPreflight>("publish_preflight", { id }),
   publishRun: (id: string) => invoke<PublishOutcome>("publish_run", { id }),
+  githubBackup: (id: string) => invoke<[string, GitInfo]>("github_backup", { id }),
 
   activitySummary: () => invoke<ActivitySummary>("activity_summary"),
   doctorStatus: () => invoke<DoctorItem[]>("doctor_status"),

@@ -42,6 +42,7 @@ function useRunAction(projectId: string) {
   const pullFf = useAppStore((s) => s.pullFf);
   const startAgentSession = useAppStore((s) => s.startAgentSession);
   const updateProject = useAppStore((s) => s.updateProject);
+  const backupToGithub = useAppStore((s) => s.backupToGithub);
   return (action: SuggestionAction) => {
     switch (action.kind) {
       case "detail":
@@ -64,6 +65,9 @@ function useRunAction(projectId: string) {
         break;
       case "status":
         void updateProject(projectId, { status: action.status });
+        break;
+      case "backup":
+        void backupToGithub(projectId);
         break;
     }
   };

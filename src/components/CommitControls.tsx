@@ -263,6 +263,7 @@ export function SyncStatus({
   const busy = useAppStore((s) => s.gitBusy[projectId] ?? false);
   const commitAndPush = useAppStore((s) => s.commitAndPush);
   const pullFf = useAppStore((s) => s.pullFf);
+  const backupToGithub = useAppStore((s) => s.backupToGithub);
   const [deploy, setDeploy] = useState<DeployInfo | null>(null);
   const [confirmDeploy, setConfirmDeploy] = useState(false);
 
@@ -277,7 +278,23 @@ export function SyncStatus({
     };
   }, [projectId]);
 
-  if (gitInfo.remoteUrl == null || gitInfo.dirty || gitInfo.mergeInProgress) return null;
+  if (gitInfo.dirty || gitInfo.mergeInProgress) return null;
+  if (gitInfo.remoteUrl == null) {
+    if (!gitInfo.lastCommit) return null;
+    return (
+      <p className={styles.sync}>
+        This project only exists on this computer.
+        <button
+          className="btn"
+          disabled={busy}
+          title="Create a private repository under your GitHub account and push (needs the gh tool, signed in)"
+          onClick={() => void backupToGithub(projectId)}
+        >
+          {busy ? "Backing up…" : "Back up to GitHub (private)"}
+        </button>
+      </p>
+    );
+  }
   const ahead = gitInfo.ahead ?? 0;
   const behind = gitInfo.behind ?? 0;
   const deploys = pushDeploys(deploy, gitInfo.branch);

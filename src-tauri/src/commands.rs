@@ -1866,6 +1866,24 @@ pub async fn publish_run(
     .await
 }
 
+/// Explicit-consent network operation: create a private GitHub repository
+/// for a project that has none and push to it. Secrets-gated like publish.
+#[tauri::command]
+pub async fn github_backup(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<(String, GitInfo), AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        let (settings, _) = state.settings();
+        let url = github::backup(&dir, &settings.path_additions)?;
+        Ok((url, git_info_one(&state, &id, true)))
+    })
+    .await
+}
+
 // ---------------------------------------------------------------------------
 // Setup doctor
 

@@ -98,6 +98,7 @@ pub fn run() {
             commands::git_change_summary,
             commands::publish_preflight,
             commands::publish_run,
+            commands::github_backup,
             commands::doctor_status,
             commands::doctor_fix,
             commands::ideas_list,

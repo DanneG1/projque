@@ -16,3 +16,23 @@ export const CLEANUP_PROMPT =
   `- Do not commit. ProjQue shows a review when you are done, where the user keeps or undoes your work.\n` +
   `- Work in small, safe steps; prefer leaving something in over a risky removal.\n\n` +
   `Finish with a plain-language summary for someone who is not a programmer: what you removed and why it was safe, what you simplified, roughly how much smaller the code got, and anything you deliberately left alone because you were unsure.`;
+
+/** Hand the packages a package check could not fix automatically to the
+ *  agent, one upgrade at a time, with the project's own checks in between. */
+export function auditAgentPrompt(report: {
+  manager: string;
+  items: { name: string; severity: string; title: string; fix: string; direct: boolean }[];
+}): string {
+  const stuck = report.items.filter((i) => i.fix !== "yes");
+  const list = stuck
+    .slice(0, 30)
+    .map(
+      (i) =>
+        `- ${i.name} (${i.severity}${i.direct ? ", used directly" : ", pulled in by another package"})${i.title ? `: ${i.title}` : ""}${i.fix === "major" ? " - fix needs a major version upgrade" : " - no fixed version yet"}`,
+    )
+    .join("\n");
+  return (
+    `A dependency vulnerability check (${report.manager} audit) found packages that cannot be fixed automatically:\n\n${list}\n\n` +
+    `Update this project so these are resolved, carefully: upgrade one package at a time, read what changed between versions, adjust the project's code where a major upgrade requires it, and run the project's build and tests after each step. If a vulnerability has no fixed version, say so and suggest what to do (replace the package, or explain why it does not matter here). Do not commit - ProjQue shows a review when you're done. Finish with a plain-language summary of what you updated and anything that still needs attention.`
+  );
+}
