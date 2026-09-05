@@ -24,6 +24,15 @@ export interface AgentSessionView {
   errorDetected: boolean;
 }
 
+/** Liveness of a running session, pushed every ~2s while anything runs. */
+export interface SessionPulse {
+  sessionId: string;
+  /** Seconds since the last output byte; null = nothing yet. */
+  idleSecs: number | null;
+  /** Output is flowing right now. */
+  working: boolean;
+}
+
 export interface ErrorExplanation {
   explanation: string;
   excerpt: string;

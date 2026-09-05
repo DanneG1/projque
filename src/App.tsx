@@ -15,7 +15,7 @@ import { favoriteShortcuts, visibleSessionIds } from "./utils/shortcuts";
 import { Icon } from "./components/Icon";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import logoUrl from "./assets/logo.png";
-import type { AgentSessionView } from "./models";
+import type { AgentSessionView, SessionPulse } from "./models";
 
 const AgentsPage = lazy(() =>
   import("./pages/AgentsPage").then((m) => ({ default: m.AgentsPage })),
@@ -83,6 +83,9 @@ export default function App() {
       }),
       listen<AgentSessionView>("agent:session-attention", (event) => {
         useAppStore.getState().sessionAttention(event.payload);
+      }),
+      listen<SessionPulse[]>("agent:sessions-pulse", (event) => {
+        useAppStore.getState().setPulses(event.payload);
       }),
     ];
     return () => {

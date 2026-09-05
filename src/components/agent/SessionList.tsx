@@ -13,6 +13,7 @@ function elapsed(startedAt: number, now: number): string {
 
 export function SessionList({ activeId }: { activeId: string }) {
   const sessions = useAppStore((s) => s.sessions);
+  const pulses = useAppStore((s) => s.pulses);
   const projects = useAppStore((s) => s.projects);
   const setRoute = useAppStore((s) => s.setRoute);
   const killSession = useAppStore((s) => s.killSession);
@@ -43,8 +44,11 @@ export function SessionList({ activeId }: { activeId: string }) {
             <div className={styles.itemBody}>
               <div className={styles.project}>
                 {project?.name ?? session.projectId}
-                <span className={styles.tag} data-state={tagState(session)}>
-                  {tagLabel(session)}
+                <span
+                  className={styles.tag}
+                  data-state={tagState(session, pulses[session.sessionId]?.working ?? true)}
+                >
+                  {tagLabel(session, pulses[session.sessionId]?.working ?? true)}
                 </span>
               </div>
               <div className={styles.meta}>
@@ -99,16 +103,18 @@ export function SessionList({ activeId }: { activeId: string }) {
   );
 }
 
-function tagState(session: { kind: string; status: { state: string }; needsAttention: boolean }): string {
+type TagSession = { kind: string; status: { state: string }; needsAttention: boolean };
+
+function tagState(session: TagSession, working: boolean): string {
   if (session.status.state === "exited") return "exited";
   if (session.needsAttention) return "waiting";
   if (session.kind === "run") return "run";
-  return "live";
+  return working ? "live" : "quiet";
 }
 
-function tagLabel(session: { kind: string; status: { state: string }; needsAttention: boolean }): string {
+function tagLabel(session: TagSession, working: boolean): string {
   if (session.status.state === "exited") return "exited";
   if (session.needsAttention) return "waiting";
   if (session.kind === "run") return "run";
-  return "live";
+  return working ? "working" : "quiet";
 }

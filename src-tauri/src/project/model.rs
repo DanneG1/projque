@@ -33,6 +33,19 @@ pub struct Project {
     /// started from - the baseline the tidy-up nudge counts churn against.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_cleanup: Option<Cleanup>,
+    /// Last dependency vulnerability check (npm/pnpm audit), stamped in Rust.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_audit: Option<AuditStamp>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct AuditStamp {
+    pub at: i64,
+    pub total: u32,
+    pub fixable: u32,
+    pub critical: u32,
+    pub high: u32,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -83,6 +96,9 @@ pub struct ProjectView {
     pub has_roadmap: bool,
     pub has_ideas: bool,
     pub has_run_targets: bool,
+    /// A package-manager project the built-in vulnerability check supports
+    /// (drives the "long time since a package check" suggestion).
+    pub auditable: bool,
     pub resolved_description: Option<String>,
 }
 

@@ -7,6 +7,8 @@ import type {
   ActivitySummary,
   AddRootResult,
   AgentSessionView,
+  AuditReport,
+  AuditSupport,
   BranchList,
   CommitPreflight,
   DebtInfo,
@@ -189,6 +191,9 @@ export const api = {
     invoke<ProjectView>("project_mark_verified", { id, passed }),
   projectDeployInfo: (id: string) => invoke<DeployInfo>("project_deploy_info", { id }),
   projectDebt: (id: string) => invoke<DebtInfo>("project_debt", { id }),
+  projectAuditSupport: (id: string) => invoke<AuditSupport>("project_audit_support", { id }),
+  projectAuditRun: (id: string) =>
+    invoke<[AuditReport, ProjectView]>("project_audit_run", { id }),
   projectMarkCleanup: (id: string) => invoke<ProjectView>("project_mark_cleanup", { id }),
   projectDoctor: (id: string) => invoke<ToolCheck[]>("project_doctor", { id }),
   sessionExplainError: (sessionId: string) =>

@@ -1,5 +1,6 @@
 mod agent;
 mod assist;
+mod audit;
 mod commands;
 mod config;
 mod discovery;
@@ -124,6 +125,8 @@ pub fn run() {
             commands::roadmap_set_done,
             commands::project_mark_cleanup,
             commands::project_debt,
+            commands::project_audit_support,
+            commands::project_audit_run,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

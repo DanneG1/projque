@@ -5,6 +5,8 @@ import { Icon } from "./Icon";
 import { StatusBadge } from "./StatusBadge";
 import { QuickActions } from "./QuickActions";
 import { GitSummary } from "./GitSummary";
+import { ActivityBar } from "./ActivityBar";
+import { SuggestionLine } from "./Suggestions";
 import { relativeTime } from "../utils/time";
 import styles from "./ProjectCard.module.css";
 
@@ -33,8 +35,6 @@ export function ProjectCard({
   const [draft, setDraft] = useState("");
 
   const attention = sessions.some((v) => v.needsAttention);
-  const runSession = sessions.find((v) => v.kind === "run");
-  const agentCount = sessions.filter((v) => v.kind === "agent").length;
 
   const startEdit = () => {
     setDraft(project.description ?? "");
@@ -95,19 +95,11 @@ export function ProjectCard({
           </span>
         )}
         <StatusBadge status={project.status} />
-        {attention ? (
+        {attention && (
           <span className={styles.badge} data-attn onClick={() => setRoute({ page: "agents" })}>
             ⚡ needs you
           </span>
-        ) : runSession ? (
-          <span className={styles.badge} onClick={() => setRoute({ page: "agents", sessionId: runSession.sessionId })}>
-            ▶ running{runSession.detectedUrl ? ` · ${portOf(runSession.detectedUrl)}` : ""}
-          </span>
-        ) : agentCount > 0 ? (
-          <span className={styles.badge} onClick={() => setRoute({ page: "agents" })}>
-            ⚡ {agentCount}
-          </span>
-        ) : null}
+        )}
       </div>
 
       {editing ? (
@@ -136,6 +128,9 @@ export function ProjectCard({
 
       {project.isGitRepo && <GitSummary info={gitInfo} />}
 
+      <ActivityBar projectId={project.id} compact />
+      {project.pathExists && <SuggestionLine project={project} />}
+
       {!project.pathExists ? (
         <div className={styles.missing}>
           <Icon name="locate" size={14} /> Project folder could not be found.
@@ -155,9 +150,4 @@ export function ProjectCard({
       </button>
     </article>
   );
-}
-
-function portOf(url: string): string {
-  const m = url.match(/:(\d+)/);
-  return m ? `:${m[1]}` : "open";
 }

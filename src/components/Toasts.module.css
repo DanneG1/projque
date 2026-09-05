@@ -14,8 +14,28 @@
   border: 1px solid var(--border);
   border-left: 3px solid var(--danger);
   border-radius: var(--radius-sm);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-pop);
   padding: 10px 14px;
+  animation: toastIn 0.18s ease-out;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.toast[data-clickable] {
+  cursor: pointer;
+}
+
+.toast[data-clickable]:hover {
+  border-color: var(--accent-border);
 }
 
 .title {
@@ -29,6 +49,20 @@
   user-select: text;
 }
 
+.hint {
+  color: var(--text-faint);
+  font-size: 11px;
+  margin-top: 4px;
+}
+
 .toast[data-variant="info"] {
+  border-left-color: var(--status-maintenance);
+}
+
+.toast[data-variant="success"] {
   border-left-color: var(--status-active);
+}
+
+.toast[data-variant="attention"] {
+  border-left-color: var(--status-paused);
 }

@@ -17,6 +17,8 @@ import { MarkdownView } from "../components/MarkdownView";
 import { MergeBanner } from "../components/MergeBanner";
 import { RepoPanel } from "../components/RepoPanel";
 import { QuickActions } from "../components/QuickActions";
+import { ActivityBar } from "../components/ActivityBar";
+import { SuggestionList } from "../components/Suggestions";
 import { StatusSelect } from "../components/StatusSelect";
 import { relativeTime } from "../utils/time";
 import styles from "./ProjectDetailPage.module.css";
@@ -113,6 +115,8 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
           onChange={(status) => void updateProject(project.id, { status })}
         />
       </header>
+
+      <ActivityBar projectId={project.id} framed />
 
       <section className={styles.section}>
         {descriptionDraft !== null ? (
@@ -238,6 +242,13 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
           </div>
         )}
       </section>
+
+      {project.pathExists && (
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Suggestions</h2>
+          <SuggestionList project={project} />
+        </section>
+      )}
 
       {project.isGitRepo && gitInfo?.state === "available" && (
         <section className={styles.section}>

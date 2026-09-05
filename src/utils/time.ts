@@ -16,3 +16,11 @@ export function relativeTime(unixSeconds: number): string {
   }
   return rtf.format(Math.round(days / 365), "year");
 }
+
+/** "12s", "4m", "1h 05m" for a duration in seconds. */
+export function formatElapsed(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds));
+  if (s < 60) return `${s}s`;
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  return `${Math.floor(s / 3600)}h ${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}m`;
+}

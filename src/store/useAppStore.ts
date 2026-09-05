@@ -7,6 +7,7 @@ import { CLEANUP_PROMPT } from "../utils/prompts";
 import type {
   ActivitySummary,
   AgentSessionView,
+  AuditReport,
   ConfigStatus,
   ProjectStatus,
   GitInfo,
@@ -15,6 +16,7 @@ import type {
   ProjectPatch,
   ProjectView,
   ScanResult,
+  SessionPulse,
   Settings,
   Theme,
 } from "../models";
@@ -34,7 +36,16 @@ export interface Toast {
   id: number;
   title: string;
   detail?: string;
-  variant: "error" | "info";
+  variant: "error" | "info" | "attention" | "success";
+  /** Clicking the toast goes somewhere (and dismisses it). */
+  onClick?: () => void;
+}
+
+interface NotifyOptions {
+  variant?: Toast["variant"];
+  onClick?: () => void;
+  /** Milliseconds before auto-dismiss (default 4000). */
+  ttl?: number;
 }
 
 interface AppStore {
@@ -49,6 +60,13 @@ interface AppStore {
   query: string;
   gitBusy: Record<string, boolean>;
   sessions: AgentSessionView[];
+  /** Liveness per running session, refreshed by the backend ticker. */
+  pulses: Record<string, SessionPulse>;
+  /** Labeled in-flight work per project that is not a session (e.g.
+   *  "Checking packages"); drives the activity bars. */
+  busy: Record<string, string>;
+  /** Last package check per project this run (the stamp lives on the project). */
+  audits: Record<string, AuditReport>;
   /** Sessions shown together in the split view (order = pane order, max 4). */
   gridIds: string[];
   /** Local activity data for streaks/progress, briefly cached. */
@@ -135,6 +153,12 @@ interface AppStore {
    *  removing files it created (the current state is snapshotted first). */
   undoSession: (projectId: string, undoHash: string) => Promise<boolean>;
   sessionAttention: (view: AgentSessionView) => void;
+  setPulses: (pulses: SessionPulse[]) => void;
+  setBusy: (projectId: string, label: string | null) => void;
+  /** Run the package vulnerability check (explicit click - contacts the registry). */
+  runAudit: (projectId: string) => Promise<void>;
+  /** Start the project's test command as a run session, if it has one. */
+  runTests: (projectId: string) => Promise<void>;
   clearSessionAttention: (sessionId: string) => void;
   setVisibleSessions: (sessionIds: string[]) => void;
   toggleGridSession: (sessionId: string) => void;
@@ -147,7 +171,7 @@ interface AppStore {
   setDisplay: (patch: { showArchived?: boolean; theme?: Theme }) => Promise<void>;
   openConfigDir: () => Promise<void>;
   reportError: (err: unknown) => AppError;
-  notify: (title: string, detail?: string) => void;
+  notify: (title: string, detail?: string, opts?: NotifyOptions) => void;
   dismissToast: (id: number) => void;
 }
 
@@ -165,6 +189,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
   query: "",
   gitBusy: {},
   sessions: [],
+  pulses: {},
+  busy: {},
+  audits: {},
   gridIds: [],
   activity: null,
   celebratedAt: null,
@@ -798,6 +825,76 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set((s) => ({
       sessions: s.sessions.map((v) => (v.sessionId === view.sessionId ? view : v)),
     }));
+    // The backend only raises this when the user is not looking at the
+    // session, so an in-app pointer to it is always useful.
+    get().notify(`${view.agentLabel} is waiting for you`, view.projectLabel, {
+      variant: "attention",
+      ttl: 8000,
+      onClick: () => get().setRoute({ page: "agents", sessionId: view.sessionId }),
+    });
+  },
+
+  setPulses: (pulses) => {
+    const next: Record<string, SessionPulse> = {};
+    for (const p of pulses) next[p.sessionId] = p;
+    set({ pulses: next });
+  },
+
+  setBusy: (projectId, label) => {
+    set((s) => {
+      const busy = { ...s.busy };
+      if (label) busy[projectId] = label;
+      else delete busy[projectId];
+      return { busy };
+    });
+  },
+
+  runTests: async (projectId) => {
+    try {
+      const target = await api.projectTestTarget(projectId);
+      if (!target) {
+        get().notify("No test command found", "Ask the agent to add tests to this project.", {
+          onClick: () => get().setRoute({ page: "detail", projectId }),
+        });
+        return;
+      }
+      await get().startRunSession(projectId, target.targetId);
+    } catch (err) {
+      get().reportError(err);
+    }
+  },
+
+  runAudit: async (projectId) => {
+    if (get().busy[projectId]) return;
+    const project = get().projects.find((p) => p.id === projectId);
+    const name = project?.name ?? "project";
+    get().setBusy(projectId, "Checking packages");
+    try {
+      const [report, updated] = await api.projectAuditRun(projectId);
+      set((s) => ({
+        audits: { ...s.audits, [projectId]: report },
+        projects: s.projects.map((p) => (p.id === updated.id ? updated : p)),
+      }));
+      const goto = () => get().setRoute({ page: "detail", projectId });
+      if (report.total === 0) {
+        get().notify(`${name}: no known vulnerabilities`, `${report.dependencies} packages checked.`, {
+          variant: "success",
+          onClick: goto,
+        });
+      } else {
+        get().notify(
+          `${name}: ${report.total} known ${report.total === 1 ? "vulnerability" : "vulnerabilities"}`,
+          report.fixable > 0
+            ? `${report.fixable} can be updated safely - open the project to update.`
+            : "Open the project to see what to do.",
+          { variant: "attention", ttl: 8000, onClick: goto },
+        );
+      }
+    } catch (err) {
+      get().reportError(err);
+    } finally {
+      get().setBusy(projectId, null);
+    }
   },
 
   clearSessionAttention: (sessionId) => {
@@ -860,9 +957,39 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set((s) => ({
       sessions: s.sessions.map((v) => (v.sessionId === view.sessionId ? view : v)),
     }));
+    set((s) => {
+      if (!(view.sessionId in s.pulses)) return {};
+      const pulses = { ...s.pulses };
+      delete pulses[view.sessionId];
+      return { pulses };
+    });
     const code = view.status.state === "exited" ? view.status.code : null;
     const isTestRun = view.kind === "run" && view.targetId?.startsWith("test:");
-    if (isTestRun) {
+    const openSession = () => get().setRoute({ page: "agents", sessionId: view.sessionId });
+    const route = get().route;
+    const viewingIt = route.page === "agents" && route.sessionId === view.sessionId;
+    if (view.kind === "agent") {
+      const dirty = get().git[view.projectId]?.dirty;
+      if (!viewingIt) {
+        get().notify(
+          `${view.agentLabel} finished - ${view.projectLabel}`,
+          code === 0 || code === null
+            ? dirty
+              ? "Changes are waiting for your review."
+              : "Open the session to see what happened."
+            : `Stopped with code ${code}. Open the session to see why.`,
+          { variant: code === 0 || code === null ? "success" : "error", ttl: 8000, onClick: openSession },
+        );
+      }
+    } else if (view.targetId === "audit:fix") {
+      get().notify(
+        code === 0 ? "Safe package updates installed" : "Package update did not finish",
+        code === 0
+          ? `${view.projectLabel}: run the tests, then commit.`
+          : `${view.projectLabel}: look at the output, or ask the agent.`,
+        { variant: code === 0 ? "success" : "error", ttl: 8000, onClick: openSession },
+      );
+    } else if (isTestRun) {
       // A test run's exit code is its verdict; stamp it on the project.
       const passed = code === 0;
       api
@@ -876,9 +1003,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
         passed
           ? `${view.projectLabel} is verified.`
           : `${view.projectLabel}: look at the output, or ask the agent to fix it.`,
+        { variant: passed ? "success" : "error", ttl: 8000, onClick: openSession },
       );
     } else if (code !== null && code !== 0) {
-      get().notify(`${view.agentLabel} exited (code ${code})`);
+      get().notify(`${view.agentLabel} exited (code ${code})`, view.projectLabel, {
+        variant: "error",
+        onClick: openSession,
+      });
     }
     // The post-session review needs fresh git state for this project.
     if (view.kind === "agent") void get().refreshGit({ force: true });
@@ -903,10 +1034,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
     return appError;
   },
 
-  notify: (title, detail) => {
-    const toast: Toast = { id: ++toastSeq, variant: "info", title, detail };
+  notify: (title, detail, opts) => {
+    const toast: Toast = {
+      id: ++toastSeq,
+      variant: opts?.variant ?? "info",
+      title,
+      detail,
+      onClick: opts?.onClick,
+    };
     set((s) => ({ toasts: [...s.toasts, toast] }));
-    setTimeout(() => get().dismissToast(toast.id), 4000);
+    setTimeout(() => get().dismissToast(toast.id), opts?.ttl ?? 4000);
   },
 
   dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),

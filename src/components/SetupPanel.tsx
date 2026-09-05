@@ -3,6 +3,7 @@ import { api } from "../api/ipc";
 import type { DebtInfo, DeployInfo, ProjectView, RunTarget, ToolCheck } from "../models";
 import { useAppStore } from "../store/useAppStore";
 import { relativeTime } from "../utils/time";
+import { AuditPanel } from "./AuditPanel";
 import { Icon } from "./Icon";
 import styles from "./SetupPanel.module.css";
 
@@ -145,6 +146,8 @@ export function SetupPanel({ project }: { project: ProjectView }) {
           )}
         </div>
       )}
+
+      <AuditPanel project={project} />
 
       {testTarget && (
         <div className={styles.row}>

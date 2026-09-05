@@ -95,11 +95,27 @@ pub fn detect_test_target(dir: &Path) -> Option<RunTarget> {
     None
 }
 
-/// Every launchable target including the test target, for launch-time
-/// validation of a frontend-supplied id.
+/// `npm audit fix` as a visible run session ("Update safely"): only the
+/// non-breaking fix, never `--force`. npm only - other managers hand off to
+/// the agent.
+pub fn detect_audit_fix_target(dir: &Path) -> Option<RunTarget> {
+    let has_lock = dir.join("package-lock.json").is_file() || dir.join("npm-shrinkwrap.json").is_file();
+    (dir.join("package.json").is_file() && package_manager(dir) == "npm" && has_lock).then(|| RunTarget {
+        target_id: "audit:fix".into(),
+        label: "npm audit fix".into(),
+        runner: "npm".into(),
+        detail: Some("update vulnerable packages without breaking changes".into()),
+    })
+}
+
+/// Every launchable target including the test and audit-fix targets, for
+/// launch-time validation of a frontend-supplied id.
 pub fn all_targets(dir: &Path) -> Vec<RunTarget> {
     let mut targets = detect_targets(dir);
     if let Some(t) = detect_test_target(dir) {
+        targets.push(t);
+    }
+    if let Some(t) = detect_audit_fix_target(dir) {
         targets.push(t);
     }
     targets
@@ -114,6 +130,7 @@ pub fn argv_for(target: &RunTarget) -> (String, Vec<String>) {
         Some(("test", "go")) => ("go".into(), vec!["test".into(), "./...".into()]),
         Some(("test", "dotnet")) => ("dotnet".into(), vec!["test".into()]),
         Some(("test", "pytest")) => ("python3".into(), vec!["-m".into(), "pytest".into()]),
+        Some(("audit", "fix")) => ("npm".into(), vec!["audit".into(), "fix".into()]),
         Some(("pm", script)) => (
             target.runner.clone(),
             vec!["run".to_string(), script.to_string()],
@@ -154,7 +171,7 @@ fn detect_package_json(dir: &Path, targets: &mut Vec<RunTarget>) {
     }
 }
 
-fn package_manager(dir: &Path) -> &'static str {
+pub(crate) fn package_manager(dir: &Path) -> &'static str {
     if dir.join("bun.lockb").is_file() || dir.join("bun.lock").is_file() {
         "bun"
     } else if dir.join("pnpm-lock.yaml").is_file() {

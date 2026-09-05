@@ -71,6 +71,7 @@ pub fn view(project: &Project) -> ProjectView {
         has_roadmap: roadmap.is_some(),
         has_ideas: ideas.is_some(),
         has_run_targets,
+        auditable: path_exists && crate::audit::support(path).supported,
         resolved_description,
     }
 }

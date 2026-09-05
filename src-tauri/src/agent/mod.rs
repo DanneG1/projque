@@ -30,6 +30,8 @@ const READ_BUF: usize = 8192;
 /// probably waiting for the user.
 const ATTENTION_QUIET: Duration = Duration::from_secs(6);
 const TICKER_INTERVAL: Duration = Duration::from_secs(2);
+/// Output seen within this window counts as "working" for the live pulse.
+const WORKING_WINDOW: Duration = Duration::from_secs(4);
 
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -66,6 +68,19 @@ pub struct AgentSessionView {
     pub target_id: Option<String>,
     /// Run sessions: error-shaped output was seen (an "Explain" offer).
     pub error_detected: bool,
+}
+
+/// Liveness of one running session, emitted every ticker interval so the
+/// project cards can show a real "working / quiet / waiting" indicator
+/// without attaching to the terminal stream.
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionPulse {
+    pub session_id: String,
+    /// Seconds since the last output byte; None = nothing yet.
+    pub idle_secs: Option<f32>,
+    /// Output is flowing right now.
+    pub working: bool,
 }
 
 struct OutputState {
@@ -200,8 +215,8 @@ impl Registry {
                                 while out.scrollback.len() > SCROLLBACK_CAP {
                                     out.scrollback.pop_front();
                                 }
+                                out.last_output = Some(Instant::now());
                                 if track_attention {
-                                    out.last_output = Some(Instant::now());
                                     out.pending_since_input = true;
                                     // BEL = the agent explicitly asked for attention.
                                     if buf[..n].contains(&0x07) {
@@ -252,6 +267,7 @@ impl Registry {
         // Wait thread: reaps the child (no zombies), flips status, notifies.
         {
             let sessions = self.sessions.clone();
+            let active = self.active.clone();
             let id = session_id.clone();
             let mut child = handles.child;
             std::thread::spawn(move || {
@@ -273,6 +289,14 @@ impl Registry {
                 };
                 if let Some(view) = exited_view {
                     let _ = app.emit("agent:session-exited", &view);
+                    // The in-app toast covers a focused window; when the user
+                    // is elsewhere, tell them the way the attention path does.
+                    let focused = active.lock().unwrap().1;
+                    if !focused {
+                        if let Some((title, body)) = exit_notification(&view, code) {
+                            notify(&app, &title, &body);
+                        }
+                    }
                 }
             });
         }
@@ -459,12 +483,23 @@ impl Registry {
             std::thread::sleep(TICKER_INTERVAL);
             let (active_ids, focused) = active.lock().unwrap().clone();
             let mut to_announce: Vec<AgentSessionView> = Vec::new();
+            let mut pulses: Vec<SessionPulse> = Vec::new();
             {
                 let map = sessions.lock().unwrap();
                 for session in map.values() {
-                    if session.view.kind != SessionKind::Agent
-                        || !matches!(session.view.status, SessionStatus::Running)
+                    if !matches!(session.view.status, SessionStatus::Running) {
+                        continue;
+                    }
                     {
+                        let out = session.output.lock().unwrap();
+                        let idle = out.last_output.map(|t| t.elapsed());
+                        pulses.push(SessionPulse {
+                            session_id: session.view.session_id.clone(),
+                            idle_secs: idle.map(|d| d.as_secs_f32()),
+                            working: idle.map(|d| d < WORKING_WINDOW).unwrap_or(false),
+                        });
+                    }
+                    if session.view.kind != SessionKind::Agent {
                         continue;
                     }
                     let viewed = focused
@@ -488,15 +523,17 @@ impl Registry {
                     }
                 }
             }
+            // Only while something runs - an idle app stays silent.
+            if !pulses.is_empty() {
+                let _ = app.emit("agent:sessions-pulse", &pulses);
+            }
             for view in to_announce {
                 let _ = app.emit("agent:session-attention", &view);
-                use tauri_plugin_notification::NotificationExt;
-                let _ = app
-                    .notification()
-                    .builder()
-                    .title(format!("{} - {}", view.agent_label, view.project_label))
-                    .body("Waiting for you")
-                    .show();
+                notify(
+                    &app,
+                    &format!("{} - {}", view.agent_label, view.project_label),
+                    "Waiting for you",
+                );
             }
         });
     }
@@ -508,6 +545,40 @@ impl Registry {
                 let _ = session.killer.kill();
             }
         }
+    }
+}
+
+fn notify(app: &AppHandle, title: &str, body: &str) {
+    use tauri_plugin_notification::NotificationExt;
+    let _ = app.notification().builder().title(title).body(body).show();
+}
+
+/// What to say when a session ends and the window is not focused. Plain
+/// dev-server stops are not news; agents finishing and test verdicts are.
+fn exit_notification(view: &AgentSessionView, code: Option<i32>) -> Option<(String, String)> {
+    let is_test = view.target_id.as_deref().map(|t| t.starts_with("test:")).unwrap_or(false);
+    match view.kind {
+        SessionKind::Agent => Some((
+            format!("{} finished - {}", view.agent_label, view.project_label),
+            if code == Some(0) {
+                "Done. Review the changes in ProjQue.".to_string()
+            } else {
+                format!("Stopped{}.", code.map(|c| format!(" with code {c}")).unwrap_or_default())
+            },
+        )),
+        SessionKind::Run if is_test => Some((
+            format!(
+                "{} - {}",
+                if code == Some(0) { "All checks passed" } else { "Some checks failed" },
+                view.project_label
+            ),
+            if code == Some(0) {
+                "The project is verified.".to_string()
+            } else {
+                "Look at the output, or ask the agent to fix it.".to_string()
+            },
+        )),
+        SessionKind::Run => None,
     }
 }
 

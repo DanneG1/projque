@@ -128,6 +128,12 @@
   border-color: color-mix(in srgb, var(--status-active) 35%, transparent);
 }
 
+.tag[data-state="quiet"] {
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+  border-color: color-mix(in srgb, var(--text-muted) 30%, transparent);
+}
+
 .tag[data-state="run"] {
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 15%, transparent);

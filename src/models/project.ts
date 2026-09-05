@@ -20,12 +20,15 @@ export interface ProjectView {
   productionUrl?: string;
   lastVerified?: Verification;
   lastCleanup?: Cleanup;
+  lastAudit?: AuditStamp;
   pathExists: boolean;
   isGitRepo: boolean;
   hasReadme: boolean;
   hasRoadmap: boolean;
   hasIdeas: boolean;
   hasRunTargets: boolean;
+  /** The built-in package vulnerability check works here. */
+  auditable: boolean;
   resolvedDescription?: string;
 }
 
@@ -110,4 +113,43 @@ export interface DebtInfo {
   lastCleanupAt: number | null;
   nudge: boolean;
   windowFallback: boolean;
+}
+
+export interface AuditStamp {
+  at: number;
+  total: number;
+  fixable: number;
+  critical: number;
+  high: number;
+}
+
+export interface AuditItem {
+  name: string;
+  severity: string;
+  title: string;
+  range: string;
+  /** "yes" (non-breaking fix) | "major" (breaking upgrade) | "no" */
+  fix: string;
+  direct: boolean;
+}
+
+export interface AuditReport {
+  manager: string;
+  total: number;
+  critical: number;
+  high: number;
+  moderate: number;
+  low: number;
+  info: number;
+  fixable: number;
+  needsMajor: number;
+  dependencies: number;
+  items: AuditItem[];
+  canAutoFix: boolean;
+}
+
+export interface AuditSupport {
+  manager: string;
+  supported: boolean;
+  reason: string | null;
 }

@@ -1,0 +1,160 @@
+.stack {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 3px 0 2px;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  --bar-color: var(--accent);
+  --bar-speed: 1.4s;
+}
+
+.item[data-clickable] {
+  cursor: pointer;
+}
+
+.item[data-clickable]:hover .label {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.label {
+  font-weight: 500;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.elapsed {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+
+.track {
+  height: 3px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--bar-color) 16%, var(--bg-sunken));
+  overflow: hidden;
+  position: relative;
+}
+
+/* Indeterminate bar: a highlight sweeps the track, never claiming a
+   percentage that is not known. */
+.fill {
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  border-radius: 99px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--bar-color) 40%,
+    var(--bar-color) 60%,
+    transparent
+  );
+  animation: sweep var(--bar-speed) linear infinite;
+}
+
+@keyframes sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+.item[data-state="working"] {
+  --bar-color: var(--accent);
+}
+
+.item[data-state="working"] .fill {
+  background: var(--brand-gradient);
+  width: 45%;
+}
+
+.item[data-state="quiet"] {
+  --bar-color: var(--text-faint);
+  --bar-speed: 3s;
+}
+
+.item[data-state="run"] {
+  --bar-color: var(--status-maintenance);
+  --bar-speed: 2s;
+}
+
+.item[data-state="busy"] {
+  --bar-color: var(--status-idea);
+  --bar-speed: 1.8s;
+}
+
+/* Waiting: nothing is moving - the bar sits full and breathes. */
+.item[data-state="waiting"] {
+  --bar-color: var(--status-paused);
+}
+
+.item[data-state="waiting"] .row {
+  color: var(--status-paused);
+}
+
+.item[data-state="waiting"] .fill {
+  width: 100%;
+  background: var(--bar-color);
+  animation: breathe 1.6s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.stack[data-compact] .row {
+  font-size: 11px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill {
+    animation: none;
+    width: 100%;
+    opacity: 0.7;
+  }
+}
+
+.stack[data-framed] {
+  gap: 8px;
+  margin: 0;
+  padding: 12px 16px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card), inset 0 1px 0 var(--inset-hi);
+}
+
+.stack[data-framed] .row {
+  font-size: 12.5px;
+}
+
+.stack[data-framed] .track {
+  height: 4px;
+}

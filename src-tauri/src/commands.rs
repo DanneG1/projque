@@ -162,6 +162,7 @@ pub(crate) fn add_project_at(state: &AppState, path: std::path::PathBuf) -> Resu
             production_url: None,
             last_verified: None,
             last_cleanup: None,
+            last_audit: None,
         };
         projects.push(new.clone());
         Ok(new)
@@ -1338,6 +1339,55 @@ pub async fn project_debt(
         let (projects, _) = state.projects();
         let cleanup = projects.iter().find(|p| p.id == id).and_then(|p| p.last_cleanup.clone());
         Ok(crate::project::debt::measure(&dir, cleanup.as_ref()))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn project_audit_support(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<crate::audit::AuditSupport, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        Ok(crate::audit::support(&dir))
+    })
+    .await
+}
+
+/// Explicit-click network operation: the project's package manager audits
+/// its dependency tree against the registry's advisories. The summary is
+/// stamped on the project so the card can show "checked 2h ago".
+#[tauri::command]
+pub async fn project_audit_run(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<(crate::audit::AuditReport, ProjectView), AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        let (settings, _) = state.settings();
+        let report = crate::audit::run(&dir, &settings.path_additions)?;
+        let at = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0);
+        let updated = state.update_projects(|projects| {
+            let project = projects
+                .iter_mut()
+                .find(|p| p.id == id)
+                .ok_or_else(|| AppError::ProjectNotFound { id: id.clone() })?;
+            project.last_audit = Some(crate::project::AuditStamp {
+                at,
+                total: report.total,
+                fixable: report.fixable,
+                critical: report.critical,
+                high: report.high,
+            });
+            Ok(project.clone())
+        })?;
+        Ok((report, project::view(&updated)))
     })
     .await
 }
