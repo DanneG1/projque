@@ -1,0 +1,105 @@
+/** Swedish. Keys are the English source strings; missing keys fall back. */
+export const sv: Record<string, string> = {
+  // Header
+  "Projects": "Projekt",
+  "Back to projects (Esc)": "Tillbaka till projekten (Esc)",
+  "Idea": "Idé",
+  "Capture an idea (⌘K)": "Fånga en idé (⌘K)",
+  "New": "Nytt",
+  "Git": "Git",
+  "Git - branches, commits, merges and pushes across your projects": "Git - grenar, commits, sammanslagningar och push för alla projekt",
+  "Sessions": "Sessioner",
+  "A session needs your attention": "En session behöver dig",
+  "waiting": "väntar",
+  "Settings": "Inställningar",
+  "Notifications": "Notiser",
+
+  // List page
+  "Search projects": "Sök projekt",
+  "Refresh git information": "Uppdatera git-information",
+  "Scan folders": "Sök i mappar",
+  "Add folder": "Lägg till mapp",
+  "Health check": "Hälsokontroll",
+  "Checking…": "Kontrollerar…",
+  "Ask many": "Fråga flera",
+  "Start the agent with the same prompt in several projects": "Starta agenten med samma uppdrag i flera projekt",
+  "Favorites & status": "Favoriter & status",
+  "Recently worked on": "Senast arbetat med",
+  "Name": "Namn",
+  "Sort order": "Sortering",
+  "No projects match": "Inga projekt matchar",
+  "Where do you keep your projects?": "Var har du dina projekt?",
+  "Point ProjQue at a folder that contains your repositories, or add a single project manually.":
+    "Peka ProjQue mot en mapp med dina projekt, eller lägg till ett enskilt projekt.",
+  "Add project folder": "Lägg till projektmapp",
+  "Add single project": "Lägg till ett projekt",
+  "Start something new": "Starta något nytt",
+  "Git was not found on this machine - branch and commit information is hidden. Everything else works.":
+    "Git hittades inte på den här datorn - gren- och commit-information är dold. Allt annat fungerar.",
+
+  // Filters & statuses
+  "All": "Alla",
+  "Active": "Aktiva",
+  "Ideas": "Idéer",
+  "Paused": "Pausade",
+  "Archived": "Arkiverade",
+  "status.idea": "Idé",
+  "status.active": "Aktivt",
+  "status.paused": "Pausat",
+  "status.maintenance": "Underhåll",
+  "status.done": "Klart",
+  "status.archived": "Arkiverat",
+
+  // Card
+  "Add a description…": "Lägg till en beskrivning…",
+  "Click to edit description": "Klicka för att ändra beskrivningen",
+  "Open project details": "Öppna projektet",
+  "Open details": "Öppna",
+  "Remove favorite": "Ta bort favorit",
+  "Mark as favorite": "Markera som favorit",
+  "needs you": "behöver dig",
+  "Project folder could not be found.": "Projektmappen kunde inte hittas.",
+  "Locate": "Leta upp",
+  "Remove": "Ta bort",
+  "live": "live",
+  "Short description": "Kort beskrivning",
+
+  // Quick actions
+  "Open folder": "Öppna mapp",
+  "Open in editor": "Öppna i editorn",
+  "Start agent": "Starta agent",
+  "Fetch": "Hämta",
+  "Open terminal": "Öppna terminal",
+  "Agent in external terminal": "Agent i extern terminal",
+  "Open repository": "Öppna repot",
+  "Remove from ProjQue": "Ta bort från ProjQue",
+
+  // Detail page
+  "← All projects": "← Alla projekt",
+  "Suggestions": "Förslag",
+  "Repository": "Repo",
+  "Setup & checks": "Uppsättning & kontroller",
+  "Publish": "Publicera",
+  "Roadmap": "Färdplan",
+  "Past sessions": "Tidigare sessioner",
+  "Local path": "Sökväg",
+  "Production": "Produktion",
+  "Tags": "Taggar",
+  "No roadmap found.": "Ingen färdplan hittades.",
+  "Removing a project never touches its files.": "Att ta bort ett projekt rör aldrig dess filer.",
+
+  // Settings
+  "Project folders": "Projektmappar",
+  "Setup check": "Kontroll av uppsättning",
+  "Tools": "Verktyg",
+  "Display": "Visning",
+  "Language": "Språk",
+  "Show archived projects by default": "Visa arkiverade projekt som standard",
+  "Theme": "Tema",
+  "Disk space": "Diskutrymme",
+  "Configuration": "Konfiguration",
+  "System notifications when ProjQue is in the background (agent finished or waiting, test results)":
+    "Systemnotiser när ProjQue är i bakgrunden (agenten klar eller väntar, testresultat)",
+  "In-app toasts and the notification bell are always on; this only controls what reaches the system notification center.":
+    "Meddelanden i appen och klockan är alltid på; det här styr bara vad som når systemets notiscenter.",
+};

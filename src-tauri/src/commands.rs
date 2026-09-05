@@ -59,15 +59,24 @@ pub async fn settings_set_display(
     state: State<'_, Arc<AppState>>,
     show_archived: Option<bool>,
     theme: Option<Theme>,
+    language: Option<String>,
 ) -> Result<Settings, AppError> {
     let state = state.inner().clone();
     run_blocking(move || {
+        if let Some(l) = language.as_deref() {
+            if !crate::settings::LANGUAGES.contains(&l) {
+                return Err(AppError::InvalidInput { detail: "unknown language".into() });
+            }
+        }
         state.update_settings(|s| {
             if let Some(v) = show_archived {
                 s.display.show_archived = v;
             }
             if let Some(t) = theme {
                 s.display.theme = t;
+            }
+            if let Some(l) = language {
+                s.display.language = l;
             }
         })
     })

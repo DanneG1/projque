@@ -52,7 +52,7 @@ export const api = {
   appConfigStatus: () => invoke<ConfigStatus>("app_config_status"),
   appOpenConfigDir: () => invoke<void>("app_open_config_dir"),
   settingsGet: () => invoke<Settings>("settings_get"),
-  settingsSetDisplay: (patch: { showArchived?: boolean; theme?: Theme }) =>
+  settingsSetDisplay: (patch: { showArchived?: boolean; theme?: Theme; language?: string }) =>
     invoke<Settings>("settings_set_display", patch),
   settingsSetNotifications: (patch: {
     system?: boolean;

@@ -9,6 +9,7 @@ import { ActivityBar } from "./ActivityBar";
 import { SuggestionLine } from "./Suggestions";
 import { TagChips } from "./Tags";
 import { relativeTime } from "../utils/time";
+import { useT } from "../i18n";
 import styles from "./ProjectCard.module.css";
 
 export function ProjectCard({
@@ -34,6 +35,7 @@ export function ProjectCard({
   );
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
+  const t = useT();
 
   const attention = sessions.some((v) => v.needsAttention);
 
@@ -58,7 +60,7 @@ export function ProjectCard({
       <button
         className={styles.star}
         data-on={project.favorite || undefined}
-        aria-label={project.favorite ? "Remove favorite" : "Mark as favorite"}
+        aria-label={project.favorite ? t("Remove favorite") : t("Mark as favorite")}
         onClick={() => void updateProject(project.id, { favorite: !project.favorite })}
       >
         <Icon name="star" size={15} style={{ fill: project.favorite ? "currentColor" : "none" }} />
@@ -68,7 +70,7 @@ export function ProjectCard({
         <h3
           className={styles.name}
           onClick={() => setRoute({ page: "detail", projectId: project.id })}
-          title="Open project details"
+          title={t("Open project details")}
         >
           {project.name}
         </h3>
@@ -104,7 +106,7 @@ export function ProjectCard({
         )}
         {attention && (
           <span className={styles.badge} data-attn onClick={() => setRoute({ page: "agents" })}>
-            ⚡ needs you
+            ⚡ {t("needs you")}
           </span>
         )}
       </div>
@@ -114,7 +116,7 @@ export function ProjectCard({
           className={styles.descInput}
           value={draft}
           autoFocus
-          placeholder="Short description"
+          placeholder={t("Short description")}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commit}
           onKeyDown={(e) => {
@@ -127,9 +129,9 @@ export function ProjectCard({
           className={styles.desc}
           data-placeholder={!project.resolvedDescription || undefined}
           onClick={startEdit}
-          title="Click to edit description"
+          title={t("Click to edit description")}
         >
-          {project.resolvedDescription ?? "Add a description…"}
+          {project.resolvedDescription ?? t("Add a description…")}
         </p>
       )}
 
@@ -140,9 +142,9 @@ export function ProjectCard({
 
       {!project.pathExists ? (
         <div className={styles.missing}>
-          <Icon name="locate" size={14} /> Project folder could not be found.
-          <button className="btn" onClick={() => void relocateProject(project.id)}>Locate</button>
-          <button className="btn" onClick={() => void removeProject(project.id)}>Remove</button>
+          <Icon name="locate" size={14} /> {t("Project folder could not be found.")}
+          <button className="btn" onClick={() => void relocateProject(project.id)}>{t("Locate")}</button>
+          <button className="btn" onClick={() => void removeProject(project.id)}>{t("Remove")}</button>
         </div>
       ) : (
         <QuickActions project={project} gitInfo={gitInfo} />
@@ -150,7 +152,7 @@ export function ProjectCard({
 
       <button
         className={styles.open}
-        aria-label="Open details"
+        aria-label={t("Open details")}
         onClick={() => setRoute({ page: "detail", projectId: project.id })}
       >
         <Icon name="chevron" size={16} />

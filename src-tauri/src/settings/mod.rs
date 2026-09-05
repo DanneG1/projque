@@ -73,13 +73,28 @@ impl ToolConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct DisplaySettings {
     #[serde(default)]
     pub show_archived: bool,
     #[serde(default)]
     pub theme: Theme,
+    /// "system" | "en" | "sv" - the UI language (translation lives in the frontend).
+    #[serde(default = "default_language")]
+    pub language: String,
+}
+
+fn default_language() -> String {
+    "system".into()
+}
+
+pub const LANGUAGES: &[&str] = &["system", "en", "sv"];
+
+impl Default for DisplaySettings {
+    fn default() -> Self {
+        Self { show_archived: false, theme: Theme::default(), language: default_language() }
+    }
 }
 
 /// A reusable agent prompt. `{input}` in the text asks for a description

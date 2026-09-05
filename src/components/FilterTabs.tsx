@@ -1,4 +1,5 @@
 import { useAppStore, type ProjectFilter } from "../store/useAppStore";
+import { useT } from "../i18n";
 import styles from "./FilterTabs.module.css";
 
 const FILTERS: { value: ProjectFilter; label: string }[] = [
@@ -15,6 +16,7 @@ export function FilterTabs() {
   const setFilter = useAppStore((s) => s.setFilter);
   const projects = useAppStore((s) => s.projects);
   const showArchived = useAppStore((s) => s.settings?.display.showArchived ?? false);
+  const t = useT();
 
   // Mirror useSortedProjects' visibility rule (minus search): each count is
   // what selecting that tab would show.
@@ -43,7 +45,7 @@ export function FilterTabs() {
           data-active={filter === f.value || undefined}
           onClick={() => setFilter(f.value)}
         >
-          {f.label}
+          {t(f.label)}
           <span className={styles.count}>{count(f.value)}</span>
         </button>
       ))}

@@ -25,6 +25,7 @@ import { SavedPrompts } from "../components/SavedPrompts";
 import { TranscriptsPanel } from "../components/TranscriptsPanel";
 import { StatusSelect } from "../components/StatusSelect";
 import { relativeTime } from "../utils/time";
+import { useT } from "../i18n";
 import styles from "./ProjectDetailPage.module.css";
 
 export function ProjectDetailPage({ projectId }: { projectId: string }) {
@@ -36,6 +37,7 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
   const setRoute = useAppStore((s) => s.setRoute);
   const reportError = useAppStore((s) => s.reportError);
   const launch = useAppStore((s) => s.launch);
+  const t = useT();
 
   const [roadmap, setRoadmap] = useState<ProjectDocument | null>(null);
   const [readme, setReadme] = useState<ProjectDocument | null>(null);
@@ -101,7 +103,7 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
   return (
     <div className={styles.page}>
       <button className={styles.back} onClick={() => setRoute({ page: "list" })}>
-        ← All projects
+        {t("← All projects")}
       </button>
 
       <header className={styles.header}>
@@ -164,21 +166,21 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
 
       <section className={styles.section}>
         <div className={styles.metaRow}>
-          <span className={styles.metaLabel}>Local path</span>
+          <span className={styles.metaLabel}>{t("Local path")}</span>
           <code className={styles.path}>{project.path}</code>
         </div>
         {gitInfo?.repositoryUrl && (
           <div className={styles.metaRow}>
-            <span className={styles.metaLabel}>Repository</span>
+            <span className={styles.metaLabel}>{t("Repository")}</span>
             <code className={styles.path}>{gitInfo.repositoryUrl}</code>
           </div>
         )}
         <div className={styles.metaRow}>
-          <span className={styles.metaLabel}>Tags</span>
+          <span className={styles.metaLabel}>{t("Tags")}</span>
           <TagEditor projectId={project.id} tags={project.tags} />
         </div>
         <div className={styles.metaRow}>
-          <span className={styles.metaLabel}>Production</span>
+          <span className={styles.metaLabel}>{t("Production")}</span>
           {prodDraft !== null ? (
             <input
               className={styles.prodInput}
@@ -255,14 +257,14 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
 
       {project.pathExists && (
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Suggestions</h2>
+          <h2 className={styles.sectionTitle}>{t("Suggestions")}</h2>
           <SuggestionList project={project} />
         </section>
       )}
 
       {project.isGitRepo && gitInfo?.state === "available" && (
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Git</h2>
+          <h2 className={styles.sectionTitle}>{t("Git")}</h2>
           <GitSummary info={gitInfo} />
           <GitControls projectId={project.id} gitInfo={gitInfo} />
           <MergeBanner projectId={project.id} gitInfo={gitInfo} />
@@ -296,7 +298,7 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
       {showRepo && project.isGitRepo && project.pathExists && gitInfo?.state === "available" && (
         <section className={styles.section}>
           <div className={styles.sectionHead}>
-            <h2 className={styles.sectionTitle}>Repository</h2>
+            <h2 className={styles.sectionTitle}>{t("Repository")}</h2>
             <button
               className="btn"
               title="The full git view: all repositories, branches, and diffs side by side"
@@ -311,7 +313,7 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
 
       {project.pathExists && (
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Setup &amp; checks</h2>
+          <h2 className={styles.sectionTitle}>{t("Setup & checks")}</h2>
           <SetupPanel project={project} />
         </section>
       )}
@@ -322,13 +324,13 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
 
       {project.isGitRepo && project.pathExists && gitInfo?.state === "available" && (
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Publish</h2>
+          <h2 className={styles.sectionTitle}>{t("Publish")}</h2>
           <PublishPanel projectId={project.id} gitInfo={gitInfo} />
         </section>
       )}
 
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Roadmap</h2>
+        <h2 className={styles.sectionTitle}>{t("Roadmap")}</h2>
         {roadmap ? (
           <RoadmapPanel
             projectId={project.id}
@@ -337,13 +339,13 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
             truncated={roadmap.truncated}
           />
         ) : (
-          <p className={styles.faint}>No roadmap found.</p>
+          <p className={styles.faint}>{t("No roadmap found.")}</p>
         )}
       </section>
 
       {ideas && (
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Ideas</h2>
+          <h2 className={styles.sectionTitle}>{t("Ideas")}</h2>
           <IdeasPanel projectId={project.id} fallbackMarkdown={ideas.markdown} />
         </section>
       )}
@@ -359,9 +361,9 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
 
       <section className={styles.section}>
         <button className="btn" onClick={() => void removeProject(project.id)}>
-          Remove from ProjQue
+          {t("Remove from ProjQue")}
         </button>
-        <p className={styles.faint}>Removing a project never touches its files.</p>
+        <p className={styles.faint}>{t("Removing a project never touches its files.")}</p>
       </section>
     </div>
   );

@@ -18,6 +18,7 @@ import { Icon } from "./components/Icon";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import logoUrl from "./assets/logo.png";
 import type { AgentSessionView, SessionPulse } from "./models";
+import { useT } from "./i18n";
 
 const AgentsPage = lazy(() =>
   import("./pages/AgentsPage").then((m) => ({ default: m.AgentsPage })),
@@ -42,6 +43,7 @@ export default function App() {
     (s) => s.sessions.filter((v) => v.needsAttention).length,
   );
   const unreadCount = useAppStore((s) => s.inbox.filter((i) => !i.read).length);
+  const t = useT();
 
   // Keep the backend informed of focus so attention isn't raised for what
   // the user is already looking at (every visible pane in split view).
@@ -177,46 +179,46 @@ export default function App() {
           <button
             className="btn btn-ghost"
             onClick={() => setRoute({ page: "list" })}
-            title="Back to projects (Esc)"
+            title={t("Back to projects (Esc)")}
           >
-            <Icon name="chevron" size={15} style={{ transform: "scaleX(-1)" }} /> Projects
+            <Icon name="chevron" size={15} style={{ transform: "scaleX(-1)" }} /> {t("Projects")}
           </button>
         )}
         <div className={styles.spacer} />
         <button
           className="btn"
-          title="Capture an idea (⌘K)"
+          title={t("Capture an idea (⌘K)")}
           onClick={() => useAppStore.getState().setIdeaOpen(true)}
         >
-          <Icon name="idea" size={14} /> Idea
+          <Icon name="idea" size={14} /> {t("Idea")}
         </button>
         <button
           className="btn btn-primary"
           onClick={() => useAppStore.getState().setNewProjectOpen(true)}
         >
-          <Icon name="plus" size={14} /> New
+          <Icon name="plus" size={14} /> {t("New")}
         </button>
         <button
           className="btn"
-          title="Git - branches, commits, merges and pushes across your projects"
+          title={t("Git - branches, commits, merges and pushes across your projects")}
           data-active={route.page === "git" || undefined}
           onClick={() => setRoute({ page: "git" })}
         >
-          <Icon name="branch" size={14} /> Git
+          <Icon name="branch" size={14} /> {t("Git")}
         </button>
         <button
           className="btn"
           data-attn={attentionCount > 0 || undefined}
-          title={attentionCount > 0 ? "A session needs your attention" : undefined}
+          title={attentionCount > 0 ? t("A session needs your attention") : undefined}
           onClick={() => setRoute({ page: "agents" })}
         >
-          Sessions{runningSessions > 0 ? ` ${runningSessions}` : ""}
-          {attentionCount > 0 && <span className={styles.attnFlag}>waiting</span>}
+          {t("Sessions")}{runningSessions > 0 ? ` ${runningSessions}` : ""}
+          {attentionCount > 0 && <span className={styles.attnFlag}>{t("waiting")}</span>}
         </button>
         <InboxButton />
         <button
           className="btn btn-ghost"
-          aria-label="Settings"
+          aria-label={t("Settings")}
           data-active={route.page === "settings" || undefined}
           onClick={() =>
             setRoute(route.page === "settings" ? { page: "list" } : { page: "settings" })

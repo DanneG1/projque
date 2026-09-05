@@ -273,7 +273,7 @@ interface AppStore {
   setQuitPrompt: (count: number | null) => void;
   confirmQuit: () => Promise<void>;
   setRoute: (route: Route) => void;
-  setDisplay: (patch: { showArchived?: boolean; theme?: Theme }) => Promise<void>;
+  setDisplay: (patch: { showArchived?: boolean; theme?: Theme; language?: string }) => Promise<void>;
   openConfigDir: () => Promise<void>;
   reportError: (err: unknown) => AppError;
   notify: (title: string, detail?: string, opts?: NotifyOptions) => void;

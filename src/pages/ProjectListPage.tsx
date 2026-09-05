@@ -11,6 +11,7 @@ import { HealthCheckButton, HealthCheckPanel } from "../components/HealthCheck";
 import { TagBar } from "../components/Tags";
 import { ReviewBanner } from "../components/ReviewBanner";
 import type { ProjectSort } from "../store/useAppStore";
+import { useT } from "../i18n";
 import { favoriteShortcuts } from "../utils/shortcuts";
 import { useSortedProjects } from "../hooks/useSortedProjects";
 import { useAppStore } from "../store/useAppStore";
@@ -30,6 +31,7 @@ export function ProjectListPage() {
   const setMultiAskOpen = useAppStore((s) => s.setMultiAskOpen);
   const sort = useAppStore((s) => s.sort);
   const setSort = useAppStore((s) => s.setSort);
+  const t = useT();
 
   const searchRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState(-1);
@@ -83,20 +85,17 @@ export function ProjectListPage() {
 
   if (totalCount === 0) {
     return (
-      <EmptyState title="Where do you keep your projects?">
-        <p>
-          Point ProjQue at a folder that contains your repositories, or add a
-          single project manually.
-        </p>
+      <EmptyState title={t("Where do you keep your projects?")}>
+        <p>{t("Point ProjQue at a folder that contains your repositories, or add a single project manually.")}</p>
         <div style={{ display: "flex", gap: 8 }}>
           <button className="btn btn-primary" onClick={() => void scanFolder()}>
-            Add project folder
+            {t("Add project folder")}
           </button>
           <button className="btn" onClick={() => void addProjectManual()}>
-            Add single project
+            {t("Add single project")}
           </button>
           <button className="btn" onClick={() => setNewProjectOpen(true)}>
-            Start something new
+            {t("Start something new")}
           </button>
         </div>
       </EmptyState>
@@ -113,18 +112,18 @@ export function ProjectListPage() {
         <select
           className={styles.sort}
           value={sort}
-          title="Sort order"
-          aria-label="Sort order"
+          title={t("Sort order")}
+          aria-label={t("Sort order")}
           onChange={(e) => setSort(e.target.value as ProjectSort)}
         >
-          <option value="smart">Favorites & status</option>
-          <option value="recent">Recently worked on</option>
-          <option value="name">Name</option>
+          <option value="smart">{t("Favorites & status")}</option>
+          <option value="recent">{t("Recently worked on")}</option>
+          <option value="name">{t("Name")}</option>
         </select>
         <button
           className="btn btn-ghost"
-          title="Refresh git information"
-          aria-label="Refresh"
+          title={t("Refresh git information")}
+          aria-label={t("Refresh git information")}
           onClick={() => void refreshGit({ force: true })}
         >
           <Icon name="refresh" size={15} />
@@ -132,10 +131,10 @@ export function ProjectListPage() {
         <HealthCheckButton />
         <button
           className="btn"
-          title="Start the agent with the same prompt in several projects"
+          title={t("Start the agent with the same prompt in several projects")}
           onClick={() => setMultiAskOpen(true)}
         >
-          <Icon name="agent" size={14} /> Ask many
+          <Icon name="agent" size={14} /> {t("Ask many")}
         </button>
         <button
           className="btn"
@@ -144,10 +143,10 @@ export function ProjectListPage() {
             void runScan();
           }}
         >
-          <Icon name="search" size={14} /> Scan folders
+          <Icon name="search" size={14} /> {t("Scan folders")}
         </button>
         <button className="btn" onClick={() => void addProjectManual()}>
-          <Icon name="plus" size={14} /> Add folder
+          <Icon name="plus" size={14} /> {t("Add folder")}
         </button>
       </div>
 
@@ -163,13 +162,12 @@ export function ProjectListPage() {
 
       {!gitAvailable && (
         <p className={styles.gitNote}>
-          Git was not found on this machine - branch and commit information is
-          hidden. Everything else works.
+          {t("Git was not found on this machine - branch and commit information is hidden. Everything else works.")}
         </p>
       )}
 
       {projects.length === 0 ? (
-        <EmptyState title="No projects match" />
+        <EmptyState title={t("No projects match")} />
       ) : (
         <div className={styles.list} ref={listRef}>
           {projects.map((p, i) => {

@@ -9,6 +9,8 @@ export interface ToolConfig {
 export interface DisplaySettings {
   showArchived: boolean;
   theme: Theme;
+  /** "system" | "en" | "sv" */
+  language: string;
 }
 
 export interface NotificationSettings {
