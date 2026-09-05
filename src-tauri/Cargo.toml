@@ -25,3 +25,5 @@ portable-pty = "0.9"
 tauri-plugin-notification = "2"
 # Local hour for notification quiet hours (localtime_r); already in the tree.
 libc = "0.2"
+# Live git refresh: watch project folders (FSEvents on macOS).
+notify = "7"

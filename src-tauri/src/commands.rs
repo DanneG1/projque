@@ -103,6 +103,20 @@ pub async fn settings_set_notifications(
     .await
 }
 
+/// Point the filesystem watcher at the current project list. Called by the
+/// frontend after anything that adds, removes or relocates projects.
+#[tauri::command]
+pub async fn watch_sync(app: AppHandle, state: State<'_, Arc<AppState>>) -> Result<(), AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let (projects, _) = state.projects();
+        let list = projects.iter().map(|p| (p.id.clone(), p.path.clone())).collect();
+        state.watcher.sync(app, list);
+        Ok(())
+    })
+    .await
+}
+
 /// All blocking work (filesystem, git, process spawns) runs off the async
 /// runtime so the webview's IPC thread is never blocked.
 pub(crate) async fn run_blocking<T, F>(f: F) -> Result<T, AppError>

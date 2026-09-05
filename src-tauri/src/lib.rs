@@ -1,6 +1,7 @@
 mod agent;
 mod assist;
 mod audit;
+mod watch;
 mod commands;
 mod config;
 mod discovery;
@@ -101,6 +102,7 @@ pub fn run() {
             commands::github_backup,
             commands::git_commit_message,
             commands::settings_set_notifications,
+            commands::watch_sync,
             commands::doctor_status,
             commands::doctor_fix,
             commands::ideas_list,

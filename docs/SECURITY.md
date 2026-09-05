@@ -38,6 +38,7 @@ Every command takes opaque IDs (`project_launch(id, action)`) or closed enums. F
 
 - Scanning touches only user-configured roots, depth-capped, and **never follows symlinks** (`walkdir` with `follow_links(false)`).
 - Document reads are confined to imported project directories; a configured roadmap path is canonicalized and must still resolve inside the (canonical) project dir, which also defeats symlink escapes. Reads are capped at 512 KB.
+- The live git refresh (`watch.rs`) watches imported project directories with the `notify` crate (FSEvents on macOS, recursive; only `.git` elsewhere). It is read-only: an event carries the opaque project id to the frontend, which re-reads git status through the existing command. Nothing is executed on an event and no path leaves the backend.
 - Config writes are atomic (tmp + rename); an unparseable config is renamed to a `.bak`, never deleted or overwritten.
 
 ### 5. Markdown is rendered inert

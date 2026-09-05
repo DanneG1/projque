@@ -62,6 +62,7 @@ export function NewProjectDialog() {
         private: isPrivate,
       });
       useAppStore.setState((s) => ({ projects: [...s.projects, view] }));
+      useAppStore.getState().syncWatcher();
       notify(`Created ${view.name}`);
       if (remoteError) {
         reportError({ kind: "ghFailed", detail: remoteError });
@@ -88,6 +89,7 @@ export function NewProjectDialog() {
     try {
       const view = await api.projectClone(cloneUrl.trim(), rootIndex);
       useAppStore.setState((s) => ({ projects: [...s.projects, view] }));
+      useAppStore.getState().syncWatcher();
       notify(`Cloned ${view.name}`);
       setOpen(false);
       setCloneUrl("");

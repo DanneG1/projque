@@ -57,6 +57,7 @@ export const api = {
   }) => invoke<Settings>("settings_set_notifications", patch),
 
   projectsList: () => invoke<ProjectView[]>("projects_list"),
+  watchSync: () => invoke<void>("watch_sync"),
   projectAddManual: () => invoke<ProjectView | null>("project_add_manual"),
   projectUpdate: (id: string, patch: ProjectPatch) =>
     invoke<ProjectView>("project_update", { id, patch }),

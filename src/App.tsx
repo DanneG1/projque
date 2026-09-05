@@ -91,6 +91,9 @@ export default function App() {
       listen<SessionPulse[]>("agent:sessions-pulse", (event) => {
         useAppStore.getState().setPulses(event.payload);
       }),
+      listen<{ projectId: string }>("git:changed", (event) => {
+        void useAppStore.getState().refreshGitOne(event.payload.projectId);
+      }),
     ];
     return () => {
       for (const d of disposers) void d.then((fn) => fn());

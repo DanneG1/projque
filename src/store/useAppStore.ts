@@ -142,6 +142,10 @@ interface AppStore {
   launch: (id: string, action: LaunchAction) => Promise<void>;
   openExternalUrl: (url: string) => Promise<void>;
   refreshGit: (opts?: { force?: boolean }) => Promise<void>;
+  /** Re-read one project's git info (the watcher saw its files change). */
+  refreshGitOne: (id: string) => Promise<void>;
+  /** Tell the backend watcher about the current project list. */
+  syncWatcher: () => void;
   setFilter: (filter: ProjectFilter) => void;
   setQuery: (query: string) => void;
   fetchRemote: (id: string) => Promise<void>;
@@ -297,6 +301,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       ]);
       set({ settings, configStatus, projects, catalog, sessions, initialized: true });
       void get().refreshGit();
+      get().syncWatcher();
     } catch (err) {
       get().reportError(err);
       set({ initialized: true });
@@ -309,6 +314,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       if (added) {
         set((s) => ({ projects: [...s.projects, added] }));
         void get().refreshGit();
+        get().syncWatcher();
       }
     } catch (err) {
       get().reportError(err);
@@ -327,6 +333,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   removeProject: async (id) => {
     try {
       await api.projectRemove(id);
+      get().syncWatcher();
       set((s) => ({
         projects: s.projects.filter((p) => p.id !== id),
         route:
@@ -344,6 +351,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       const updated = await api.projectRelocate(id);
       if (updated) {
         set((s) => ({ projects: s.projects.map((p) => (p.id === id ? updated : p)) }));
+        get().syncWatcher();
       }
     } catch (err) {
       get().reportError(err);
@@ -460,6 +468,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         route: { page: "list" },
       }));
       void get().refreshGit();
+      get().syncWatcher();
       if (result.failed.length > 0) {
         get().reportError({
           kind: "io",
@@ -521,6 +530,27 @@ export const useAppStore = create<AppStore>((set, get) => ({
     } catch (err) {
       get().reportError(err);
     }
+  },
+
+  refreshGitOne: async (id) => {
+    const project = get().projects.find((p) => p.id === id);
+    if (!project || !project.pathExists || !project.isGitRepo || !get().gitAvailable) return;
+    try {
+      const [info] = await api.gitInfoMany([id], true);
+      if (!info) return;
+      const before = get().git[id];
+      set((s) => ({
+        git: { ...s.git, [id]: info },
+        // A new commit changes streaks and points.
+        activity: before?.lastCommit?.hash !== info.lastCommit?.hash ? null : s.activity,
+      }));
+    } catch {
+      // The watcher fires often; a failed refresh is not worth a toast.
+    }
+  },
+
+  syncWatcher: () => {
+    void api.watchSync().catch(() => {});
   },
 
   setFilter: (filter) => set({ filter }),

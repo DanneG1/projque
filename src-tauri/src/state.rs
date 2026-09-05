@@ -27,6 +27,8 @@ pub struct AppState {
     /// Last fetched PR status per project - github_open_pr opens the stored
     /// URL so nothing crosses IPC.
     pub pr_cache: Mutex<HashMap<String, PrStatus>>,
+    /// Live git refresh (see watch.rs).
+    pub watcher: crate::watch::ProjectWatcher,
 }
 
 const GIT_CACHE_TTL: Duration = Duration::from_secs(30);
@@ -42,6 +44,7 @@ impl AppState {
             git_version: Mutex::new(None),
             agents: Registry::default(),
             pr_cache: Mutex::new(HashMap::new()),
+            watcher: crate::watch::ProjectWatcher::default(),
         }
     }
 
