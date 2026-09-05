@@ -135,6 +135,8 @@ interface AppStore {
   sweep: AuditSweep;
   /** Sessions shown together in the split view (order = pane order, max 4). */
   gridIds: string[];
+  /** Sessions currently open in their own window. */
+  detachedIds: string[];
   /** Local activity data for streaks/progress, briefly cached. */
   activity: { summary: ActivitySummary; fetchedAt: number } | null;
   /** Set when something was just celebrated - the Progress page shows
@@ -260,6 +262,11 @@ interface AppStore {
   clearSessionAttention: (sessionId: string) => void;
   setVisibleSessions: (sessionIds: string[]) => void;
   toggleGridSession: (sessionId: string) => void;
+  /** Open a session in its own window (the main window stops showing it). */
+  detachSession: (sessionId: string) => Promise<void>;
+  /** Close a session's own window and show it here again. */
+  reattachSession: (sessionId: string) => Promise<void>;
+  windowClosed: (label: string) => void;
   killSession: (sessionId: string) => Promise<void>;
   removeSession: (sessionId: string) => Promise<void>;
   sessionExited: (view: AgentSessionView) => void;
@@ -350,6 +357,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   audits: {},
   sweep: emptySweep(),
   gridIds: [],
+  detachedIds: [],
   activity: null,
   celebratedAt: null,
   quitPrompt: null,
@@ -1401,6 +1409,33 @@ export const useAppStore = create<AppStore>((set, get) => ({
       return;
     }
     set({ gridIds: [...gridIds, sessionId] });
+  },
+
+  detachSession: async (sessionId) => {
+    try {
+      await api.sessionWindowOpen(sessionId);
+      set((s) => ({
+        detachedIds: s.detachedIds.includes(sessionId) ? s.detachedIds : [...s.detachedIds, sessionId],
+        gridIds: s.gridIds.filter((id) => id !== sessionId),
+      }));
+    } catch (err) {
+      get().reportError(err);
+    }
+  },
+
+  reattachSession: async (sessionId) => {
+    try {
+      await api.sessionWindowClose(sessionId);
+    } catch (err) {
+      get().reportError(err);
+    }
+    set((s) => ({ detachedIds: s.detachedIds.filter((id) => id !== sessionId) }));
+  },
+
+  windowClosed: (label) => {
+    const id = label.startsWith("session-") ? label.slice("session-".length) : null;
+    if (!id) return;
+    set((s) => ({ detachedIds: s.detachedIds.filter((x) => x !== id) }));
   },
 
   killSession: async (sessionId) => {

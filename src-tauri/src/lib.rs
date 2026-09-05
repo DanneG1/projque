@@ -34,7 +34,21 @@ pub fn run() {
         .on_window_event(|window, event| {
             // Warn before quitting while agent sessions are running; the
             // frontend shows a confirm dialog and calls app_confirm_quit.
+            if let tauri::WindowEvent::Destroyed = event {
+                // A detached session window went away: stop counting its
+                // sessions as watched, and tell the main window.
+                let state = window.state::<Arc<state::AppState>>();
+                state.agents.forget_window(window.label());
+                if window.label() != "main" {
+                    use tauri::Emitter;
+                    let _ = window.app_handle().emit("session:window-closed", window.label());
+                }
+                return;
+            }
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                if window.label() != "main" {
+                    return; // detached windows close freely; sessions live on
+                }
                 let state = window.state::<Arc<state::AppState>>();
                 let running = state.agents.running_count();
                 let confirmed = state
@@ -121,6 +135,8 @@ pub fn run() {
             commands::project_outdated,
             commands::project_custom_commands,
             commands::project_command_approve,
+            commands::session_window_open,
+            commands::session_window_close,
             commands::doctor_status,
             commands::doctor_fix,
             commands::ideas_list,

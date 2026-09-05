@@ -24,3 +24,15 @@
 .grid[data-count="3"] > :last-child {
   grid-column: span 2;
 }
+
+.detached {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text-muted);
+  background: var(--bg-sunken);
+}

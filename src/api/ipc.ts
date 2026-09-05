@@ -225,6 +225,9 @@ export const api = {
     invoke<ProjectView>("project_mark_verified", { id, passed }),
   projectDeployInfo: (id: string) => invoke<DeployInfo>("project_deploy_info", { id }),
   projectDebt: (id: string) => invoke<DebtInfo>("project_debt", { id }),
+  sessionWindowOpen: (sessionId: string) => invoke<void>("session_window_open", { sessionId }),
+  sessionWindowClose: (sessionId: string | null) =>
+    invoke<void>("session_window_close", { sessionId }),
   projectCustomCommands: (id: string) =>
     invoke<CustomCommand[]>("project_custom_commands", { id }),
   projectCommandApprove: (id: string, hash: string, approved: boolean) =>

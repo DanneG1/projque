@@ -93,6 +93,9 @@ export default function App() {
       listen<SessionPulse[]>("agent:sessions-pulse", (event) => {
         useAppStore.getState().setPulses(event.payload);
       }),
+      listen<string>("session:window-closed", (event) => {
+        useAppStore.getState().windowClosed(event.payload);
+      }),
       listen<{ projectId: string }>("git:changed", (event) => {
         void useAppStore.getState().refreshGitOne(event.payload.projectId);
       }),

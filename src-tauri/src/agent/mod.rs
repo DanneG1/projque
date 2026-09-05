@@ -115,7 +115,7 @@ pub struct Registry {
     /// (currently visible sessions, app focused) - reported by the frontend
     /// so attention is never raised for what the user is looking at. More
     /// than one session is visible when the split/grid view is active.
-    active: Arc<Mutex<(Vec<String>, bool)>>,
+    active: Arc<Mutex<HashMap<String, (Vec<String>, bool)>>>,
     ticker_started: AtomicBool,
 }
 
@@ -316,7 +316,7 @@ impl Registry {
                     let _ = app.emit("agent:session-exited", &view);
                     // The in-app toast covers a focused window; when the user
                     // is elsewhere, tell them the way the attention path does.
-                    let focused = active.lock().unwrap().1;
+                    let focused = active.lock().unwrap().values().any(|(_, f)| *f);
                     if !focused {
                         if let Some((title, body)) = exit_notification(&view, code) {
                             notify(&app, &title, &body);
@@ -480,7 +480,9 @@ impl Registry {
 
     /// Frontend reports what the user is looking at (one session, or every
     /// pane of the split view); viewing a session clears its attention state.
-    pub fn set_active(&self, session_ids: Vec<String>, app_focused: bool) {
+    /// `window` is the reporting window's label: the main window and each
+    /// detached session window report independently.
+    pub fn set_active(&self, window: &str, session_ids: Vec<String>, app_focused: bool) {
         {
             let sessions = self.sessions.lock().unwrap();
             for id in &session_ids {
@@ -492,7 +494,12 @@ impl Registry {
                 }
             }
         }
-        *self.active.lock().unwrap() = (session_ids, app_focused);
+        self.active.lock().unwrap().insert(window.to_string(), (session_ids, app_focused));
+    }
+
+    /// A window went away: its sessions are no longer being watched.
+    pub fn forget_window(&self, window: &str) {
+        self.active.lock().unwrap().remove(window);
     }
 
     /// Background ticker (spawned once, on the first session): raises
@@ -506,7 +513,15 @@ impl Registry {
         let active = self.active.clone();
         std::thread::spawn(move || loop {
             std::thread::sleep(TICKER_INTERVAL);
-            let (active_ids, focused) = active.lock().unwrap().clone();
+            // A session counts as viewed when any focused window shows it.
+            let active_ids: Vec<String> = active
+                .lock()
+                .unwrap()
+                .values()
+                .filter(|(_, focused)| *focused)
+                .flat_map(|(ids, _)| ids.iter().cloned())
+                .collect();
+            let focused = !active_ids.is_empty();
             let mut to_announce: Vec<AgentSessionView> = Vec::new();
             let mut pulses: Vec<SessionPulse> = Vec::new();
             {

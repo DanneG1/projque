@@ -19,16 +19,19 @@ export function visibleSessionIds(state: {
   route: Route;
   sessions: AgentSessionView[];
   gridIds: string[];
+  /** Sessions shown in their own window - not visible here. */
+  detachedIds?: string[];
 }): string[] {
   if (state.route.page !== "agents" || state.sessions.length === 0) return [];
+  const detached = state.detachedIds ?? [];
   const grid = state.gridIds.filter((id) =>
     state.sessions.some((v) => v.sessionId === id),
   );
   const routeId = state.route.sessionId;
   const routed = state.sessions.find((v) => v.sessionId === routeId);
   if (grid.length >= 2 && (!routed || grid.includes(routed.sessionId))) {
-    return grid;
+    return grid.filter((id) => !detached.includes(id));
   }
   const active = routed ?? state.sessions[state.sessions.length - 1];
-  return [active.sessionId];
+  return detached.includes(active.sessionId) ? [] : [active.sessionId];
 }

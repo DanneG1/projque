@@ -1313,11 +1313,72 @@ pub async fn agent_session_remove(
 /// already looking at.
 #[tauri::command]
 pub async fn sessions_set_active(
+    window: tauri::Window,
     state: State<'_, Arc<AppState>>,
     session_ids: Vec<String>,
     app_focused: bool,
 ) -> Result<(), AppError> {
-    state.agents.set_active(session_ids, app_focused);
+    state.agents.set_active(window.label(), session_ids, app_focused);
+    Ok(())
+}
+
+/// Open (or focus) a session in its own window. The window label is
+/// derived from the session id; the URL is the app's own page with a
+/// query string the frontend uses to render just that session.
+#[tauri::command]
+pub async fn session_window_open(
+    app: AppHandle,
+    state: State<'_, Arc<AppState>>,
+    session_id: String,
+) -> Result<(), AppError> {
+    use tauri::Manager;
+    let view = state
+        .agents
+        .list()
+        .into_iter()
+        .find(|v| v.session_id == session_id)
+        .ok_or_else(|| AppError::SessionNotFound { id: session_id.clone() })?;
+    let safe: String = session_id.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-').collect();
+    let label = format!("session-{safe}");
+    if let Some(w) = app.get_webview_window(&label) {
+        let _ = w.set_focus();
+        return Ok(());
+    }
+    // Session ids are app-generated (alphanumeric + dashes); the filtered
+    // form is what goes in the URL, and the frontend looks it up by exact
+    // match, so nothing needs escaping.
+    let url = format!("index.html?session={safe}");
+    tauri::WebviewWindowBuilder::new(&app, &label, tauri::WebviewUrl::App(url.into()))
+        .title(format!("{} - {}", view.agent_label, view.project_label))
+        .inner_size(900.0, 620.0)
+        .min_inner_size(480.0, 320.0)
+        .build()
+        .map_err(|e| AppError::LaunchFailed { program: "window".into(), detail: e.to_string() })?;
+    Ok(())
+}
+
+/// Close a detached session window: the caller's own (no id, from inside
+/// it) or the one for `session_id` (from the main window's "bring back").
+#[tauri::command]
+pub async fn session_window_close(
+    app: AppHandle,
+    window: tauri::Window,
+    session_id: Option<String>,
+) -> Result<(), AppError> {
+    use tauri::Manager;
+    match session_id {
+        Some(id) => {
+            let safe: String = id.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-').collect();
+            if let Some(w) = app.get_webview_window(&format!("session-{safe}")) {
+                let _ = w.close();
+            }
+        }
+        None => {
+            if window.label() != "main" {
+                let _ = window.close();
+            }
+        }
+    }
     Ok(())
 }
 

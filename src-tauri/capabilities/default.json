@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Minimal surface. App-defined commands only; no plugin IPC is exposed to the webview.",
-  "windows": ["main"],
+  "windows": ["main", "session-*"],
   "permissions": [
     "core:app:default",
     "core:event:default",

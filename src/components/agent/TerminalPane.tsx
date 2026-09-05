@@ -35,6 +35,8 @@ export function TerminalPane({
   const toggleGridSession = useAppStore((s) => s.toggleGridSession);
   const killSession = useAppStore((s) => s.killSession);
   const removeSession = useAppStore((s) => s.removeSession);
+  const detachSession = useAppStore((s) => s.detachSession);
+  const inMainWindow = !new URLSearchParams(window.location.search).get("session");
   const [manual, setManual] = useState(false);
   const [port, setPort] = useState("");
   const [preview, setPreview] = useState(false);
@@ -84,6 +86,21 @@ export function TerminalPane({
             onClick={() => toggleGridSession(session.sessionId)}
           >
             <Icon name="close" size={14} />
+          </button>
+        )}
+        {inMainWindow && session.status.state === "running" && (
+          <button
+            className="btn btn-ghost"
+            title="Open this session in its own window (for a second screen)"
+            aria-label="Open in its own window"
+            onClick={() => {
+              // Fresh attach in the other window; this one lets go entirely
+              // so bringing it back replays the scrollback cleanly.
+              disposeTerminal(session.sessionId);
+              void detachSession(session.sessionId);
+            }}
+          >
+            <Icon name="external" size={14} />
           </button>
         )}
         {isRun && session.errorDetected && <ErrorExplainer session={session} />}
