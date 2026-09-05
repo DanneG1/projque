@@ -10,6 +10,7 @@ import type {
   AuditReport,
   AuditSupport,
   DiskUsage,
+  EnvStatus,
   BranchList,
   CommitPreflight,
   DebtInfo,
@@ -197,6 +198,9 @@ export const api = {
     invoke<[ProjectView, GitInfo]>("experiment_start", { id, label }),
   experimentKeep: (id: string) =>
     invoke<[MergeOutcome, ProjectView, GitInfo]>("experiment_keep", { id }),
+  projectEnvStatus: (id: string) => invoke<EnvStatus>("project_env_status", { id }),
+  projectEnvSet: (id: string, key: string, value: string) =>
+    invoke<EnvStatus>("project_env_set", { id, key, value }),
   projectDiskUsage: (id: string) => invoke<DiskUsage>("project_disk_usage", { id }),
   projectDiskClean: (id: string, rels: string[]) =>
     invoke<number>("project_disk_clean", { id, rels }),

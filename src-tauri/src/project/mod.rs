@@ -1,6 +1,7 @@
 pub mod debt;
 pub mod deploy;
 pub mod disk;
+pub mod env;
 pub mod docs;
 pub mod doctor;
 pub mod ideas;

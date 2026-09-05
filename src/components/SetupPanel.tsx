@@ -5,6 +5,7 @@ import { useAppStore } from "../store/useAppStore";
 import { relativeTime } from "../utils/time";
 import { AuditPanel } from "./AuditPanel";
 import { DiskRow } from "./DiskPanel";
+import { EnvPanel } from "./EnvPanel";
 import { Icon } from "./Icon";
 import styles from "./SetupPanel.module.css";
 
@@ -147,6 +148,8 @@ export function SetupPanel({ project }: { project: ProjectView }) {
           )}
         </div>
       )}
+
+      <EnvPanel projectId={project.id} isGitRepo={project.isGitRepo} />
 
       <AuditPanel project={project} />
 

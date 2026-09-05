@@ -2144,6 +2144,42 @@ pub async fn project_disk_clean(
 }
 
 // ---------------------------------------------------------------------------
+// Local settings (.env)
+
+#[tauri::command]
+pub async fn project_env_status(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<crate::project::env::EnvStatus, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        crate::project::env::status(&dir)
+    })
+    .await
+}
+
+/// Audited free-form IPC exception: `value` is written verbatim (control
+/// characters stripped, length-capped) as one `KEY=value` line into the
+/// fixed-name `.env` file directly inside the project; `key` must match
+/// `[A-Za-z_][A-Za-z0-9_]*`. Values are never returned unmasked.
+#[tauri::command]
+pub async fn project_env_set(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    key: String,
+    value: String,
+) -> Result<crate::project::env::EnvStatus, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        crate::project::env::set(&dir, &key, &value)?;
+        crate::project::env::status(&dir)
+    })
+    .await
+}
+
+// ---------------------------------------------------------------------------
 // Setup doctor
 
 #[derive(Serialize)]

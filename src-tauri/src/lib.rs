@@ -110,6 +110,8 @@ pub fn run() {
             commands::project_disk_clean,
             commands::settings_prompt_save,
             commands::settings_prompt_delete,
+            commands::project_env_status,
+            commands::project_env_set,
             commands::doctor_status,
             commands::doctor_fix,
             commands::ideas_list,

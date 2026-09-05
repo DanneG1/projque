@@ -127,6 +127,22 @@ export interface Experiment {
   startedAt: number;
 }
 
+export interface EnvKey {
+  key: string;
+  expected: boolean;
+  set: boolean;
+  masked: string | null;
+  hint: string | null;
+}
+
+export interface EnvStatus {
+  exampleFile: string | null;
+  hasEnv: boolean;
+  keys: EnvKey[];
+  missing: number;
+  ignored: boolean;
+}
+
 export interface DiskEntry {
   /** Project-relative folder, display only (and the clean key). */
   rel: string;
