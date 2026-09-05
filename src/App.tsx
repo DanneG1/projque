@@ -11,6 +11,7 @@ import { ProgressPage } from "./pages/ProgressPage";
 import { QuitConfirmDialog } from "./components/agent/QuitConfirmDialog";
 import { NewProjectDialog } from "./components/NewProjectDialog";
 import { IdeaCaptureDialog } from "./components/IdeaCaptureDialog";
+import { MultiAskDialog } from "./components/MultiAskDialog";
 import { favoriteShortcuts, visibleSessionIds } from "./utils/shortcuts";
 import { Icon } from "./components/Icon";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -241,6 +242,7 @@ export default function App() {
       <QuitConfirmDialog />
       <NewProjectDialog />
       <IdeaCaptureDialog />
+      <MultiAskDialog />
     </div>
   );
 }

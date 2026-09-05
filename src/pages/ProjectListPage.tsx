@@ -26,6 +26,7 @@ export function ProjectListPage() {
   const refreshGit = useAppStore((s) => s.refreshGit);
   const gitAvailable = useAppStore((s) => s.gitAvailable);
   const setNewProjectOpen = useAppStore((s) => s.setNewProjectOpen);
+  const setMultiAskOpen = useAppStore((s) => s.setMultiAskOpen);
   const sort = useAppStore((s) => s.sort);
   const setSort = useAppStore((s) => s.setSort);
 
@@ -128,6 +129,13 @@ export function ProjectListPage() {
           <Icon name="refresh" size={15} />
         </button>
         <HealthCheckButton />
+        <button
+          className="btn"
+          title="Start the agent with the same prompt in several projects"
+          onClick={() => setMultiAskOpen(true)}
+        >
+          <Icon name="agent" size={14} /> Ask many
+        </button>
         <button
           className="btn"
           onClick={() => {

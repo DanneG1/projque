@@ -212,6 +212,10 @@ interface AppStore {
   setNewProjectSeed: (seed: string | null) => void;
   ideaOpen: boolean;
   setIdeaOpen: (open: boolean) => void;
+  multiAskOpen: boolean;
+  setMultiAskOpen: (open: boolean) => void;
+  /** The same prompt in several projects; up to four in the split view. */
+  startAgentsInProjects: (projectIds: string[], prompt: string) => Promise<void>;
   /** Bumped whenever an idea is saved, so open views can refetch IDEAS.md. */
   ideasVersion: number;
   /** projectId null = general idea (saved app-wide, not in any project). */
@@ -351,6 +355,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   newProjectOpen: false,
   newProjectSeed: null,
   ideaOpen: false,
+  multiAskOpen: false,
   ideasVersion: 0,
   toasts: [],
   inbox: [],
@@ -872,6 +877,25 @@ export const useAppStore = create<AppStore>((set, get) => ({
   setNewProjectSeed: (seed) => set({ newProjectSeed: seed }),
 
   setIdeaOpen: (open) => set({ ideaOpen: open }),
+
+  setMultiAskOpen: (open) => set({ multiAskOpen: open }),
+
+  startAgentsInProjects: async (projectIds, prompt) => {
+    const started: AgentSessionView[] = [];
+    for (const id of projectIds.slice(0, 8)) {
+      try {
+        started.push(await api.agentSessionStart(id, null, 30, 100, prompt));
+      } catch (err) {
+        get().reportError(err);
+      }
+    }
+    if (started.length === 0) return;
+    set((s) => ({
+      sessions: [...s.sessions, ...started],
+      gridIds: started.length >= 2 ? started.slice(0, 4).map((v) => v.sessionId) : [],
+      route: { page: "agents", sessionId: started[0].sessionId },
+    }));
+  },
 
   captureIdea: async (projectId, text) => {
     try {
