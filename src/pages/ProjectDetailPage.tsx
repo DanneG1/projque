@@ -20,6 +20,7 @@ import { QuickActions } from "../components/QuickActions";
 import { ActivityBar } from "../components/ActivityBar";
 import { SuggestionList } from "../components/Suggestions";
 import { TagEditor } from "../components/Tags";
+import { TryIdea } from "../components/TryIdea";
 import { StatusSelect } from "../components/StatusSelect";
 import { relativeTime } from "../utils/time";
 import styles from "./ProjectDetailPage.module.css";
@@ -225,6 +226,7 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
           )}
         </div>
         <QuickActions project={project} gitInfo={gitInfo} />
+        {project.pathExists && <TryIdea project={project} gitInfo={gitInfo} />}
         {project.pathExists && <GuidedActions projectId={project.id} />}
         {project.pathExists && (
           <button

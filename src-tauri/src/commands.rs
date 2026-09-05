@@ -207,6 +207,7 @@ pub(crate) fn add_project_at(state: &AppState, path: std::path::PathBuf) -> Resu
             last_verified: None,
             last_cleanup: None,
             last_audit: None,
+            experiment: None,
         };
         projects.push(new.clone());
         Ok(new)
@@ -1944,6 +1945,114 @@ pub async fn git_commit_message(
         require_git(&state)?;
         let (settings, _) = state.settings();
         crate::assist::commit_message(&dir, &settings.path_additions)
+    })
+    .await
+}
+
+// ---------------------------------------------------------------------------
+// Try an idea safely (experiments)
+
+fn now_secs() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0)
+}
+
+/// Audited free-form IPC exception: `label` names the experiment. It is
+/// slugged (ASCII letters/digits) for the branch name and otherwise only
+/// ever used as a single `-m` argv element, like a commit message.
+#[tauri::command]
+pub async fn experiment_start(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    label: String,
+) -> Result<(ProjectView, GitInfo), AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        let label: String = label.trim().chars().filter(|c| !c.is_control()).take(200).collect();
+        if label.is_empty() {
+            return Err(AppError::InvalidInput { detail: "describe the idea first".into() });
+        }
+        let (base, branch) = crate::git::experiment::start(&dir, &label)?;
+        let updated = state.update_projects(|projects| {
+            let project = projects
+                .iter_mut()
+                .find(|p| p.id == id)
+                .ok_or_else(|| AppError::ProjectNotFound { id: id.clone() })?;
+            project.experiment = Some(crate::project::Experiment {
+                label: label.clone(),
+                base,
+                branch,
+                started_at: now_secs(),
+            });
+            Ok(project.clone())
+        })?;
+        Ok((project::view(&updated), state.refresh_git_info(&id, &dir)))
+    })
+    .await
+}
+
+fn take_experiment(state: &AppState, id: &str) -> Result<crate::project::Experiment, AppError> {
+    let (projects, _) = state.projects();
+    projects
+        .iter()
+        .find(|p| p.id == id)
+        .and_then(|p| p.experiment.clone())
+        .ok_or_else(|| AppError::InvalidInput { detail: "no experiment in progress".into() })
+}
+
+fn clear_experiment(state: &AppState, id: &str) -> Result<ProjectView, AppError> {
+    let updated = state.update_projects(|projects| {
+        let project = projects
+            .iter_mut()
+            .find(|p| p.id == id)
+            .ok_or_else(|| AppError::ProjectNotFound { id: id.to_string() })?;
+        project.experiment = None;
+        Ok(project.clone())
+    })?;
+    Ok(project::view(&updated))
+}
+
+/// Commit the experiment's work and merge it into the base branch. On
+/// conflicts the ordinary merge-in-progress state remains (MergeBanner);
+/// the record is cleared either way - the try branch is deleted after a
+/// clean merge and otherwise left for Git tools.
+#[tauri::command]
+pub async fn experiment_keep(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<(crate::git::ops::MergeOutcome, ProjectView, GitInfo), AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        let exp = take_experiment(&state, &id)?;
+        let message = format!("Try: {}", exp.label);
+        let outcome = crate::git::experiment::keep(&dir, &exp.base, &exp.branch, &message)?;
+        let view = clear_experiment(&state, &id)?;
+        Ok((outcome, view, state.refresh_git_info(&id, &dir)))
+    })
+    .await
+}
+
+/// Abandon the experiment: work is pinned under a snapshot (History can
+/// restore it), the project returns to the base branch.
+#[tauri::command]
+pub async fn experiment_discard(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<(ProjectView, GitInfo), AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        let exp = take_experiment(&state, &id)?;
+        crate::git::experiment::discard(&dir, &exp.base, &exp.branch, &exp.label)?;
+        let view = clear_experiment(&state, &id)?;
+        Ok((view, state.refresh_git_info(&id, &dir)))
     })
     .await
 }

@@ -105,6 +105,22 @@ pub fn create_snapshot(dir: &Path, reason: &str) -> Result<Option<Snapshot>, App
     result
 }
 
+/// Pin an existing commit under a snapshot ref so it stays reachable (and
+/// listed in History) after the branch that held it is deleted.
+pub fn pin_ref(dir: &Path, commit: &str) -> Result<(), AppError> {
+    let millis = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    let ref_name = format!("{REF_PREFIX}{millis}");
+    let update = runner::git(dir, &["update-ref", &ref_name, commit])?;
+    if !update.success {
+        return Err(AppError::GitFailed { detail: trim_err(&update.stderr) });
+    }
+    prune(dir);
+    Ok(())
+}
+
 /// Newest first.
 pub fn list_snapshots(dir: &Path) -> Result<Vec<Snapshot>, AppError> {
     let out = runner::git(

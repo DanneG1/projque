@@ -40,6 +40,18 @@ pub struct Project {
     /// Last dependency vulnerability check (npm/pnpm audit), stamped in Rust.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_audit: Option<AuditStamp>,
+    /// "Try an idea safely" in progress: the try branch and where to return.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub experiment: Option<Experiment>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Experiment {
+    pub label: String,
+    pub base: String,
+    pub branch: String,
+    pub started_at: i64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

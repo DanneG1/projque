@@ -189,6 +189,12 @@ export const api = {
     invoke<PublishPreflight>("publish_preflight", { id }),
   publishRun: (id: string) => invoke<PublishOutcome>("publish_run", { id }),
   githubBackup: (id: string) => invoke<[string, GitInfo]>("github_backup", { id }),
+  experimentStart: (id: string, label: string) =>
+    invoke<[ProjectView, GitInfo]>("experiment_start", { id, label }),
+  experimentKeep: (id: string) =>
+    invoke<[MergeOutcome, ProjectView, GitInfo]>("experiment_keep", { id }),
+  experimentDiscard: (id: string) =>
+    invoke<[ProjectView, GitInfo]>("experiment_discard", { id }),
 
   activitySummary: () => invoke<ActivitySummary>("activity_summary"),
   doctorStatus: () => invoke<DoctorItem[]>("doctor_status"),

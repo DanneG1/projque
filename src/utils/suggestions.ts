@@ -54,6 +54,16 @@ export function suggestionsFor(
   const active = project.status === "active" || project.status === "maintenance";
   const lastCommit = g?.lastCommit?.timestamp ?? null;
 
+  if (project.experiment) {
+    out.push({
+      id: "experiment",
+      priority: 6,
+      title: `Experiment waiting for a verdict: ${project.experiment.label}`,
+      detail: "Keep it or throw it away - your main version is untouched until you decide.",
+      action: { kind: "detail", label: "Decide" },
+    });
+  }
+
   if (g?.mergeInProgress) {
     out.push({
       id: "merge",

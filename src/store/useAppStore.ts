@@ -229,6 +229,10 @@ interface AppStore {
   fixIgnores: (id: string, kinds: string[]) => Promise<boolean>;
   /** Create a private GitHub repository for a project with no remote and push. */
   backupToGithub: (id: string) => Promise<boolean>;
+  /** Try an idea safely: branch, then start the agent on it. */
+  startExperiment: (id: string, label: string, prompt: string) => Promise<boolean>;
+  keepExperiment: (id: string) => Promise<boolean>;
+  discardExperiment: (id: string) => Promise<boolean>;
   /** Undo everything an agent session did: restore its pre-session point,
    *  removing files it created (the current state is snapshotted first). */
   undoSession: (projectId: string, undoHash: string) => Promise<boolean>;
@@ -1000,6 +1004,75 @@ export const useAppStore = create<AppStore>((set, get) => ({
         ttl: 8000,
         onClick: url ? () => void get().openExternalUrl(url) : undefined,
       });
+      return true;
+    } catch (err) {
+      get().reportError(err);
+      return false;
+    } finally {
+      set((s) => ({ gitBusy: { ...s.gitBusy, [id]: false } }));
+    }
+  },
+
+  startExperiment: async (id, label, prompt) => {
+    set((s) => ({ gitBusy: { ...s.gitBusy, [id]: true } }));
+    try {
+      const [view, info] = await api.experimentStart(id, label);
+      set((s) => ({
+        projects: s.projects.map((p) => (p.id === id ? view : p)),
+        git: { ...s.git, [id]: info },
+      }));
+    } catch (err) {
+      get().reportError(err);
+      return false;
+    } finally {
+      set((s) => ({ gitBusy: { ...s.gitBusy, [id]: false } }));
+    }
+    await get().startAgentSession(id, undefined, prompt);
+    return true;
+  },
+
+  keepExperiment: async (id) => {
+    set((s) => ({ gitBusy: { ...s.gitBusy, [id]: true } }));
+    try {
+      const [outcome, view, info] = await api.experimentKeep(id);
+      set((s) => ({
+        projects: s.projects.map((p) => (p.id === id ? view : p)),
+        git: { ...s.git, [id]: info },
+        activity: null,
+      }));
+      if (outcome.status === "merged") {
+        get().notify("Kept", `The idea is now part of ${info.branch ?? "your main branch"}.`, {
+          variant: "success",
+        });
+      } else {
+        get().notify(
+          "Merge needs a hand",
+          `${outcome.files.length} file${outcome.files.length === 1 ? "" : "s"} conflict - resolve them (or ask the agent), then complete the merge.`,
+          { variant: "attention", ttl: 8000 },
+        );
+      }
+      return true;
+    } catch (err) {
+      get().reportError(err);
+      return false;
+    } finally {
+      set((s) => ({ gitBusy: { ...s.gitBusy, [id]: false } }));
+    }
+  },
+
+  discardExperiment: async (id) => {
+    set((s) => ({ gitBusy: { ...s.gitBusy, [id]: true } }));
+    try {
+      const [view, info] = await api.experimentDiscard(id);
+      set((s) => ({
+        projects: s.projects.map((p) => (p.id === id ? view : p)),
+        git: { ...s.git, [id]: info },
+      }));
+      get().notify(
+        "Thrown away",
+        `Back on ${info.branch ?? "your branch"} as if nothing happened. The attempt is kept in History in case you change your mind.`,
+        { variant: "info", ttl: 6000 },
+      );
       return true;
     } catch (err) {
       get().reportError(err);

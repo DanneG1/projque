@@ -23,6 +23,8 @@ export interface ProjectView {
   lastVerified?: Verification;
   lastCleanup?: Cleanup;
   lastAudit?: AuditStamp;
+  /** "Try an idea safely" in progress. */
+  experiment?: Experiment;
   pathExists: boolean;
   isGitRepo: boolean;
   hasReadme: boolean;
@@ -116,6 +118,13 @@ export interface DebtInfo {
   lastCleanupAt: number | null;
   nudge: boolean;
   windowFallback: boolean;
+}
+
+export interface Experiment {
+  label: string;
+  base: string;
+  branch: string;
+  startedAt: number;
 }
 
 export interface AuditStamp {

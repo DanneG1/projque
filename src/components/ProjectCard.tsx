@@ -97,6 +97,11 @@ export function ProjectCard({
         )}
         <StatusBadge status={project.status} />
         <TagChips tags={project.tags} />
+        {project.experiment && (
+          <span className={styles.verified} title={`Trying an idea on ${project.experiment.branch}: ${project.experiment.label}`}>
+            🔥 trying
+          </span>
+        )}
         {attention && (
           <span className={styles.badge} data-attn onClick={() => setRoute({ page: "agents" })}>
             ⚡ needs you
