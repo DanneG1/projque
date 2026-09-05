@@ -19,6 +19,7 @@ import { RepoPanel } from "../components/RepoPanel";
 import { QuickActions } from "../components/QuickActions";
 import { ActivityBar } from "../components/ActivityBar";
 import { SuggestionList } from "../components/Suggestions";
+import { TagEditor } from "../components/Tags";
 import { StatusSelect } from "../components/StatusSelect";
 import { relativeTime } from "../utils/time";
 import styles from "./ProjectDetailPage.module.css";
@@ -169,6 +170,10 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
             <code className={styles.path}>{gitInfo.repositoryUrl}</code>
           </div>
         )}
+        <div className={styles.metaRow}>
+          <span className={styles.metaLabel}>Tags</span>
+          <TagEditor projectId={project.id} tags={project.tags} />
+        </div>
         <div className={styles.metaRow}>
           <span className={styles.metaLabel}>Production</span>
           {prodDraft !== null ? (

@@ -203,6 +203,7 @@ pub(crate) fn add_project_at(state: &AppState, path: std::path::PathBuf) -> Resu
             description_source: Default::default(),
             roadmap_file: None,
             production_url: None,
+            tags: Vec::new(),
             last_verified: None,
             last_cleanup: None,
             last_audit: None,
@@ -269,6 +270,9 @@ pub async fn project_update(
             if let Some(url) = patch.production_url {
                 let trimmed = url.trim().to_string();
                 project.production_url = (!trimmed.is_empty()).then_some(trimmed);
+            }
+            if let Some(tags) = patch.tags {
+                project.tags = project::normalize_tags(&tags)?;
             }
             Ok(project.clone())
         })?;

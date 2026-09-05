@@ -18,6 +18,8 @@ export interface ProjectView {
   descriptionSource: DescriptionSource;
   roadmapFile?: string;
   productionUrl?: string;
+  /** Free-form labels for filtering (lowercase, short). */
+  tags: string[];
   lastVerified?: Verification;
   lastCleanup?: Cleanup;
   lastAudit?: AuditStamp;
@@ -48,6 +50,7 @@ export interface ProjectPatch {
   descriptionSource?: DescriptionSource;
   roadmapFile?: string;
   productionUrl?: string;
+  tags?: string[];
 }
 
 export const STATUS_ORDER: ProjectStatus[] = [

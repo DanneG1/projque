@@ -31,6 +31,7 @@ export type Route =
   | { page: "agents"; sessionId?: string };
 
 export type ProjectFilter = "all" | "favorites" | ProjectStatus;
+export type ProjectSort = "smart" | "recent" | "name";
 
 export interface Toast {
   id: number;
@@ -117,6 +118,9 @@ interface AppStore {
   git: Record<string, GitInfo>;
   gitAvailable: boolean;
   filter: ProjectFilter;
+  /** Only projects carrying this tag (null = all). */
+  tagFilter: string | null;
+  sort: ProjectSort;
   query: string;
   gitBusy: Record<string, boolean>;
   sessions: AgentSessionView[];
@@ -169,6 +173,8 @@ interface AppStore {
   /** Tell the backend watcher about the current project list. */
   syncWatcher: () => void;
   setFilter: (filter: ProjectFilter) => void;
+  setTagFilter: (tag: string | null) => void;
+  setSort: (sort: ProjectSort) => void;
   setQuery: (query: string) => void;
   fetchRemote: (id: string) => Promise<void>;
   pullFf: (id: string) => Promise<void>;
@@ -269,6 +275,16 @@ interface AppStore {
 
 let toastSeq = 0;
 
+function readSort(): ProjectSort {
+  try {
+    const v = localStorage.getItem("projque:sort");
+    if (v === "recent" || v === "name" || v === "smart") return v;
+  } catch {
+    // storage unavailable
+  }
+  return "smart";
+}
+
 /** Resolve with the exit code once a session leaves the running state. */
 function waitForExit(sessionId: string): Promise<number | null> {
   return new Promise((resolve) => {
@@ -313,6 +329,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
   git: {},
   gitAvailable: true,
   filter: "all",
+  tagFilter: null,
+  sort: readSort(),
   query: "",
   gitBusy: {},
   sessions: [],
@@ -598,6 +616,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   setFilter: (filter) => set({ filter }),
+  setTagFilter: (tag) => set((s) => ({ tagFilter: s.tagFilter === tag ? null : tag })),
+  setSort: (sort) => {
+    try {
+      localStorage.setItem("projque:sort", sort);
+    } catch {
+      // remembered for this session only
+    }
+    set({ sort });
+  },
   setQuery: (query) => set({ query }),
 
   fetchRemote: async (id) => {

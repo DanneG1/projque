@@ -9,6 +9,8 @@ pub use model::*;
 
 use std::path::Path;
 
+use crate::error::AppError;
+
 /// Derive a stable, human-readable id from a display name:
 /// "Gusta Draw" -> "gusta-draw". Collisions get a numeric suffix.
 pub fn slug_id(name: &str, taken: &[&str]) -> String {
@@ -37,6 +39,33 @@ pub fn slug_id(name: &str, taken: &[&str]) -> String {
 
 /// Build the runtime view of a project: the persisted metadata plus cheap
 /// derived facts the UI needs in one round trip. Never persisted.
+/// Tags: trimmed, lowercased, deduplicated; letters, digits, dash and
+/// space only; at most 12 tags of 24 characters. Display-only data, but
+/// keeping the charset tight keeps filters and URLs boring.
+pub fn normalize_tags(tags: &[String]) -> Result<Vec<String>, AppError> {
+    let mut out: Vec<String> = Vec::new();
+    for raw in tags {
+        let tag = raw.trim().to_lowercase();
+        if tag.is_empty() {
+            continue;
+        }
+        if tag.chars().count() > 24
+            || !tag.chars().all(|c| c.is_alphanumeric() || c == '-' || c == ' ')
+        {
+            return Err(AppError::InvalidInput {
+                detail: format!("tag \"{tag}\": use letters, digits and dashes, at most 24 characters"),
+            });
+        }
+        if !out.contains(&tag) {
+            out.push(tag);
+        }
+    }
+    if out.len() > 12 {
+        return Err(AppError::InvalidInput { detail: "at most 12 tags per project".into() });
+    }
+    Ok(out)
+}
+
 pub fn view(project: &Project) -> ProjectView {
     let path: &Path = &project.path;
     let path_exists = path.is_dir();

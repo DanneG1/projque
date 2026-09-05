@@ -25,6 +25,10 @@ pub struct Project {
     /// successful publish. Presence = "shipped to production".
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub production_url: Option<String>,
+    /// Free-form labels ("client", "hobby", "tool") for filtering. Validated
+    /// in project_update: lowercase, short, letters/digits/dash only.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<String>,
     /// Last "Run tests" outcome, stamped by the backend when a test run
     /// session exits. Presence = the project has been checked at least once.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -113,4 +117,5 @@ pub struct ProjectPatch {
     pub description_source: Option<DescriptionSource>,
     pub roadmap_file: Option<String>,
     pub production_url: Option<String>,
+    pub tags: Option<Vec<String>>,
 }

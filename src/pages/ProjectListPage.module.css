@@ -43,3 +43,12 @@
   gap: 9px;
   padding: 14px 16px 40px;
 }
+
+.sort {
+  font-size: 12px;
+  padding: 3px 6px;
+  border: 1px solid var(--btn-border);
+  border-radius: var(--radius-xs);
+  background: var(--bg-raised);
+  color: var(--text);
+}

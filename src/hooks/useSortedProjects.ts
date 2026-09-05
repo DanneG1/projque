@@ -14,6 +14,8 @@ export function useSortedProjects(): ProjectView[] {
   const sessions = useAppStore((s) => s.sessions);
   const showArchived = useAppStore((s) => s.settings?.display.showArchived ?? false);
   const filter = useAppStore((s) => s.filter);
+  const tagFilter = useAppStore((s) => s.tagFilter);
+  const sort = useAppStore((s) => s.sort);
   const query = useAppStore((s) => s.query);
   return useMemo(() => {
     let visible =
@@ -25,13 +27,20 @@ export function useSortedProjects(): ProjectView[] {
     } else if (filter !== "all") {
       visible = visible.filter((p) => p.status === filter);
     }
+    if (tagFilter) {
+      visible = visible.filter((p) => p.tags.includes(tagFilter));
+    }
     const q = query.trim().toLowerCase();
     if (q) {
-      visible = visible.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          (p.resolvedDescription ?? "").toLowerCase().includes(q) ||
-          p.path.toLowerCase().includes(q),
+      // "#tag" searches tags only.
+      const tagQuery = q.startsWith("#") ? q.slice(1) : null;
+      visible = visible.filter((p) =>
+        tagQuery !== null
+          ? p.tags.some((t) => t.includes(tagQuery))
+          : p.name.toLowerCase().includes(q) ||
+            (p.resolvedDescription ?? "").toLowerCase().includes(q) ||
+            p.path.toLowerCase().includes(q) ||
+            p.tags.some((t) => t.includes(q)),
       );
     }
     const lastActivity = (p: ProjectView) => git[p.id]?.lastCommit?.timestamp ?? 0;
@@ -44,16 +53,26 @@ export function useSortedProjects(): ProjectView[] {
           v.status.state === "running" &&
           v.needsAttention,
       );
-    // Live work floats to the top: sessions waiting on the user first,
-    // then the pinned (favorite) row, then anything currently running.
+    // Live work floats to the top whatever the sort: sessions waiting on
+    // the user first, then anything currently running.
+    const live = (a: ProjectView, b: ProjectView) =>
+      Number(attention(b)) - Number(attention(a)) || Number(running(b)) - Number(running(a));
+    if (sort === "recent") {
+      return [...visible].sort(
+        (a, b) => live(a, b) || lastActivity(b) - lastActivity(a) || a.name.localeCompare(b.name),
+      );
+    }
+    if (sort === "name") {
+      return [...visible].sort((a, b) => live(a, b) || a.name.localeCompare(b.name));
+    }
+    // "smart": the pinned (favorite) row, then status group, then recency.
     return [...visible].sort(
       (a, b) =>
-        Number(attention(b)) - Number(attention(a)) ||
+        live(a, b) ||
         Number(b.favorite) - Number(a.favorite) ||
-        Number(running(b)) - Number(running(a)) ||
         statusRank(a) - statusRank(b) ||
         lastActivity(b) - lastActivity(a) ||
         a.name.localeCompare(b.name),
     );
-  }, [projects, git, sessions, showArchived, filter, query]);
+  }, [projects, git, sessions, showArchived, filter, tagFilter, sort, query]);
 }

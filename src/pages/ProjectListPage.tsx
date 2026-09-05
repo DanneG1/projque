@@ -8,6 +8,8 @@ import { StreakChip } from "../components/StreakChip";
 import { Icon } from "../components/Icon";
 import { IdeasPanel } from "../components/IdeasPanel";
 import { HealthCheckButton, HealthCheckPanel } from "../components/HealthCheck";
+import { TagBar } from "../components/Tags";
+import type { ProjectSort } from "../store/useAppStore";
 import { favoriteShortcuts } from "../utils/shortcuts";
 import { useSortedProjects } from "../hooks/useSortedProjects";
 import { useAppStore } from "../store/useAppStore";
@@ -24,6 +26,8 @@ export function ProjectListPage() {
   const refreshGit = useAppStore((s) => s.refreshGit);
   const gitAvailable = useAppStore((s) => s.gitAvailable);
   const setNewProjectOpen = useAppStore((s) => s.setNewProjectOpen);
+  const sort = useAppStore((s) => s.sort);
+  const setSort = useAppStore((s) => s.setSort);
 
   const searchRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState(-1);
@@ -104,6 +108,17 @@ export function ProjectListPage() {
         <FilterTabs />
         <StreakChip />
         <div className={styles.spacer} />
+        <select
+          className={styles.sort}
+          value={sort}
+          title="Sort order"
+          aria-label="Sort order"
+          onChange={(e) => setSort(e.target.value as ProjectSort)}
+        >
+          <option value="smart">Favorites & status</option>
+          <option value="recent">Recently worked on</option>
+          <option value="name">Name</option>
+        </select>
         <button
           className="btn btn-ghost"
           title="Refresh git information"
@@ -126,6 +141,8 @@ export function ProjectListPage() {
           <Icon name="plus" size={14} /> Add folder
         </button>
       </div>
+
+      <TagBar />
 
       <HealthCheckPanel />
 

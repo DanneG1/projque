@@ -7,6 +7,7 @@ import { QuickActions } from "./QuickActions";
 import { GitSummary } from "./GitSummary";
 import { ActivityBar } from "./ActivityBar";
 import { SuggestionLine } from "./Suggestions";
+import { TagChips } from "./Tags";
 import { relativeTime } from "../utils/time";
 import styles from "./ProjectCard.module.css";
 
@@ -95,6 +96,7 @@ export function ProjectCard({
           </span>
         )}
         <StatusBadge status={project.status} />
+        <TagChips tags={project.tags} />
         {attention && (
           <span className={styles.badge} data-attn onClick={() => setRoute({ page: "agents" })}>
             ⚡ needs you
