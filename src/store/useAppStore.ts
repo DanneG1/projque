@@ -982,13 +982,30 @@ export const useAppStore = create<AppStore>((set, get) => ({
         );
       }
     } else if (view.targetId === "audit:fix") {
-      get().notify(
-        code === 0 ? "Safe package updates installed" : "Package update did not finish",
-        code === 0
-          ? `${view.projectLabel}: run the tests, then commit.`
-          : `${view.projectLabel}: look at the output, or ask the agent.`,
-        { variant: code === 0 ? "success" : "error", ttl: 8000, onClick: openSession },
-      );
+      // `npm audit fix` exits 1 whenever vulnerabilities remain, even after
+      // installing every safe update - so judge by what changed on disk,
+      // not by the exit code. The refresh is also what makes the new
+      // package-lock show up as something to commit.
+      void get()
+        .refreshGit({ force: true })
+        .then(() => {
+          const info = get().git[view.projectId];
+          const changed = info?.dirty ? info.changedFiles : 0;
+          const goto = () => get().setRoute({ page: "detail", projectId: view.projectId });
+          if (changed > 0) {
+            get().notify(
+              "Packages updated",
+              `${view.projectLabel}: ${changed} changed file${changed === 1 ? "" : "s"} ready to commit. Run the tests first if you have them.`,
+              { variant: "success", ttl: 8000, onClick: goto },
+            );
+          } else {
+            get().notify(
+              "No packages could be updated safely",
+              `${view.projectLabel}: the remaining fixes need a bigger upgrade - ask the agent from the Packages row.`,
+              { variant: "attention", ttl: 8000, onClick: goto },
+            );
+          }
+        });
     } else if (isTestRun) {
       // A test run's exit code is its verdict; stamp it on the project.
       const passed = code === 0;
@@ -1011,8 +1028,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
         onClick: openSession,
       });
     }
-    // The post-session review needs fresh git state for this project.
-    if (view.kind === "agent") void get().refreshGit({ force: true });
+    // The post-session review needs fresh git state for this project; a
+    // dev server or test run can also leave files behind, so always refresh.
+    if (view.targetId !== "audit:fix") void get().refreshGit({ force: true });
   },
 
   setQuitPrompt: (count) => set({ quitPrompt: count }),
