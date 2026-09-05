@@ -8,6 +8,7 @@ import { ImportPage } from "./pages/ImportPage";
 import { ProjectDetailPage } from "./pages/ProjectDetailPage";
 import { GitPage } from "./pages/GitPage";
 import { ProgressPage } from "./pages/ProgressPage";
+import { ReviewPage } from "./pages/ReviewPage";
 import { QuitConfirmDialog } from "./components/agent/QuitConfirmDialog";
 import { NewProjectDialog } from "./components/NewProjectDialog";
 import { IdeaCaptureDialog } from "./components/IdeaCaptureDialog";
@@ -231,6 +232,7 @@ export default function App() {
           {route.page === "detail" && <ProjectDetailPage projectId={route.projectId} />}
           {route.page === "git" && <GitPage projectId={route.projectId} />}
           {route.page === "progress" && <ProgressPage />}
+          {route.page === "review" && <ReviewPage />}
           {route.page === "agents" && (
             <Suspense fallback={null}>
               <AgentsPage sessionId={route.sessionId} />

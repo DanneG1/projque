@@ -9,6 +9,7 @@ import { Icon } from "../components/Icon";
 import { IdeasPanel } from "../components/IdeasPanel";
 import { HealthCheckButton, HealthCheckPanel } from "../components/HealthCheck";
 import { TagBar } from "../components/Tags";
+import { ReviewBanner } from "../components/ReviewBanner";
 import type { ProjectSort } from "../store/useAppStore";
 import { favoriteShortcuts } from "../utils/shortcuts";
 import { useSortedProjects } from "../hooks/useSortedProjects";
@@ -151,6 +152,8 @@ export function ProjectListPage() {
       </div>
 
       <TagBar />
+
+      <ReviewBanner />
 
       <HealthCheckPanel />
 

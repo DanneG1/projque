@@ -28,6 +28,7 @@ export type Route =
   | { page: "detail"; projectId: string }
   | { page: "git"; projectId?: string }
   | { page: "progress" }
+  | { page: "review" }
   | { page: "agents"; sessionId?: string };
 
 export type ProjectFilter = "all" | "favorites" | ProjectStatus;

@@ -72,7 +72,12 @@ export function ProgressPage() {
           ))}
         </div>
       )}
-      <h1 className={styles.heading}>Your progress</h1>
+      <div className={styles.headRow}>
+        <h1 className={styles.heading}>Your progress</h1>
+        <button className="btn" onClick={() => setRoute({ page: "review" })}>
+          <Icon name="clock" size={13} /> Weekly review
+        </button>
+      </div>
 
       <div className={styles.cards}>
         <div className={styles.card} data-hot={streakAlive || undefined}>
