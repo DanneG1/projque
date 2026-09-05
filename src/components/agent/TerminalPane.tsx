@@ -3,6 +3,8 @@ import type { AgentSessionView } from "../../models";
 import { useAppStore } from "../../store/useAppStore";
 import { Icon } from "../Icon";
 import { disposeTerminal, fitTerminal, mountTerminal, unmountTerminal } from "../../terminal/manager";
+import { ErrorExplainer } from "./ErrorExplainer";
+import { SessionReview } from "./SessionReview";
 import styles from "./TerminalPane.module.css";
 
 function portOf(url: string | null): string {
@@ -75,6 +77,7 @@ export function TerminalPane({
             <Icon name="close" size={14} />
           </button>
         )}
+        {isRun && session.errorDetected && <ErrorExplainer session={session} />}
         {isRun && (
           <div className={styles.browserControls}>
             {session.detectedUrl ? (
@@ -117,7 +120,16 @@ export function TerminalPane({
         )}
       </div>
       <div className={styles.mount} ref={mountRef} />
-      {session.status.state === "exited" && (
+      {session.status.state === "exited" && session.kind === "agent" && (
+        <SessionReview
+          session={session}
+          onDismiss={() => {
+            disposeTerminal(session.sessionId);
+            void removeSession(session.sessionId);
+          }}
+        />
+      )}
+      {session.status.state === "exited" && session.kind !== "agent" && (
         <div className={styles.exitedBar}>
           <span className={styles.exitedText}>
             {session.agentLabel} exited

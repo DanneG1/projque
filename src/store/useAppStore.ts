@@ -3,6 +3,7 @@ import { api } from "../api/ipc";
 import { parseAppError, userMessage, type AppError } from "../api/errors";
 import { computeActivity } from "../utils/activity";
 import { collectCelebrations } from "../utils/celebrate";
+import { CLEANUP_PROMPT } from "../utils/prompts";
 import type {
   ActivitySummary,
   AgentSessionView,
@@ -87,7 +88,7 @@ interface AppStore {
   pullFf: (id: string) => Promise<void>;
   switchBranch: (id: string, branch: string) => Promise<boolean>;
   /** Commit everything with a message. Resolves true on success. */
-  commitAll: (id: string, message: string) => Promise<boolean>;
+  commitAll: (id: string, message: string, allowSecrets?: boolean) => Promise<boolean>;
   /** Restore an earlier version (commit or snapshot) as a new commit. */
   restoreVersion: (id: string, hash: string) => Promise<boolean>;
   pushBranch: (id: string) => Promise<boolean>;
@@ -104,6 +105,14 @@ interface AppStore {
     agentKind?: string,
     initialPrompt?: string,
   ) => Promise<void>;
+  /** Start one agent session per roleplay tester (max 4) and show them
+   *  side by side in the grid view. */
+  startRoleplayTest: (
+    projectId: string,
+    testers: { label: string; prompt: string }[],
+  ) => Promise<void>;
+  /** Stamp the tidy-up baseline (now, HEAD) and start the cleanup agent. */
+  startCleanup: (projectId: string) => Promise<void>;
   newProjectOpen: boolean;
   setNewProjectOpen: (open: boolean) => void;
   /** Prefill for the new-project dialog (e.g. starting from a general idea). */
@@ -118,6 +127,13 @@ interface AppStore {
   startRunSession: (projectId: string, targetId: string) => Promise<void>;
   openSessionUrl: (sessionId: string) => Promise<void>;
   sessionUrlDetected: (sessionId: string, url: string) => void;
+  sessionErrorDetected: (sessionId: string) => void;
+  /** Commit (when a message is given) then ff-only pull and push, as one action. */
+  commitAndPush: (id: string, message: string | null, allowSecrets?: boolean) => Promise<boolean>;
+  fixIgnores: (id: string, kinds: string[]) => Promise<boolean>;
+  /** Undo everything an agent session did: restore its pre-session point,
+   *  removing files it created (the current state is snapshotted first). */
+  undoSession: (projectId: string, undoHash: string) => Promise<boolean>;
   sessionAttention: (view: AgentSessionView) => void;
   clearSessionAttention: (sessionId: string) => void;
   setVisibleSessions: (sessionIds: string[]) => void;
@@ -446,10 +462,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
   },
 
-  commitAll: async (id, message) => {
+  commitAll: async (id, message, allowSecrets = false) => {
     set((s) => ({ gitBusy: { ...s.gitBusy, [id]: true } }));
     try {
-      const info = await api.gitCommit(id, message);
+      const info = await api.gitCommit(id, message, allowSecrets);
       // A fresh commit changes streaks/points - recompute on next look.
       set((s) => ({ git: { ...s.git, [id]: info }, activity: null }));
       get().notify("Committed", "Your work is saved in the project history.");
@@ -656,6 +672,37 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
   },
 
+  startRoleplayTest: async (projectId, testers) => {
+    // Sessions start one at a time (each takes a working-tree snapshot);
+    // whatever started successfully still goes into the grid.
+    const started: AgentSessionView[] = [];
+    for (const t of testers.slice(0, 4)) {
+      try {
+        started.push(
+          await api.agentSessionStart(projectId, null, 30, 100, t.prompt, t.label),
+        );
+      } catch (err) {
+        get().reportError(err);
+      }
+    }
+    if (started.length === 0) return;
+    set((s) => ({
+      sessions: [...s.sessions, ...started],
+      gridIds: started.length >= 2 ? started.map((v) => v.sessionId) : [],
+      route: { page: "agents", sessionId: started[0].sessionId },
+    }));
+  },
+
+  startCleanup: async (projectId) => {
+    try {
+      const updated = await api.projectMarkCleanup(projectId);
+      set((s) => ({ projects: s.projects.map((p) => (p.id === updated.id ? updated : p)) }));
+    } catch (err) {
+      get().reportError(err);
+    }
+    await get().startAgentSession(projectId, undefined, CLEANUP_PROMPT);
+  },
+
   startRunSession: async (projectId, targetId) => {
     try {
       const session = await api.runSessionStart(projectId, targetId, 30, 100);
@@ -673,6 +720,69 @@ export const useAppStore = create<AppStore>((set, get) => ({
       await api.runSessionOpenUrl(sessionId);
     } catch (err) {
       get().reportError(err);
+    }
+  },
+
+  sessionErrorDetected: (sessionId) => {
+    set((s) => ({
+      sessions: s.sessions.map((v) =>
+        v.sessionId === sessionId ? { ...v, errorDetected: true } : v,
+      ),
+    }));
+  },
+
+  commitAndPush: async (id, message, allowSecrets = false) => {
+    set((s) => ({ gitBusy: { ...s.gitBusy, [id]: true } }));
+    try {
+      const [outcome, info] = await api.gitSync(id, message, allowSecrets);
+      set((s) => ({ git: { ...s.git, [id]: info }, activity: outcome.committed ? null : s.activity }));
+      const parts: string[] = [];
+      if (outcome.committed) parts.push("committed");
+      if (outcome.pulled > 0) parts.push(`pulled ${outcome.pulled} newer commit${outcome.pulled === 1 ? "" : "s"}`);
+      parts.push("pushed");
+      get().notify(
+        outcome.committed ? "Committed & pushed" : "Pushed",
+        `${parts.join(", ")} - ${info.branch ?? "your branch"} is up to date online.`,
+      );
+      return true;
+    } catch (err) {
+      get().reportError(err);
+      return false;
+    } finally {
+      set((s) => ({ gitBusy: { ...s.gitBusy, [id]: false } }));
+    }
+  },
+
+  fixIgnores: async (id, kinds) => {
+    set((s) => ({ gitBusy: { ...s.gitBusy, [id]: true } }));
+    try {
+      const info = await api.gitIgnoreFix(id, kinds);
+      set((s) => ({ git: { ...s.git, [id]: info } }));
+      get().notify("Updated .gitignore", "Those files will stay out of your commits.");
+      return true;
+    } catch (err) {
+      get().reportError(err);
+      return false;
+    } finally {
+      set((s) => ({ gitBusy: { ...s.gitBusy, [id]: false } }));
+    }
+  },
+
+  undoSession: async (projectId, undoHash) => {
+    set((s) => ({ gitBusy: { ...s.gitBusy, [projectId]: true } }));
+    try {
+      const info = await api.gitRestore(projectId, undoHash, true);
+      set((s) => ({ git: { ...s.git, [projectId]: info } }));
+      get().notify(
+        "Session undone",
+        "Your files are back to how they were before the agent started. The undone state was backed up first.",
+      );
+      return true;
+    } catch (err) {
+      get().reportError(err);
+      return false;
+    } finally {
+      set((s) => ({ gitBusy: { ...s.gitBusy, [projectId]: false } }));
     }
   },
 
@@ -751,9 +861,27 @@ export const useAppStore = create<AppStore>((set, get) => ({
       sessions: s.sessions.map((v) => (v.sessionId === view.sessionId ? view : v)),
     }));
     const code = view.status.state === "exited" ? view.status.code : null;
-    if (code !== null && code !== 0) {
+    const isTestRun = view.kind === "run" && view.targetId?.startsWith("test:");
+    if (isTestRun) {
+      // A test run's exit code is its verdict; stamp it on the project.
+      const passed = code === 0;
+      api
+        .projectMarkVerified(view.projectId, passed)
+        .then((updated) =>
+          set((s) => ({ projects: s.projects.map((p) => (p.id === updated.id ? updated : p)) })),
+        )
+        .catch(() => {});
+      get().notify(
+        passed ? "All checks passed" : "Some checks failed",
+        passed
+          ? `${view.projectLabel} is verified.`
+          : `${view.projectLabel}: look at the output, or ask the agent to fix it.`,
+      );
+    } else if (code !== null && code !== 0) {
       get().notify(`${view.agentLabel} exited (code ${code})`);
     }
+    // The post-session review needs fresh git state for this project.
+    if (view.kind === "agent") void get().refreshGit({ force: true });
   },
 
   setQuitPrompt: (count) => set({ quitPrompt: count }),

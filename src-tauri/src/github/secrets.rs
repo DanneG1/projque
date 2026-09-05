@@ -47,8 +47,15 @@ pub fn scan(dir: &Path) -> Result<Vec<SecretFinding>, AppError> {
     if !out.success {
         return Err(AppError::GitFailed { detail: out.stderr.trim().lines().take(3).collect::<Vec<_>>().join(" ") });
     }
+    let rels: Vec<&str> = out.stdout.split('\0').filter(|s| !s.is_empty()).collect();
+    Ok(scan_paths(dir, &rels))
+}
+
+/// Scan the given repository-relative paths (e.g. what a commit would add).
+/// Paths come from git's own status output, never from the frontend.
+pub fn scan_paths(dir: &Path, rels: &[&str]) -> Vec<SecretFinding> {
     let mut findings = Vec::new();
-    for rel in out.stdout.split('\0').filter(|s| !s.is_empty()).take(MAX_FILES) {
+    for rel in rels.iter().copied().take(MAX_FILES) {
         if findings.len() >= MAX_FINDINGS {
             break;
         }
@@ -69,7 +76,7 @@ pub fn scan(dir: &Path) -> Result<Vec<SecretFinding>, AppError> {
         let content = String::from_utf8_lossy(&bytes);
         scan_content(rel, &content, &mut findings);
     }
-    Ok(findings)
+    findings
 }
 
 /// A committed dotenv file is a finding by itself (templates excluded).
@@ -86,7 +93,39 @@ fn env_file_kind(rel: &str) -> Option<String> {
     Some("environment file (often contains passwords and API keys)".to_string())
 }
 
-pub(super) fn scan_content(rel: &str, content: &str, findings: &mut Vec<SecretFinding>) {
+/// Documentation example keys and test fixtures are not secrets: AWS's own
+/// `AKIAIOSFODNN7EXAMPLE`, anything spelling out EXAMPLE/PLACEHOLDER/XXXX,
+/// keyboard-sequence fillers like `0123456789abcdef…`, or a "key" made of
+/// three or fewer distinct characters. Real credentials are random.
+fn looks_like_placeholder(token: &str) -> bool {
+    let upper = token.to_ascii_uppercase();
+    if ["EXAMPLE", "PLACEHOLDER", "XXXXXX", "REDACTED", "YOUR_", "CHANGEME"]
+        .iter()
+        .any(|m| upper.contains(m))
+    {
+        return true;
+    }
+    let chars: Vec<char> = token.chars().collect();
+    let distinct: std::collections::HashSet<&char> = chars.iter().collect();
+    if distinct.len() <= 3 {
+        return true;
+    }
+    // Eight or more consecutive ascending characters (0123…, abcd…).
+    let mut ascending = 1;
+    for w in chars.windows(2) {
+        if (w[1] as u32) == (w[0] as u32) + 1 {
+            ascending += 1;
+            if ascending >= 8 {
+                return true;
+            }
+        } else {
+            ascending = 1;
+        }
+    }
+    false
+}
+
+pub(crate) fn scan_content(rel: &str, content: &str, findings: &mut Vec<SecretFinding>) {
     for (line_idx, line) in content.lines().enumerate() {
         if findings.len() >= MAX_FINDINGS {
             return;
@@ -102,8 +141,9 @@ pub(super) fn scan_content(rel: &str, content: &str, findings: &mut Vec<SecretFi
         for (label, prefix, charset, min_len) in TOKEN_PATTERNS {
             if let Some(pos) = line.find(prefix) {
                 let tail = &line[pos + prefix.len()..];
-                let run = tail.chars().take_while(|&c| charset(c)).count();
-                if run >= *min_len {
+                let token: String = tail.chars().take_while(|&c| charset(c)).collect();
+                let run = token.chars().count();
+                if run >= *min_len && !looks_like_placeholder(&token) {
                     findings.push(SecretFinding {
                         file: rel.to_string(),
                         line: (line_idx + 1) as u32,
@@ -126,15 +166,18 @@ mod tests {
         f
     }
 
+    // Fixtures are assembled with concat! so this source file itself never
+    // contains a credential-shaped literal - otherwise committing the
+    // scanner's own tests through ProjQue would trip the scanner.
     #[test]
     fn detects_token_shapes() {
-        assert_eq!(findings_in("key = AKIAIOSFODNN7EXAMPLE").len(), 1);
+        assert_eq!(findings_in(concat!("key = AKIA", "JQ7RJ2K9M3XB5W1C")).len(), 1);
         assert_eq!(
-            findings_in("token: ghp_0123456789abcdef0123456789abcdef0123").len(),
+            findings_in(concat!("token: ghp_", "q8Zr2mV7kL0pT4wY9sN6bH1cJ3xF5dG8aQ2e")).len(),
             1
         );
-        assert_eq!(findings_in("ANTHROPIC=sk-ant-api03-abcdefghijklmnopqrst").len(), 1);
-        assert_eq!(findings_in("-----BEGIN OPENSSH PRIVATE KEY-----").len(), 1);
+        assert_eq!(findings_in(concat!("ANTHROPIC=sk-ant-", "api03-Qm7xR2pL9vT4wZ1nK8bY")).len(), 1);
+        assert_eq!(findings_in(concat!("-----BEGIN OPENSSH PRIVATE KEY", "-----")).len(), 1);
     }
 
     #[test]
@@ -142,6 +185,17 @@ mod tests {
         assert!(findings_in("the sky is blue, AKIA is a prefix").is_empty());
         assert!(findings_in("sk-ant- is the Anthropic key prefix").is_empty());
         assert!(findings_in("no secrets here").is_empty());
+    }
+
+    /// Documentation examples and fixtures must not block a commit of the
+    /// scanner's own tests (or anyone's docs).
+    #[test]
+    fn ignores_placeholders() {
+        assert!(findings_in(concat!("key = AKIA", "IOSFODNN7EXAMPLE")).is_empty());
+        assert!(findings_in(concat!("token: ghp_", "0123456789abcdef0123456789abcdef0123")).is_empty());
+        assert!(findings_in(concat!("ANTHROPIC=sk-ant-", "api03-abcdefghijklmnopqrst")).is_empty());
+        assert!(findings_in(concat!("STRIPE=sk_live_", "XXXXXXXXXXXXXXXXXXXXXXXX")).is_empty());
+        assert!(findings_in(concat!("KEY=sk-proj-", "YOUR_KEY_HERE_YOUR_KEY_HERE")).is_empty());
     }
 
     #[test]

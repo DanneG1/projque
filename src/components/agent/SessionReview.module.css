@@ -1,0 +1,144 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  background: var(--bg-raised-2);
+  border-top: 1px solid var(--border);
+  max-height: 45%;
+  overflow-y: auto;
+}
+
+.card[data-done] {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--success-bg, var(--bg-raised-2));
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.title {
+  font-weight: 600;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.subtitle {
+  color: var(--text-faint);
+  font-size: 12px;
+}
+
+.summary {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--text-muted);
+  border-left: 3px solid var(--accent-weak);
+  padding-left: 10px;
+  white-space: pre-wrap;
+}
+
+.summaryLoading {
+  margin: 0;
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.block {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.confirm,
+.fix {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.confirm span {
+  flex: 1 1 260px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.fixInput {
+  flex: 1 1 260px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 12.5px;
+  resize: vertical;
+}
+
+.keepRow {
+  display: flex;
+  gap: 8px;
+}
+
+.message {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.inlineBtn {
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-style: normal;
+  cursor: pointer;
+  padding: 0;
+}
+
+.inlineBtn:hover {
+  text-decoration: underline;
+}
+
+.override {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 6px;
+  font-weight: 400;
+  cursor: pointer;
+}

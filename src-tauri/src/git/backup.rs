@@ -218,10 +218,10 @@ mod tests {
         assert!(create_snapshot(&dir, "noop").unwrap().is_none());
 
         // Restore v1 as a new commit; then recover v2 state from the snapshot.
-        ops::restore(&dir, &v1).unwrap();
+        ops::restore_with(&dir, &v1, false).unwrap();
         assert_eq!(std::fs::read_to_string(dir.join("app.txt")).unwrap(), "v1");
         assert!(ops::history(&dir, 5).unwrap()[0].subject.starts_with("Restore version"));
-        ops::restore(&dir, &snap.hash).unwrap();
+        ops::restore_with(&dir, &snap.hash, false).unwrap();
         assert_eq!(std::fs::read_to_string(dir.join("app.txt")).unwrap(), "v2");
         assert_eq!(std::fs::read_to_string(dir.join("new.txt")).unwrap(), "extra");
 

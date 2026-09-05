@@ -5,6 +5,7 @@ import { Icon } from "./Icon";
 import { StatusBadge } from "./StatusBadge";
 import { QuickActions } from "./QuickActions";
 import { GitSummary } from "./GitSummary";
+import { relativeTime } from "../utils/time";
 import styles from "./ProjectCard.module.css";
 
 export function ProjectCard({
@@ -78,6 +79,19 @@ export function ProjectCard({
         {project.productionUrl && (
           <span className={styles.live} title={`Live at ${project.productionUrl}`}>
             live
+          </span>
+        )}
+        {project.lastVerified && (
+          <span
+            className={styles.verified}
+            data-failed={!project.lastVerified.passed || undefined}
+            title={
+              project.lastVerified.passed
+                ? `All checks passed ${relativeTime(project.lastVerified.at)}`
+                : `Some checks failed ${relativeTime(project.lastVerified.at)}`
+            }
+          >
+            {project.lastVerified.passed ? "✓ verified" : "✗ checks"}
           </span>
         )}
         <StatusBadge status={project.status} />

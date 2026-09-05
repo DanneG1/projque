@@ -78,6 +78,9 @@ export default function App() {
           .getState()
           .sessionUrlDetected(event.payload.sessionId, event.payload.url);
       }),
+      listen<{ sessionId: string }>("agent:session-error", (event) => {
+        useAppStore.getState().sessionErrorDetected(event.payload.sessionId);
+      }),
       listen<AgentSessionView>("agent:session-attention", (event) => {
         useAppStore.getState().sessionAttention(event.payload);
       }),

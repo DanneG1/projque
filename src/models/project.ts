@@ -18,6 +18,8 @@ export interface ProjectView {
   descriptionSource: DescriptionSource;
   roadmapFile?: string;
   productionUrl?: string;
+  lastVerified?: Verification;
+  lastCleanup?: Cleanup;
   pathExists: boolean;
   isGitRepo: boolean;
   hasReadme: boolean;
@@ -69,4 +71,43 @@ export interface IdeaItem {
   text: string;
   done: boolean;
   date: string | null;
+}
+
+export interface Verification {
+  at: number;
+  passed: boolean;
+}
+
+export interface DeployInfo {
+  detected: boolean;
+  provider: string | null;
+  summary: string;
+  branches: string[];
+  onPush: boolean;
+  evidence: string[];
+  readmeMentionsDeploy: boolean;
+}
+
+export interface ToolCheck {
+  tool: string;
+  label: string;
+  reason: string;
+  found: boolean;
+  version: string | null;
+  wanted: string | null;
+  hint: string;
+}
+
+export interface Cleanup {
+  at: number;
+  commit: string | null;
+}
+
+export interface DebtInfo {
+  commitsSince: number;
+  linesChanged: number;
+  filesChanged: number;
+  lastCleanupAt: number | null;
+  nudge: boolean;
+  windowFallback: boolean;
 }

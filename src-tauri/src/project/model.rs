@@ -25,6 +25,28 @@ pub struct Project {
     /// successful publish. Presence = "shipped to production".
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub production_url: Option<String>,
+    /// Last "Run tests" outcome, stamped by the backend when a test run
+    /// session exits. Presence = the project has been checked at least once.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_verified: Option<Verification>,
+    /// When the "Tidy up the code" agent was last started, and the commit it
+    /// started from - the baseline the tidy-up nudge counts churn against.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_cleanup: Option<Cleanup>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Cleanup {
+    pub at: i64,
+    pub commit: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Verification {
+    pub at: i64,
+    pub passed: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq)]

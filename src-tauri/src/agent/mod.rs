@@ -59,6 +59,13 @@ pub struct AgentSessionView {
     pub status: SessionStatus,
     pub detected_url: Option<String>,
     pub needs_attention: bool,
+    /// Agent sessions: the commit to restore to undo everything this session
+    /// did (the pre-session snapshot, or HEAD when the tree was clean).
+    pub undo_hash: Option<String>,
+    /// Run sessions: the enumerated run target that was started.
+    pub target_id: Option<String>,
+    /// Run sessions: error-shaped output was seen (an "Explain" offer).
+    pub error_detected: bool,
 }
 
 struct OutputState {
@@ -66,6 +73,8 @@ struct OutputState {
     channel: Option<Channel<InvokeResponseBody>>,
     /// First localhost URL seen in the output (run sessions only).
     detected_url: Option<String>,
+    /// Error-shaped output seen (run sessions only).
+    error_detected: bool,
     // Attention tracking (agent sessions only): a bell, or going quiet
     // after producing output since the user's last keystroke, means the
     // agent is probably waiting for the user.
@@ -107,6 +116,8 @@ pub struct StartSpec<'a> {
     pub path_env: &'a std::ffi::OsStr,
     pub rows: u16,
     pub cols: u16,
+    pub undo_hash: Option<String>,
+    pub target_id: Option<String>,
 }
 
 impl Registry {
@@ -148,11 +159,15 @@ impl Registry {
             status: SessionStatus::Running,
             detected_url: None,
             needs_attention: false,
+            undo_hash: spec.undo_hash.clone(),
+            target_id: spec.target_id.clone(),
+            error_detected: false,
         };
         let output = Arc::new(Mutex::new(OutputState {
             scrollback: VecDeque::with_capacity(READ_BUF),
             channel: None,
             detected_url: None,
+            error_detected: false,
             last_output: None,
             pending_since_input: false,
             attention: false,
@@ -178,6 +193,7 @@ impl Registry {
                         Ok(0) | Err(_) => break,
                         Ok(n) => {
                             let mut announce: Option<String> = None;
+                            let mut announce_error = false;
                             {
                                 let mut out = output.lock().unwrap();
                                 out.scrollback.extend(&buf[..n]);
@@ -198,6 +214,12 @@ impl Registry {
                                         announce = Some(url);
                                     }
                                 }
+                                // Run sessions only: agent TUIs print "Error"
+                                // in their own prose far too often to trust.
+                                if detect_urls && !out.error_detected && looks_like_error(&buf[..n]) {
+                                    out.error_detected = true;
+                                    announce_error = true;
+                                }
                                 if let Some(channel) = &out.channel {
                                     if channel
                                         .send(InvokeResponseBody::Raw(buf[..n].to_vec()))
@@ -213,6 +235,12 @@ impl Registry {
                                 let _ = url_app.emit(
                                     "agent:session-url",
                                     serde_json::json!({ "sessionId": url_session_id, "url": url }),
+                                );
+                            }
+                            if announce_error {
+                                let _ = url_app.emit(
+                                    "agent:session-error",
+                                    serde_json::json!({ "sessionId": url_session_id }),
                                 );
                             }
                         }
@@ -232,7 +260,15 @@ impl Registry {
                     let mut map = sessions.lock().unwrap();
                     map.get_mut(&id).map(|session| {
                         session.view.status = SessionStatus::Exited { code };
-                        session.view.clone()
+                        // Same merge as list(): the frontend replaces its
+                        // record with this view, so it must carry the
+                        // output-derived fields (a crash is exactly when
+                        // "explain this error" matters).
+                        let mut view = session.view.clone();
+                        let out = session.output.lock().unwrap();
+                        view.detected_url = out.detected_url.clone();
+                        view.error_detected = out.error_detected;
+                        view
                     })
                 };
                 if let Some(view) = exited_view {
@@ -265,6 +301,7 @@ impl Registry {
                 let out = s.output.lock().unwrap();
                 view.detected_url = out.detected_url.clone();
                 view.needs_attention = out.attention;
+                view.error_detected = out.error_detected;
                 view
             })
             .collect();
@@ -280,6 +317,20 @@ impl Registry {
             .ok_or_else(|| AppError::SessionNotFound { id: session_id.to_string() })?;
         let url = session.output.lock().unwrap().detected_url.clone();
         Ok(url)
+    }
+
+    /// Project id and the tail of the scrollback as plain text (ANSI escapes
+    /// stripped), for "explain this error". Read backend-side so no terminal
+    /// text needs to cross IPC inbound.
+    pub fn output_tail(&self, session_id: &str, max_bytes: usize) -> Result<(String, String), AppError> {
+        let sessions = self.sessions.lock().unwrap();
+        let session = sessions
+            .get(session_id)
+            .ok_or_else(|| AppError::SessionNotFound { id: session_id.to_string() })?;
+        let out = session.output.lock().unwrap();
+        let skip = out.scrollback.len().saturating_sub(max_bytes);
+        let bytes: Vec<u8> = out.scrollback.iter().skip(skip).copied().collect();
+        Ok((session.view.project_id.clone(), strip_ansi(&String::from_utf8_lossy(&bytes))))
     }
 
     /// Replay the scrollback, then install the live channel - both under the
@@ -462,6 +513,80 @@ impl Registry {
 
 /// Scan a raw output chunk for the first local dev-server URL. ASCII scan -
 /// ANSI escapes (0x1b) and whitespace terminate the token naturally.
+/// High-signal error shapes from dev servers, compilers, and test runners.
+/// Precise over exhaustive: a false positive offers an unneeded button, a
+/// miss just means the user asks by hand.
+const ERROR_MARKERS: &[&str] = &[
+    "Traceback (most recent call last)",
+    "panicked at",
+    "error[E",
+    "npm ERR!",
+    "npm error",
+    "ERR_MODULE_NOT_FOUND",
+    "Cannot find module",
+    "SyntaxError:",
+    "TypeError:",
+    "ReferenceError:",
+    "Unhandled exception",
+    "UnhandledPromiseRejection",
+    "EADDRINUSE",
+    "ENOENT",
+    "Failed to compile",
+    "error TS",
+    "Build failed",
+    "FAILED",
+    "Exception in thread",
+    "fatal error:",
+];
+
+fn looks_like_error(chunk: &[u8]) -> bool {
+    let text = String::from_utf8_lossy(chunk);
+    ERROR_MARKERS.iter().any(|m| text.contains(m))
+}
+
+/// Remove ANSI CSI/OSC escape sequences and carriage returns so a terminal
+/// tail reads as plain text.
+fn strip_ansi(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '\u{1b}' {
+            match chars.peek() {
+                Some('[') => {
+                    chars.next();
+                    // CSI: parameters/intermediates then a final byte 0x40-0x7e.
+                    for n in chars.by_ref() {
+                        if ('\u{40}'..='\u{7e}').contains(&n) {
+                            break;
+                        }
+                    }
+                }
+                Some(']') => {
+                    chars.next();
+                    // OSC: until BEL or ST (ESC \).
+                    let mut prev_esc = false;
+                    for n in chars.by_ref() {
+                        if n == '\u{07}' || (prev_esc && n == '\\') {
+                            break;
+                        }
+                        prev_esc = n == '\u{1b}';
+                    }
+                }
+                Some(_) => {
+                    chars.next();
+                }
+                None => {}
+            }
+            continue;
+        }
+        if c == '\r' {
+            continue;
+        }
+        out.push(c);
+    }
+    out
+}
+
 fn find_local_url(chunk: &[u8]) -> Option<String> {
     let text = String::from_utf8_lossy(chunk);
 

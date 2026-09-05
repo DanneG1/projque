@@ -160,6 +160,8 @@ pub(crate) fn add_project_at(state: &AppState, path: std::path::PathBuf) -> Resu
             description_source: Default::default(),
             roadmap_file: None,
             production_url: None,
+            last_verified: None,
+            last_cleanup: None,
         };
         projects.push(new.clone());
         Ok(new)
@@ -762,12 +764,13 @@ pub async fn git_commit(
     state: State<'_, Arc<AppState>>,
     id: String,
     message: String,
+    allow_secrets: Option<bool>,
 ) -> Result<GitInfo, AppError> {
     let state = state.inner().clone();
     run_blocking(move || {
         let dir = state.resolve_dir(&id)?;
         require_git(&state)?;
-        ops::commit_all(&dir, &message)?;
+        ops::commit_all_checked(&dir, &message, allow_secrets.unwrap_or(false))?;
         Ok(state.refresh_git_info(&id, &dir))
     })
     .await
@@ -811,12 +814,68 @@ pub async fn git_restore(
     state: State<'_, Arc<AppState>>,
     id: String,
     hash: String,
+    discard_new: Option<bool>,
 ) -> Result<GitInfo, AppError> {
     let state = state.inner().clone();
     run_blocking(move || {
         let dir = state.resolve_dir(&id)?;
         require_git(&state)?;
-        ops::restore(&dir, &hash)?;
+        ops::restore_with(&dir, &hash, discard_new.unwrap_or(false))?;
+        Ok(state.refresh_git_info(&id, &dir))
+    })
+    .await
+}
+
+/// Commit & push as one explicit action (commit if a message is given,
+/// ff-only pull when there is an upstream, push). Each step is one of the
+/// audited verbs; the network steps are the same as the Pull/Push buttons.
+/// `message` follows git_commit's validation.
+#[tauri::command]
+pub async fn git_sync(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    message: Option<String>,
+    allow_secrets: Option<bool>,
+) -> Result<(ops::SyncOutcome, GitInfo), AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        let outcome = ops::sync(&dir, message.as_deref(), allow_secrets.unwrap_or(false))?;
+        Ok((outcome, state.refresh_git_info(&id, &dir)))
+    })
+    .await
+}
+
+/// What a commit would include, with secrets findings (hard block) and
+/// .gitignore suggestions (soft warnings with a catalog fix).
+#[tauri::command]
+pub async fn git_commit_preflight(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<crate::git::hygiene::CommitPreflight, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        crate::git::hygiene::commit_preflight(&dir)
+    })
+    .await
+}
+
+/// Append fixed catalog patterns to .gitignore. `kinds` are catalog ids
+/// validated against the closed rule set - no frontend text reaches the file.
+#[tauri::command]
+pub async fn git_ignore_fix(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    kinds: Vec<String>,
+) -> Result<GitInfo, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        crate::git::hygiene::apply_ignores(&dir, &kinds)?;
         Ok(state.refresh_git_info(&id, &dir))
     })
     .await
@@ -1019,6 +1078,7 @@ pub async fn agent_session_start(
     rows: u16,
     cols: u16,
     initial_prompt: Option<String>,
+    session_label: Option<String>,
 ) -> Result<AgentSessionView, AppError> {
     let state = state.inner().clone();
     run_blocking(move || {
@@ -1026,12 +1086,30 @@ pub async fn agent_session_start(
         let project_label = project_label(&state, &project_id);
         let (settings, _) = state.settings();
         let agent = launcher::resolve_agent(&settings, agent_kind.as_deref())?;
+        // Optional display-only pane label (e.g. a roleplay-tester persona).
+        // Rendered as text in the session list/pane header/notification title
+        // only - never an argument, path, or shell input.
+        let agent_label: String = match session_label {
+            Some(l) => {
+                let l: String =
+                    l.trim().chars().filter(|c| !c.is_control()).take(80).collect();
+                if l.is_empty() { agent.label.clone() } else { l }
+            }
+            None => agent.label.clone(),
+        };
         // Safety net for "the agent broke my project": snapshot the working
         // tree to a hidden ref before the agent can touch it (see
         // git/backup.rs). Best-effort - never blocks the session.
+        // The snapshot (or HEAD, when the tree was already clean) is also
+        // the "undo this session" point offered in the post-session review.
+        let mut undo_hash = None;
         if dir.join(".git").exists() {
             let reason = format!("Before {} session", agent.label);
-            let _ = crate::git::backup::create_snapshot(&dir, &reason);
+            undo_hash = crate::git::backup::create_snapshot(&dir, &reason)
+                .ok()
+                .flatten()
+                .map(|s| s.hash)
+                .or_else(|| ops::head_hash(&dir));
         }
         let path_env = which::augmented_path(&settings.path_additions);
         let mut args = agent.args.clone();
@@ -1056,13 +1134,15 @@ pub async fn agent_session_start(
                 project_label: &project_label,
                 kind: SessionKind::Agent,
                 agent_kind: &agent.kind,
-                agent_label: &agent.label,
+                agent_label: &agent_label,
                 program: &agent.program,
                 args: &args,
                 cwd: &dir,
                 path_env: &path_env,
                 rows,
                 cols,
+                undo_hash,
+                target_id: None,
             },
         )
     })
@@ -1176,6 +1256,157 @@ pub async fn project_run_targets(
     .await
 }
 
+/// The project's test command, when it has one (None = no "Run tests").
+#[tauri::command]
+pub async fn project_test_target(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<Option<RunTarget>, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        Ok(run::detect_test_target(&dir))
+    })
+    .await
+}
+
+/// Record the outcome of a test run. Called by the frontend when a test run
+/// session exits; the timestamp is stamped here, only `passed` crosses IPC.
+#[tauri::command]
+pub async fn project_mark_verified(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    passed: bool,
+) -> Result<ProjectView, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let at = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0);
+        let updated = state.update_projects(|projects| {
+            let project = projects
+                .iter_mut()
+                .find(|p| p.id == id)
+                .ok_or_else(|| AppError::ProjectNotFound { id: id.clone() })?;
+            project.last_verified = Some(crate::project::Verification { at, passed });
+            Ok(project.clone())
+        })?;
+        Ok(project::view(&updated))
+    })
+    .await
+}
+
+/// Stamp "a tidy-up started now, from this commit". Only the opaque project
+/// id crosses IPC; the timestamp and HEAD hash are read in Rust.
+#[tauri::command]
+pub async fn project_mark_cleanup(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<ProjectView, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        let commit = ops::head_hash(&dir);
+        let at = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0);
+        let updated = state.update_projects(|projects| {
+            let project = projects
+                .iter_mut()
+                .find(|p| p.id == id)
+                .ok_or_else(|| AppError::ProjectNotFound { id: id.clone() })?;
+            project.last_cleanup = Some(crate::project::Cleanup { at, commit });
+            Ok(project.clone())
+        })?;
+        Ok(project::view(&updated))
+    })
+    .await
+}
+
+/// Churn since the last tidy-up (or over the last 30 days when there has
+/// never been one) - the basis for the "worth a tidy-up?" nudge.
+#[tauri::command]
+pub async fn project_debt(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<crate::project::debt::DebtInfo, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        let (projects, _) = state.projects();
+        let cleanup = projects.iter().find(|p| p.id == id).and_then(|p| p.last_cleanup.clone());
+        Ok(crate::project::debt::measure(&dir, cleanup.as_ref()))
+    })
+    .await
+}
+
+/// Read-only: how this project already gets deployed (workflows, hosting
+/// config files, README), so the push flow can warn before it happens.
+#[tauri::command]
+pub async fn project_deploy_info(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<crate::project::deploy::DeployInfo, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        Ok(crate::project::deploy::detect(&dir))
+    })
+    .await
+}
+
+/// Per-project setup check: tools this project's manifests ask for.
+#[tauri::command]
+pub async fn project_doctor(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<Vec<crate::project::doctor::ToolCheck>, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        let (settings, _) = state.settings();
+        Ok(crate::project::doctor::check(&dir, &settings.path_additions))
+    })
+    .await
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ErrorExplanation {
+    pub explanation: String,
+    /// The terminal tail that was explained - offered to the user as
+    /// context for a follow-up "ask the agent to fix it" prompt.
+    pub excerpt: String,
+}
+
+/// Explain the error a run session printed, in plain language, via the
+/// user's own `claude --print` (explicit click). The text explained is the
+/// session's own scrollback tail, read backend-side.
+#[tauri::command]
+pub async fn session_explain_error(
+    state: State<'_, Arc<AppState>>,
+    session_id: String,
+) -> Result<ErrorExplanation, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let (project_id, tail) = state.agents.output_tail(&session_id, 12 * 1024)?;
+        let dir = state.resolve_dir(&project_id)?;
+        let (settings, _) = state.settings();
+        // Keep the last ~60 non-empty lines: enough for a stack trace, cheap.
+        let lines: Vec<&str> = tail.lines().filter(|l| !l.trim().is_empty()).collect();
+        let start = lines.len().saturating_sub(60);
+        let excerpt = lines[start..].join("\n");
+        if excerpt.trim().is_empty() {
+            return Err(AppError::InvalidInput { detail: "nothing to explain yet".into() });
+        }
+        let explanation = crate::assist::explain_error(&dir, &excerpt, &settings.path_additions)?;
+        Ok(ErrorExplanation { explanation, excerpt })
+    })
+    .await
+}
+
 #[tauri::command]
 pub async fn run_session_start(
     app: AppHandle,
@@ -1191,7 +1422,7 @@ pub async fn run_session_start(
         let project_label = project_label(&state, &project_id);
         // Re-derive the enumeration at launch time; the requested target
         // must match exactly (the git_switch validation pattern).
-        let targets = run::detect_targets(&dir);
+        let targets = run::all_targets(&dir);
         let target = targets
             .iter()
             .find(|t| t.target_id == target_id)
@@ -1215,6 +1446,8 @@ pub async fn run_session_start(
                 path_env: &path_env,
                 rows,
                 cols,
+                undo_hash: None,
+                target_id: Some(target.target_id.clone()),
             },
         )
     })
@@ -1793,6 +2026,56 @@ pub async fn idea_set_done(
         let content = std::fs::read_to_string(&path)?;
         let updated = ideas::set_done(&content, line, done).ok_or_else(|| AppError::InvalidInput {
             detail: "IDEAS.md changed since it was loaded - reload and try again".into(),
+        })?;
+        std::fs::write(&path, &updated)?;
+        Ok(ideas::parse(&updated))
+    })
+    .await
+}
+
+/// The roadmap's checklist items (`- [ ]`), parsed with the same rules as
+/// IDEAS.md so roadmap entries get "Build this" too. Empty for a prose-only
+/// roadmap (the frontend then renders the markdown as before).
+fn roadmap_path(state: &Arc<AppState>, id: &str) -> Result<Option<std::path::PathBuf>, AppError> {
+    let dir = state.resolve_dir(id)?;
+    let (projects, _) = state.projects();
+    let configured = projects.iter().find(|p| p.id == id).and_then(|p| p.roadmap_file.clone());
+    Ok(crate::project::docs::find_doc(&dir, crate::project::docs::DocKind::Roadmap, configured.as_deref()))
+}
+
+#[tauri::command]
+pub async fn roadmap_items(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<Vec<IdeaItem>, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let Some(path) = roadmap_path(&state, &id)? else {
+            return Ok(Vec::new());
+        };
+        let content = std::fs::read_to_string(&path)?;
+        Ok(ideas::parse(&content))
+    })
+    .await
+}
+
+/// Toggle one roadmap checklist item - same positional re-validation as
+/// idea_set_done, same single-file write inside the project.
+#[tauri::command]
+pub async fn roadmap_set_done(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    line: u32,
+    done: bool,
+) -> Result<Vec<IdeaItem>, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let Some(path) = roadmap_path(&state, &id)? else {
+            return Err(AppError::InvalidInput { detail: "roadmap file not found".into() });
+        };
+        let content = std::fs::read_to_string(&path)?;
+        let updated = ideas::set_done(&content, line, done).ok_or_else(|| AppError::InvalidInput {
+            detail: "the roadmap changed since it was loaded - reload and try again".into(),
         })?;
         std::fs::write(&path, &updated)?;
         Ok(ideas::parse(&updated))

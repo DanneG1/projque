@@ -53,14 +53,37 @@ export function HistoryPanel({
     );
   }
 
+  // One timeline: your commits and the automatic backups, newest first,
+  // so "go back to this" reads like a document's version history.
+  const entries = [
+    ...(commits ?? []).map((c, i) => ({
+      hash: c.hash,
+      shortHash: c.shortHash,
+      title: c.subject,
+      timestamp: c.timestamp,
+      kind: "commit" as const,
+      isCurrent: i === 0,
+    })),
+    ...snapshots.map((s) => ({
+      hash: s.hash,
+      shortHash: s.shortHash,
+      title: s.reason,
+      timestamp: s.timestamp,
+      kind: "backup" as const,
+      isCurrent: false,
+    })),
+  ].sort((a, b) => b.timestamp - a.timestamp);
+
   const row = (
     hash: string,
     shortHash: string,
     title: string,
     timestamp: number,
     isCurrent: boolean,
+    kind: "commit" | "backup",
   ) => (
-    <li key={hash} className={styles.item}>
+    <li key={hash} className={styles.item} data-kind={kind}>
+      <span className={styles.kind}>{kind === "commit" ? "Commit" : "Backup"}</span>
       <span className={styles.subject} title={title}>
         {title}
       </span>
@@ -82,10 +105,10 @@ export function HistoryPanel({
         <button
           className="btn"
           disabled={busy}
-          title="Make your files match this version. Your current state is backed up automatically first - nothing is lost."
+          title="Restore: make your files match this version. Your current state is backed up automatically first - nothing is lost."
           onClick={() => setConfirming(hash)}
         >
-          Restore
+          Go back to this
         </button>
       )}
     </li>
@@ -100,9 +123,11 @@ export function HistoryPanel({
         </button>
       </div>
       <p className={styles.hint}>
-        Every commit is a version you can go back to. Restoring makes your
-        files match that version - it is recorded as a new commit, and your
-        current state is backed up first, so nothing is ever lost.
+        Every commit is a version you can go back to; backups are taken
+        automatically before each agent session and each restore (kept out of
+        your commit history, never uploaded). Going back makes your files match
+        that version - recorded as a new commit, with your current state backed
+        up first, so nothing is ever lost.
         {hasRunningSession && (
           <strong> An agent is running in this project - stop it before restoring.</strong>
         )}
@@ -115,26 +140,12 @@ export function HistoryPanel({
       )}
       {commits === null ? (
         <p className={styles.hint}>Loading…</p>
-      ) : commits.length === 0 ? (
-        <p className={styles.hint}>No commits yet.</p>
+      ) : entries.length === 0 ? (
+        <p className={styles.hint}>No versions yet - your first commit will appear here.</p>
       ) : (
         <ul className={styles.list}>
-          {commits.map((c, i) =>
-            row(c.hash, c.shortHash, c.subject, c.timestamp, i === 0),
-          )}
+          {entries.map((e) => row(e.hash, e.shortHash, e.title, e.timestamp, e.isCurrent, e.kind))}
         </ul>
-      )}
-      {snapshots.length > 0 && (
-        <>
-          <h4 className={styles.subTitle}>Automatic backups</h4>
-          <p className={styles.hint}>
-            Taken before each agent session and each restore. Kept out of your
-            commit history and never uploaded.
-          </p>
-          <ul className={styles.list}>
-            {snapshots.map((s) => row(s.hash, s.shortHash, s.reason, s.timestamp, false))}
-          </ul>
-        </>
       )}
     </div>
   );

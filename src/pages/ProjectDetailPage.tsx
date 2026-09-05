@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { api } from "../api/ipc";
 import type { DescriptionSource, ProjectDocument } from "../models";
 import { useAppStore } from "../store/useAppStore";
-import { CommitControls } from "../components/CommitControls";
+import { CommitControls, SyncStatus } from "../components/CommitControls";
+import { RoadmapPanel } from "../components/RoadmapPanel";
+import { SetupPanel } from "../components/SetupPanel";
 import { Icon } from "../components/Icon";
 import { GitControls } from "../components/GitControls";
 import { GithubPanel } from "../components/GithubPanel";
@@ -244,6 +246,7 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
           <GitControls projectId={project.id} gitInfo={gitInfo} />
           <MergeBanner projectId={project.id} gitInfo={gitInfo} />
           <CommitControls projectId={project.id} gitInfo={gitInfo} />
+          <SyncStatus projectId={project.id} gitInfo={gitInfo} />
           <div className={styles.gitButtons}>
             <HistoryPanel projectId={project.id} gitInfo={gitInfo} />
             <button
@@ -285,6 +288,13 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
         </section>
       )}
 
+      {project.pathExists && (
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Setup &amp; checks</h2>
+          <SetupPanel project={project} />
+        </section>
+      )}
+
       {project.isGitRepo && <GithubPanel projectId={project.id} gitInfo={gitInfo} />}
 
       {project.isGitRepo && project.pathExists && gitInfo?.state === "available" && (
@@ -297,12 +307,12 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Roadmap</h2>
         {roadmap ? (
-          <>
-            {roadmap.truncated && (
-              <p className={styles.faint}>Large file - showing the first part only.</p>
-            )}
-            <MarkdownView markdown={roadmap.markdown} />
-          </>
+          <RoadmapPanel
+            projectId={project.id}
+            fileName={roadmap.fileName}
+            fallbackMarkdown={roadmap.markdown}
+            truncated={roadmap.truncated}
+          />
         ) : (
           <p className={styles.faint}>No roadmap found.</p>
         )}

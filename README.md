@@ -13,11 +13,26 @@ ProjQue is a local-first, fully offline desktop app for developers juggling many
 
 Beyond the shelf itself: **create a new project** from inside Projque (folder + git init + README + first commit, optionally a GitHub repository via `gh`, optionally launching your agent with a kickoff prompt so it scaffolds the project for you), **clone a repository** straight into a project root, get **notified when a background agent needs you** (bell or gone-quiet detection), and **check PR & CI status** for the current branch via the GitHub CLI. `gh` is optional - every GitHub feature hides gracefully without it.
 
+### Prompt and verify
+
+ProjQue is built for working *with* an agent rather than reading code: you describe what you want, the agent does it, and ProjQue makes checking and keeping (or undoing) the result a one-click affair.
+
+- **Guided actions** - Fix a problem, Add a feature, Improve the look, Explain this project, Set up this project (follows the README to get it running) - each composes a well-formed prompt from your plain-language description.
+- **Roleplay testers** - send in up to four pretend users at once (first-time visitor, non-technical user, power user, impatient user, edge-case hunter, returning casual user). Each runs in its own pane, stays in character, and writes what it hit - bugs, missing features, confusions - to its own `roleplay-*.md` in the project without touching your code.
+- **Post-session review** - when an agent session ends, a card explains what changed in plain language and offers **Try it** (run the project), **Keep** (commit, with a suggested message), **Undo session** (back to exactly how things were before the agent started, new files included), or **Something's off** (send the agent back in with your correction). Nothing is final until you commit.
+- **Safe commits** - a commit is blocked while anything that looks like a password or API key is in the files it would add; things that don't belong in git (`node_modules`, build output, OS junk, `.env`) are pointed out with a one-click **Leave them out** that fixes `.gitignore`.
+- **Commit & push, deploy-aware** - one button commits, pulls newer commits fast-forward-only, and pushes. When the project's own pipeline says a push to this branch deploys (a GitHub Actions workflow on `push` to `main`, a Vercel/Netlify/Render config), the button asks first: *this goes live*. ProjQue never sets up hosting or runs a deploy itself.
+- **History as a timeline** - your commits and the automatic backups (taken before every agent session and restore) in one list with **Go back to this**; going back is additive, so every state stays reachable.
+- **Setup & checks** - which tools this project needs (Node, pnpm, cargo, Python, …) and whether they're installed, with a hand-off to the agent for anything missing; **Run tests** with a plain verdict and a *verified* chip on the project card; how the project gets to production, with **Explain** for a read-only walkthrough.
+- **Tidy up the code** - an agent brief for paying down vibe-coding debt: remove dead code and duplication, simplify, change nothing the project does; it must prove something is unused before removing it, run the project's own checks before and after, and never commit (you keep or undo in the review card). A **Code health** row counts commits and changed lines since the last tidy-up and suggests one when it adds up (15 commits or ~2,000 lines).
+- **Explain this error** - when a run session prints something error-shaped, one click gets a plain-language explanation and an **Ask the agent to fix it** hand-off.
+- **Roadmap & ideas as to-do lists** - checklist items in `ROADMAP.md` and `IDEAS.md` get a checkbox and **Build this**.
+
 ## What this app does not do
 
 These are guarantees, not just missing features:
 
-- **No automatic network.** Git info comes from local git; the strict CSP and the absence of any HTTP client enforce it. The only network traffic is `git fetch`/`git pull --ff-only` against your own remotes when you explicitly click Fetch or Pull. Opening a repository hands the URL to your browser.
+- **No automatic network.** Git info comes from local git; the strict CSP and the absence of any HTTP client enforce it. The only network traffic is git against your own remotes (`fetch`, `pull --ff-only`, `push` - Fetch, Pull, Push, Commit & push, all explicit clicks), `gh` for the GitHub features, and your own `claude` CLI for plain-language summaries. Opening a repository hands the URL to your browser.
 - **No telemetry.** There is no analytics code at all.
 - **No accounts, no cloud sync.** Configuration is two human-readable JSON files you can back up with `cp`.
 - **No arbitrary shell execution.** Only fixed, audited launcher actions exist; tools come from a static allowlist. See [docs/SECURITY.md](docs/SECURITY.md).

@@ -8,7 +8,13 @@ import type {
   AddRootResult,
   AgentSessionView,
   BranchList,
+  CommitPreflight,
+  DebtInfo,
+  DeployInfo,
   DoctorItem,
+  ErrorExplanation,
+  SyncOutcome,
+  ToolCheck,
   FileDiff,
   GitCommit,
   GraphCommit,
@@ -74,13 +80,19 @@ export const api = {
   gitPullFf: (id: string) => invoke<GitInfo>("git_pull_ff", { id }),
   gitSwitch: (id: string, branch: string) =>
     invoke<GitInfo>("git_switch", { id, branch }),
-  gitCommit: (id: string, message: string) =>
-    invoke<GitInfo>("git_commit", { id, message }),
+  gitCommit: (id: string, message: string, allowSecrets = false) =>
+    invoke<GitInfo>("git_commit", { id, message, allowSecrets }),
   gitHistory: (id: string, limit?: number) =>
     invoke<GitCommit[]>("git_history", { id, limit: limit ?? null }),
   gitSnapshots: (id: string) => invoke<Snapshot[]>("git_snapshots", { id }),
-  gitRestore: (id: string, hash: string) =>
-    invoke<GitInfo>("git_restore", { id, hash }),
+  gitRestore: (id: string, hash: string, discardNew = false) =>
+    invoke<GitInfo>("git_restore", { id, hash, discardNew }),
+  gitSync: (id: string, message: string | null, allowSecrets = false) =>
+    invoke<[SyncOutcome, GitInfo]>("git_sync", { id, message, allowSecrets }),
+  gitCommitPreflight: (id: string) =>
+    invoke<CommitPreflight>("git_commit_preflight", { id }),
+  gitIgnoreFix: (id: string, kinds: string[]) =>
+    invoke<GitInfo>("git_ignore_fix", { id, kinds }),
   gitChangeSummary: (id: string) => invoke<string>("git_change_summary", { id }),
   gitGraph: (id: string, limit?: number) =>
     invoke<GraphCommit[]>("git_graph", { id, limit: limit ?? null }),
@@ -108,6 +120,7 @@ export const api = {
     rows: number,
     cols: number,
     initialPrompt?: string,
+    sessionLabel?: string,
   ) =>
     invoke<AgentSessionView>("agent_session_start", {
       projectId,
@@ -115,6 +128,7 @@ export const api = {
       rows,
       cols,
       initialPrompt: initialPrompt ?? null,
+      sessionLabel: sessionLabel ?? null,
     }),
   agentSessionsList: () => invoke<AgentSessionView[]>("agent_sessions_list"),
   agentSessionAttach: (sessionId: string, channel: Channel<unknown>) =>
@@ -168,6 +182,20 @@ export const api = {
   activitySummary: () => invoke<ActivitySummary>("activity_summary"),
   doctorStatus: () => invoke<DoctorItem[]>("doctor_status"),
   doctorFix: (kind: string) => invoke<void>("doctor_fix", { kind }),
+
+  projectTestTarget: (id: string) =>
+    invoke<RunTarget | null>("project_test_target", { id }),
+  projectMarkVerified: (id: string, passed: boolean) =>
+    invoke<ProjectView>("project_mark_verified", { id, passed }),
+  projectDeployInfo: (id: string) => invoke<DeployInfo>("project_deploy_info", { id }),
+  projectDebt: (id: string) => invoke<DebtInfo>("project_debt", { id }),
+  projectMarkCleanup: (id: string) => invoke<ProjectView>("project_mark_cleanup", { id }),
+  projectDoctor: (id: string) => invoke<ToolCheck[]>("project_doctor", { id }),
+  sessionExplainError: (sessionId: string) =>
+    invoke<ErrorExplanation>("session_explain_error", { sessionId }),
+  roadmapItems: (id: string) => invoke<IdeaItem[]>("roadmap_items", { id }),
+  roadmapSetDone: (id: string, line: number, done: boolean) =>
+    invoke<IdeaItem[]>("roadmap_set_done", { id, line, done }),
 
   ideasList: (id: string | null) => invoke<IdeaItem[]>("ideas_list", { id }),
   ideaSetDone: (id: string | null, line: number, done: boolean) =>

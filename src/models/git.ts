@@ -1,3 +1,4 @@
+import type { SecretFinding } from "./github";
 export type GitState = "available" | "notARepository" | "gitMissing" | "error";
 
 export interface GitCommit {
@@ -76,3 +77,22 @@ export interface FileDiff {
 export type MergeOutcome =
   | { status: "merged" }
   | { status: "conflicts"; files: string[] };
+
+export interface SyncOutcome {
+  committed: boolean;
+  pulled: number;
+  pushed: boolean;
+}
+
+export interface IgnoreWarning {
+  kind: string;
+  label: string;
+  example: string;
+  files: number;
+}
+
+export interface CommitPreflight {
+  changed: number;
+  findings: SecretFinding[];
+  ignoreWarnings: IgnoreWarning[];
+}

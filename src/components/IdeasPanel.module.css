@@ -41,3 +41,9 @@
   font-size: 14px;
   font-weight: 600;
 }
+
+.faint {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--text-faint);
+}

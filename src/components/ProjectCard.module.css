@@ -161,3 +161,22 @@
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
   flex-shrink: 0;
 }
+
+.verified {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 1px 7px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.verified[data-failed] {
+  color: var(--text);
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+}

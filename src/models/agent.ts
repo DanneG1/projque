@@ -16,6 +16,17 @@ export interface AgentSessionView {
   status: SessionStatus;
   detectedUrl: string | null;
   needsAttention: boolean;
+  /** Agent sessions: commit to restore to undo everything the session did. */
+  undoHash: string | null;
+  /** Run sessions: the run target that was started ("test:*" = a test run). */
+  targetId: string | null;
+  /** Run sessions: error-shaped output was seen. */
+  errorDetected: boolean;
+}
+
+export interface ErrorExplanation {
+  explanation: string;
+  excerpt: string;
 }
 
 export interface RunTarget {

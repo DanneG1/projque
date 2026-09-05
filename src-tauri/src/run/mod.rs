@@ -58,9 +58,62 @@ pub fn detect_targets(dir: &Path) -> Vec<RunTarget> {
     targets
 }
 
+/// The project's own test command, if it has one - surfaced as a separate
+/// "Run tests" action (not in the Run menu). Same derivation rules and the
+/// same launch-time exact-match validation as run targets.
+pub fn detect_test_target(dir: &Path) -> Option<RunTarget> {
+    if let Ok(raw) = std::fs::read_to_string(dir.join("package.json")) {
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&raw) {
+            let script = json.get("scripts").and_then(|s| s.get("test")).and_then(|v| v.as_str());
+            // npm's placeholder script only prints an error - not a test suite.
+            if let Some(cmd) = script.filter(|c| !c.contains("no test specified")) {
+                let manager = package_manager(dir);
+                return Some(RunTarget {
+                    target_id: "test:pm".into(),
+                    label: format!("{manager} run test"),
+                    runner: manager.to_string(),
+                    detail: Some(truncate_detail(cmd)),
+                });
+            }
+        }
+    }
+    if dir.join("Cargo.toml").is_file() {
+        return Some(RunTarget { target_id: "test:cargo".into(), label: "cargo test".into(), runner: "cargo".into(), detail: None });
+    }
+    if dir.join("go.mod").is_file() {
+        return Some(RunTarget { target_id: "test:go".into(), label: "go test ./...".into(), runner: "go".into(), detail: None });
+    }
+    if has_dotnet_project(dir) {
+        return Some(RunTarget { target_id: "test:dotnet".into(), label: "dotnet test".into(), runner: "dotnet".into(), detail: None });
+    }
+    let pytest = dir.join("pytest.ini").is_file()
+        || dir.join("tests").is_dir()
+            && (dir.join("pyproject.toml").is_file() || dir.join("requirements.txt").is_file());
+    if pytest {
+        return Some(RunTarget { target_id: "test:pytest".into(), label: "python3 -m pytest".into(), runner: "python3".into(), detail: None });
+    }
+    None
+}
+
+/// Every launchable target including the test target, for launch-time
+/// validation of a frontend-supplied id.
+pub fn all_targets(dir: &Path) -> Vec<RunTarget> {
+    let mut targets = detect_targets(dir);
+    if let Some(t) = detect_test_target(dir) {
+        targets.push(t);
+    }
+    targets
+}
+
 /// The argv for a detected target. Always an argv array - no shell.
 pub fn argv_for(target: &RunTarget) -> (String, Vec<String>) {
     match target.target_id.split_once(':') {
+        // `run test` (not bare `test`) so bun runs the script, not its own runner.
+        Some(("test", "pm")) => (target.runner.clone(), vec!["run".to_string(), "test".to_string()]),
+        Some(("test", "cargo")) => ("cargo".into(), vec!["test".into()]),
+        Some(("test", "go")) => ("go".into(), vec!["test".into(), "./...".into()]),
+        Some(("test", "dotnet")) => ("dotnet".into(), vec!["test".into()]),
+        Some(("test", "pytest")) => ("python3".into(), vec!["-m".into(), "pytest".into()]),
         Some(("pm", script)) => (
             target.runner.clone(),
             vec!["run".to_string(), script.to_string()],

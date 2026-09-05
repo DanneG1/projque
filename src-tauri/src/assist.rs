@@ -36,6 +36,20 @@ pub fn change_summary(dir: &Path, path_additions: &[String]) -> Result<String, A
     run_claude(dir, &prompt, path_additions)
 }
 
+/// Explain error-shaped terminal output in plain language, with a short
+/// suggestion of what to do. `excerpt` is the tail of a run session's own
+/// scrollback (read backend-side), never frontend text.
+pub fn explain_error(dir: &Path, excerpt: &str, path_additions: &[String]) -> Result<String, AppError> {
+    let prompt = format!(
+        "The following is the end of the terminal output from running a software project. \
+         Explain to someone who is not a programmer what went wrong, in 2-4 short sentences \
+         and plain language. Then on a final line output exactly: WHAT TO DO: <one sentence: \
+         the most likely fix, or 'ask the agent to fix it' if it needs a code change>. \
+         Do not change any files.\n\n---\n{excerpt}\n---"
+    );
+    run_claude(dir, &prompt, path_additions)
+}
+
 /// `git diff HEAD` plus the names of untracked files, capped.
 fn uncommitted_diff(dir: &Path) -> Result<String, AppError> {
     let mut text = String::new();

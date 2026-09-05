@@ -1,4 +1,5 @@
 pub mod backup;
+pub mod hygiene;
 pub mod inspect;
 pub mod ops;
 mod parse;

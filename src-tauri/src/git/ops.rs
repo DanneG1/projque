@@ -139,7 +139,15 @@ pub fn switch(dir: &Path, branch: &str) -> Result<(), AppError> {
 /// exception: it becomes the value of `-m` (a single argv element, so git
 /// can never parse it as an option) - sanitized to printable text plus
 /// newlines, length-capped.
+#[cfg(test)]
 pub fn commit_all(dir: &Path, message: &str) -> Result<(), AppError> {
+    commit_all_checked(dir, message, false)
+}
+
+/// `commit_all` with the secrets guard optionally overridden. `allow_secrets`
+/// is the user's explicit "I checked, this is not a real secret" - a local
+/// commit, not publication; publish keeps its own hard block.
+pub fn commit_all_checked(dir: &Path, message: &str, allow_secrets: bool) -> Result<(), AppError> {
     let message: String = message
         .replace("\r\n", "\n")
         .chars()
@@ -151,6 +159,16 @@ pub fn commit_all(dir: &Path, message: &str) -> Result<(), AppError> {
     }
     if message.len() > 1000 {
         return Err(AppError::InvalidInput { detail: "commit message too long".into() });
+    }
+    // Backend re-check of the commit preflight the UI shows: a commit is
+    // the point of no return for a pasted API key (snapshots and history
+    // keep it forever), so refuse rather than warn.
+    let findings = if allow_secrets { Vec::new() } else { super::hygiene::secrets_in_changes(dir)? };
+    if !findings.is_empty() {
+        let files: Vec<&str> = findings.iter().map(|f| f.file.as_str()).take(5).collect();
+        return Err(AppError::InvalidInput {
+            detail: format!("commit blocked - possible secrets in: {}", files.join(", ")),
+        });
     }
     let add = runner::git_env(dir, &["add", "-A"], &[])?;
     if !add.success {
@@ -203,7 +221,12 @@ pub fn history(dir: &Path, limit: u32) -> Result<Vec<super::GitCommit>, AppError
 /// `hash` is frontend-supplied and validated: hex only (so it can never be
 /// an option or a revision expression), then resolved by `rev-parse
 /// --verify` to prove it names a commit that exists in this repository.
-pub fn restore(dir: &Path, hash: &str) -> Result<(), AppError> {
+///
+/// `discard_new` also removes files that are new since `hash` (untracked,
+/// not ignored) - used to undo an agent session completely, so the files it
+/// created go too. Nothing is lost: they are in the pre-restore snapshot,
+/// which captures untracked files as well.
+pub fn restore_with(dir: &Path, hash: &str, discard_new: bool) -> Result<(), AppError> {
     if hash.len() < 7 || hash.len() > 40 || !hash.chars().all(|c| c.is_ascii_hexdigit()) {
         return Err(AppError::InvalidInput { detail: "invalid commit id".into() });
     }
@@ -216,7 +239,14 @@ pub fn restore(dir: &Path, hash: &str) -> Result<(), AppError> {
     super::backup::create_snapshot(dir, "Before restoring an earlier version")?;
 
     // Make index + working tree match the target tree exactly (adds, edits,
-    // and deletions of tracked files; untracked files are left alone).
+    // and deletions of tracked files; untracked files are left alone unless
+    // discard_new staged them first, in which case read-tree removes them).
+    if discard_new {
+        let add = runner::git_env(dir, &["add", "-A"], &[])?;
+        if !add.success {
+            return Err(AppError::GitFailed { detail: failure_detail(&add) });
+        }
+    }
     let out = runner::git_env(dir, &["read-tree", "-u", "--reset", &full], &[])?;
     if !out.success {
         return Err(AppError::GitFailed { detail: failure_detail(&out) });
@@ -432,6 +462,65 @@ pub fn merge_complete(dir: &Path) -> Result<(), AppError> {
     Ok(())
 }
 
+/// Full hash of HEAD, None for a repo with no commits.
+pub fn head_hash(dir: &Path) -> Option<String> {
+    let out = runner::git(dir, &["rev-parse", "--verify", "-q", "HEAD"]).ok()?;
+    out.success.then(|| out.stdout.trim().to_string()).filter(|s| !s.is_empty())
+}
+
+#[derive(Serialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncOutcome {
+    pub committed: bool,
+    pub pulled: u32,
+    pub pushed: bool,
+}
+
+/// "Commit & push" as one explicit action: commit everything (when a message
+/// is given and there is something to commit), bring in newer commits from
+/// the upstream fast-forward-only (so it can never create a merge or lose
+/// work - a divergence stops here with a clear message), then push. Each
+/// step is the same audited verb as its standalone button.
+pub fn sync(dir: &Path, message: Option<&str>, allow_secrets: bool) -> Result<SyncOutcome, AppError> {
+    let mut outcome = SyncOutcome::default();
+    if merge_in_progress(dir) {
+        return Err(AppError::InvalidInput {
+            detail: "a merge is in progress - complete or abort it first".into(),
+        });
+    }
+    if let Some(message) = message.map(str::trim).filter(|m| !m.is_empty()) {
+        let status = runner::git(dir, &["status", "--porcelain=v1", "-uall"])?;
+        if status.success && !status.stdout.trim().is_empty() {
+            commit_all_checked(dir, message, allow_secrets)?;
+            outcome.committed = true;
+        }
+    }
+    let branches = list_branches(dir)?;
+    let current = branches.branches.iter().find(|b| b.current);
+    if current.is_some_and(|b| b.upstream.is_some()) {
+        let out = runner::git_with_timeout(dir, &["pull", "--ff-only", "--quiet"], NET_TIMEOUT, true)?;
+        if !out.success {
+            let detail = failure_detail(&out);
+            let diverged = detail.contains("Not possible to fast-forward")
+                || detail.contains("diverging")
+                || detail.contains("divergent");
+            return Err(AppError::GitFailed {
+                detail: if diverged {
+                    "your online copy has changes that conflict with yours - open Git tools to merge them first".into()
+                } else {
+                    detail
+                },
+            });
+        }
+        // How many commits came in: compare HEAD before/after via the
+        // upstream tracking counts we already had.
+        outcome.pulled = current.map(|b| b.behind).unwrap_or(0);
+    }
+    push_current(dir)?;
+    outcome.pushed = true;
+    Ok(outcome)
+}
+
 /// Push the current branch to origin, setting upstream. Explicit click only
 /// (Push button / publish flow) - never a background action, never forced.
 pub fn push_current(dir: &Path) -> Result<(), AppError> {
@@ -459,6 +548,38 @@ mod tests {
     fn git_in(dir: &Path, args: &[&str]) {
         let out = runner::git(dir, args).expect("git runs");
         assert!(out.success, "git {args:?} failed: {}", out.stderr);
+    }
+
+    /// Commit & push against a local bare "origin": commits, pushes, and
+    /// reports honestly; a second sync with nothing new still pushes cleanly.
+    #[test]
+    fn sync_commits_and_pushes() {
+        if crate::git::version().is_none() {
+            return;
+        }
+        let base = std::env::temp_dir().join(format!("projque-sync-test-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        let origin = base.join("origin.git");
+        let work = base.join("work");
+        std::fs::create_dir_all(&origin).unwrap();
+        std::fs::create_dir_all(&work).unwrap();
+        git_in(&origin, &["init", "-q", "--bare"]);
+        git_in(&work, &["init", "-q", "-b", "main"]);
+        git_in(&work, &["config", "user.name", "Test"]);
+        git_in(&work, &["config", "user.email", "t@t"]);
+        git_in(&work, &["remote", "add", "origin", origin.to_str().unwrap()]);
+        std::fs::write(work.join("a.txt"), "1").unwrap();
+
+        let out = sync(&work, Some("first"), false).unwrap();
+        assert!(out.committed && out.pushed);
+        let remote_log = runner::git(&origin, &["log", "--oneline", "main"]).unwrap();
+        assert!(remote_log.stdout.contains("first"));
+
+        // Nothing to commit: no commit, still a (no-op) push.
+        let out = sync(&work, Some("ignored"), false).unwrap();
+        assert!(!out.committed && out.pushed);
+        assert_eq!(history(&work, 5).unwrap().len(), 1);
+        let _ = std::fs::remove_dir_all(&base);
     }
 
     /// The user's workflow end-to-end: branch, commit, merge - including the

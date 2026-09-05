@@ -28,13 +28,21 @@ export type IconName =
   | "trash"
   | "star"
   | "flame"
-  | "locate";
+  | "locate"
+  | "users";
 
 const PATHS: Record<IconName, ReactElement> = {
   folder: <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />,
   editor: <path d="m8 6-6 6 6 6M16 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />,
   agent: <path d="M13 2 4.5 13H11l-1 9 8.5-11H12z" strokeLinecap="round" strokeLinejoin="round" />,
   run: <path d="M7 5v14l11-7z" fill="currentColor" stroke="none" />,
+  users: (
+    <>
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M2.5 20c0-3.6 3-5.6 6.5-5.6s6.5 2 6.5 5.6" strokeLinecap="round" />
+      <path d="M15.5 5.2a3.5 3.5 0 0 1 0 5.6M17 14.9c2.6.7 4.5 2.4 4.5 5.1" strokeLinecap="round" />
+    </>
+  ),
   terminal: (
     <>
       <rect x="3" y="4" width="18" height="16" rx="2" />

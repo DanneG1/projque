@@ -112,6 +112,18 @@ pub fn run() {
             commands::git_merge_complete,
             commands::git_conflicts,
             commands::activity_summary,
+            commands::git_sync,
+            commands::git_commit_preflight,
+            commands::git_ignore_fix,
+            commands::project_test_target,
+            commands::project_mark_verified,
+            commands::project_deploy_info,
+            commands::project_doctor,
+            commands::session_explain_error,
+            commands::roadmap_items,
+            commands::roadmap_set_done,
+            commands::project_mark_cleanup,
+            commands::project_debt,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
