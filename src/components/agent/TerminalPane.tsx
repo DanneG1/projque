@@ -12,6 +12,12 @@ function portOf(url: string | null): string {
   return m ? m[1] : "";
 }
 
+/** Only a local dev server is ever framed - defense in depth on top of the
+ *  CSP frame-src allowlist and the backend-side URL detection. */
+function previewable(url: string | null): url is string {
+  return !!url && /^http:\/\/(localhost|127\.0\.0\.1):\d{2,5}(\/|$)/.test(url);
+}
+
 export function TerminalPane({
   session,
   grid = false,
@@ -31,6 +37,9 @@ export function TerminalPane({
   const removeSession = useAppStore((s) => s.removeSession);
   const [manual, setManual] = useState(false);
   const [port, setPort] = useState("");
+  const [preview, setPreview] = useState(false);
+  const [previewKey, setPreviewKey] = useState(0);
+  const canPreview = session.kind === "run" && previewable(session.detectedUrl);
 
   // Visible-session reporting lives in AgentsPage, which knows the full set
   // of panes on screen; this component only mounts its terminal.
@@ -80,6 +89,16 @@ export function TerminalPane({
         {isRun && session.errorDetected && <ErrorExplainer session={session} />}
         {isRun && (
           <div className={styles.browserControls}>
+            {canPreview && (
+              <button
+                className="btn"
+                data-active={preview || undefined}
+                title={preview ? "Hide the preview" : "Show the running app next to the terminal"}
+                onClick={() => setPreview((v) => !v)}
+              >
+                <Icon name="split" size={14} /> {preview ? "Hide preview" : "Preview"}
+              </button>
+            )}
             {session.detectedUrl ? (
               <button
                 className="btn"
@@ -119,7 +138,39 @@ export function TerminalPane({
           </div>
         )}
       </div>
-      <div className={styles.mount} ref={mountRef} />
+      <div className={styles.body} data-preview={(preview && canPreview) || undefined}>
+        <div className={styles.mount} ref={mountRef} />
+        {preview && canPreview && (
+          <div className={styles.preview}>
+            <div className={styles.previewBar}>
+              <code className={styles.previewUrl}>{session.detectedUrl}</code>
+              <button
+                className="btn btn-ghost"
+                title="Reload the preview"
+                aria-label="Reload the preview"
+                onClick={() => setPreviewKey((k) => k + 1)}
+              >
+                <Icon name="refresh" size={13} />
+              </button>
+              <button
+                className="btn btn-ghost"
+                title="Open in your browser"
+                aria-label="Open in your browser"
+                onClick={() => void openSessionUrl(session.sessionId)}
+              >
+                <Icon name="external" size={13} />
+              </button>
+            </div>
+            <iframe
+              key={previewKey}
+              className={styles.previewFrame}
+              src={session.detectedUrl ?? undefined}
+              title={`Preview of ${project?.name ?? "the running app"}`}
+              referrerPolicy="no-referrer"
+            />
+          </div>
+        )}
+      </div>
       {session.status.state === "exited" && session.kind === "agent" && (
         <SessionReview
           session={session}

@@ -7,10 +7,58 @@
   background: var(--bg-sunken);
 }
 
-.mount {
+.body {
   flex: 1;
   min-height: 0;
+  display: flex;
+}
+
+.mount {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
   padding: 6px;
+}
+
+/* Preview beside the terminal: the app gets the larger share. */
+.body[data-preview] .mount {
+  flex: 0 0 42%;
+}
+
+.preview {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+  background: #fff;
+}
+
+.previewBar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px 3px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-raised);
+}
+
+.previewUrl {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.previewFrame {
+  flex: 1;
+  min-height: 0;
+  border: 0;
+  width: 100%;
+  background: #fff;
 }
 
 .exitedBar {
