@@ -1,6 +1,7 @@
 mod agent;
 mod assist;
 mod audit;
+mod transcript;
 mod watch;
 mod commands;
 mod config;
@@ -112,6 +113,10 @@ pub fn run() {
             commands::settings_prompt_delete,
             commands::project_env_status,
             commands::project_env_set,
+            commands::transcripts_list,
+            commands::transcript_summarize,
+            commands::transcript_delete,
+            commands::transcripts_open_folder,
             commands::doctor_status,
             commands::doctor_fix,
             commands::ideas_list,

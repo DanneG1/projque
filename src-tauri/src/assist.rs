@@ -110,6 +110,11 @@ fn uncommitted_diff(dir: &Path) -> Result<String, AppError> {
     Ok(text)
 }
 
+/// Same headless call for other modules (transcript summaries).
+pub fn run_claude_pub(dir: &Path, prompt: &str, path_additions: &[String]) -> Result<String, AppError> {
+    run_claude(dir, prompt, path_additions)
+}
+
 fn run_claude(dir: &Path, prompt: &str, path_additions: &[String]) -> Result<String, AppError> {
     let program = which::resolve_program("claude", path_additions)
         .ok_or_else(|| AppError::ProgramNotFound { program: "claude".into() })?;

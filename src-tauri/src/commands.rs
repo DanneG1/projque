@@ -2180,6 +2180,70 @@ pub async fn project_env_set(
 }
 
 // ---------------------------------------------------------------------------
+// Session transcripts
+
+#[tauri::command]
+pub async fn transcripts_list(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<Vec<crate::transcript::TranscriptMeta>, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        state.resolve_dir(&id)?;
+        Ok(crate::transcript::list(&state.config_dir, &id))
+    })
+    .await
+}
+
+/// Plain-language summary of a saved transcript via the user's own Claude
+/// CLI. Explicit click only. `file` is a name from transcripts_list.
+#[tauri::command]
+pub async fn transcript_summarize(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    file: String,
+) -> Result<String, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        let (settings, _) = state.settings();
+        crate::transcript::summarize(&state.config_dir, &dir, &id, &file, &settings.path_additions)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn transcript_delete(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    file: String,
+) -> Result<(), AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        state.resolve_dir(&id)?;
+        crate::transcript::delete(&state.config_dir, &id, &file)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn transcripts_open_folder(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<(), AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        state.resolve_dir(&id)?;
+        let dir = crate::transcript::folder(&state.config_dir, &id);
+        std::fs::create_dir_all(&dir)?;
+        tauri_plugin_opener::open_path(&dir, None::<&str>).map_err(|e| {
+            AppError::LaunchFailed { program: "file manager".into(), detail: e.to_string() }
+        })
+    })
+    .await
+}
+
+// ---------------------------------------------------------------------------
 // Setup doctor
 
 #[derive(Serialize)]

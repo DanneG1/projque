@@ -33,6 +33,15 @@ export interface SessionPulse {
   working: boolean;
 }
 
+/** A saved agent session transcript (app config dir, never in the project). */
+export interface TranscriptMeta {
+  file: string;
+  agentLabel: string;
+  startedAt: number;
+  bytes: number;
+  summary: string | null;
+}
+
 export interface ErrorExplanation {
   explanation: string;
   excerpt: string;

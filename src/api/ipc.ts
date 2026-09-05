@@ -11,6 +11,7 @@ import type {
   AuditSupport,
   DiskUsage,
   EnvStatus,
+  TranscriptMeta,
   BranchList,
   CommitPreflight,
   DebtInfo,
@@ -201,6 +202,11 @@ export const api = {
   projectEnvStatus: (id: string) => invoke<EnvStatus>("project_env_status", { id }),
   projectEnvSet: (id: string, key: string, value: string) =>
     invoke<EnvStatus>("project_env_set", { id, key, value }),
+  transcriptsList: (id: string) => invoke<TranscriptMeta[]>("transcripts_list", { id }),
+  transcriptSummarize: (id: string, file: string) =>
+    invoke<string>("transcript_summarize", { id, file }),
+  transcriptDelete: (id: string, file: string) => invoke<void>("transcript_delete", { id, file }),
+  transcriptsOpenFolder: (id: string) => invoke<void>("transcripts_open_folder", { id }),
   projectDiskUsage: (id: string) => invoke<DiskUsage>("project_disk_usage", { id }),
   projectDiskClean: (id: string, rels: string[]) =>
     invoke<number>("project_disk_clean", { id, rels }),

@@ -288,6 +288,20 @@ impl Registry {
                     })
                 };
                 if let Some(view) = exited_view {
+                    // Keep the transcript of agent sessions (never run sessions:
+                    // dev-server logs are noise). Best effort, off the lock.
+                    if view.kind == SessionKind::Agent {
+                        let bytes: Vec<u8> = sessions
+                            .lock()
+                            .unwrap()
+                            .get(&id)
+                            .map(|s| s.output.lock().unwrap().scrollback.iter().copied().collect())
+                            .unwrap_or_default();
+                        use tauri::Manager;
+                        if let Some(state) = app.try_state::<Arc<crate::state::AppState>>() {
+                            let _ = crate::transcript::save(&state.config_dir, &view, &bytes);
+                        }
+                    }
                     let _ = app.emit("agent:session-exited", &view);
                     // The in-app toast covers a focused window; when the user
                     // is elsewhere, tell them the way the attention path does.

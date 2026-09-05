@@ -22,6 +22,7 @@ import { SuggestionList } from "../components/Suggestions";
 import { TagEditor } from "../components/Tags";
 import { TryIdea } from "../components/TryIdea";
 import { SavedPrompts } from "../components/SavedPrompts";
+import { TranscriptsPanel } from "../components/TranscriptsPanel";
 import { StatusSelect } from "../components/StatusSelect";
 import { relativeTime } from "../utils/time";
 import styles from "./ProjectDetailPage.module.css";
@@ -314,6 +315,8 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
           <SetupPanel project={project} />
         </section>
       )}
+
+      {project.pathExists && <TranscriptsPanel projectId={project.id} />}
 
       {project.isGitRepo && <GithubPanel projectId={project.id} gitInfo={gitInfo} />}
 
