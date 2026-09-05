@@ -99,6 +99,18 @@ export function CommitControls({
     if (await commitAndPush(projectId, message.trim(), allowSecrets)) reset();
   };
 
+  const [suggesting, setSuggesting] = useState(false);
+  const suggestMessage = async () => {
+    setSuggesting(true);
+    try {
+      setMessage(await api.gitCommitMessage(projectId));
+    } catch (err) {
+      reportError(err);
+    } finally {
+      setSuggesting(false);
+    }
+  };
+
   const summarize = async () => {
     setSummarizing(true);
     try {
@@ -198,6 +210,14 @@ export function CommitControls({
             if (e.key === "Enter") void commit();
           }}
         />
+        <button
+          className="btn"
+          disabled={busy || suggesting}
+          title="Ask Claude for a one-line message describing these changes (uses your Claude Code account)"
+          onClick={() => void suggestMessage()}
+        >
+          {suggesting ? "Thinking…" : "Suggest"}
+        </button>
         <button
           className="btn"
           disabled={busy || !message.trim() || blocked}

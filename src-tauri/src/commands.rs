@@ -1884,6 +1884,23 @@ pub async fn github_backup(
     .await
 }
 
+/// One-line commit message for the uncommitted changes via the user's own
+/// Claude Code CLI. Explicit-click only.
+#[tauri::command]
+pub async fn git_commit_message(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<String, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        require_git(&state)?;
+        let (settings, _) = state.settings();
+        crate::assist::commit_message(&dir, &settings.path_additions)
+    })
+    .await
+}
+
 // ---------------------------------------------------------------------------
 // Setup doctor
 

@@ -96,6 +96,7 @@ export const api = {
   gitIgnoreFix: (id: string, kinds: string[]) =>
     invoke<GitInfo>("git_ignore_fix", { id, kinds }),
   gitChangeSummary: (id: string) => invoke<string>("git_change_summary", { id }),
+  gitCommitMessage: (id: string) => invoke<string>("git_commit_message", { id }),
   gitGraph: (id: string, limit?: number) =>
     invoke<GraphCommit[]>("git_graph", { id, limit: limit ?? null }),
   gitCommitDiff: (id: string, hash: string) =>

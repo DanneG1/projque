@@ -99,6 +99,7 @@ pub fn run() {
             commands::publish_preflight,
             commands::publish_run,
             commands::github_backup,
+            commands::git_commit_message,
             commands::doctor_status,
             commands::doctor_fix,
             commands::ideas_list,

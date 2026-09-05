@@ -36,6 +36,33 @@ pub fn change_summary(dir: &Path, path_additions: &[String]) -> Result<String, A
     run_claude(dir, &prompt, path_additions)
 }
 
+/// Just a commit message for the uncommitted changes: one line, plain
+/// language, imperative. Cheaper and faster than the full summary.
+pub fn commit_message(dir: &Path, path_additions: &[String]) -> Result<String, AppError> {
+    let diff = uncommitted_diff(dir)?;
+    if diff.trim().is_empty() {
+        return Err(AppError::InvalidInput { detail: "no changes since the last commit".into() });
+    }
+    let prompt = format!(
+        "Write a git commit message for the following uncommitted changes. Output ONLY the \
+         message: one line, at most 65 characters, plain language a non-programmer would \
+         understand, describing what changed in terms of what the project does (for example \
+         'Add a contact form to the About page'). No quotes, no prefix, no explanation.\n\n{diff}"
+    );
+    let text = run_claude(dir, &prompt, path_additions)?;
+    let line = text
+        .lines()
+        .map(str::trim)
+        .find(|l| !l.is_empty())
+        .unwrap_or("")
+        .trim_matches(|c| c == '"' || c == '\'' || c == '`')
+        .to_string();
+    if line.is_empty() {
+        return Err(AppError::InvalidInput { detail: "Claude returned no message".into() });
+    }
+    Ok(line.chars().take(120).collect())
+}
+
 /// Explain error-shaped terminal output in plain language, with a short
 /// suggestion of what to do. `excerpt` is the tail of a run session's own
 /// scrollback (read backend-side), never frontend text.
