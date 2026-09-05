@@ -7,7 +7,7 @@ import { SparkBanner } from "../components/SparkBanner";
 import { StreakChip } from "../components/StreakChip";
 import { Icon } from "../components/Icon";
 import { IdeasPanel } from "../components/IdeasPanel";
-import { PackageSweep } from "../components/PackageSweep";
+import { HealthCheckButton, HealthCheckPanel } from "../components/HealthCheck";
 import { favoriteShortcuts } from "../utils/shortcuts";
 import { useSortedProjects } from "../hooks/useSortedProjects";
 import { useAppStore } from "../store/useAppStore";
@@ -24,11 +24,6 @@ export function ProjectListPage() {
   const refreshGit = useAppStore((s) => s.refreshGit);
   const gitAvailable = useAppStore((s) => s.gitAvailable);
   const setNewProjectOpen = useAppStore((s) => s.setNewProjectOpen);
-  const auditAll = useAppStore((s) => s.auditAll);
-  const sweepRunning = useAppStore((s) => s.sweep.status === "running");
-  const auditableCount = allProjects.filter(
-    (p) => p.pathExists && p.auditable && p.status !== "archived",
-  ).length;
 
   const searchRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState(-1);
@@ -117,16 +112,7 @@ export function ProjectListPage() {
         >
           <Icon name="refresh" size={15} />
         </button>
-        {auditableCount > 0 && (
-          <button
-            className="btn"
-            disabled={sweepRunning}
-            title={`Check all ${auditableCount} package projects for known vulnerabilities (npm/pnpm audit - contacts the package registry)`}
-            onClick={() => void auditAll()}
-          >
-            <Icon name="check" size={14} /> {sweepRunning ? "Checking…" : "Check packages"}
-          </button>
-        )}
+        <HealthCheckButton />
         <button
           className="btn"
           onClick={() => {
@@ -141,7 +127,7 @@ export function ProjectListPage() {
         </button>
       </div>
 
-      <PackageSweep />
+      <HealthCheckPanel />
 
       <SparkBanner />
 

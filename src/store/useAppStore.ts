@@ -66,17 +66,39 @@ export interface InboxItem {
 
 const INBOX_CAP = 60;
 
-/** One "check all projects" pass. Results land in `audits`; this tracks
- *  progress and remembers which projects were clean before any fix, so the
- *  commit offer never sweeps up unrelated uncommitted work. */
+export interface HealthSteps {
+  /** git fetch every project with a remote (network, explicit click). */
+  fetch: boolean;
+  /** Package vulnerability check (network, explicit click). */
+  packages: boolean;
+  /** Run each project's test command as a run session, one at a time. */
+  tests: boolean;
+}
+
+export type TestOutcome = "passed" | "failed" | "none";
+
+/** One "health check all projects" pass: fetch, packages, tests - each
+ *  optional. Package results land in `audits`; this tracks progress and
+ *  remembers which projects were clean before any fix, so the commit offer
+ *  never sweeps up unrelated uncommitted work. */
 export interface AuditSweep {
   status: "idle" | "running" | "done";
-  /** Projects included, in check order. */
+  steps: HealthSteps;
+  phase: keyof HealthSteps | null;
+  fetchIds: string[];
+  /** Projects included in the package check, in order. */
   ids: string[];
+  testIds: string[];
+  /** Progress across all phases. */
   done: number;
+  total: number;
   /** Project currently being checked. */
   current: string | null;
   errors: Record<string, string>;
+  fetchErrors: Record<string, string>;
+  testResults: Record<string, TestOutcome>;
+  /** Test run session per project, to open its output. */
+  testSessions: Record<string, string>;
   /** Working tree was clean when the sweep started. */
   cleanBefore: Record<string, boolean>;
   /** Projects an "Update safely" run was started for during this sweep. */
@@ -192,7 +214,7 @@ interface AppStore {
     projectId: string,
     targetId: string,
     opts?: { navigate?: boolean },
-  ) => Promise<void>;
+  ) => Promise<AgentSessionView | null>;
   openSessionUrl: (sessionId: string) => Promise<void>;
   sessionUrlDetected: (sessionId: string, url: string) => void;
   sessionErrorDetected: (sessionId: string) => void;
@@ -209,8 +231,9 @@ interface AppStore {
   setBusy: (projectId: string, label: string | null) => void;
   /** Run the package vulnerability check (explicit click - contacts the registry). */
   runAudit: (projectId: string, opts?: { quiet?: boolean }) => Promise<AuditReport | null>;
-  /** Check every auditable project in turn (explicit click, one at a time). */
-  auditAll: () => Promise<void>;
+  /** Check every project in turn (explicit click, one at a time): fetch,
+   *  packages, tests - whichever steps are on. */
+  auditAll: (steps?: Partial<HealthSteps>) => Promise<void>;
   cancelSweep: () => void;
   dismissSweep: () => void;
   /** Start "Update safely" for a project found in the sweep, staying on this page. */
@@ -246,13 +269,34 @@ interface AppStore {
 
 let toastSeq = 0;
 
+/** Resolve with the exit code once a session leaves the running state. */
+function waitForExit(sessionId: string): Promise<number | null> {
+  return new Promise((resolve) => {
+    const check = () => {
+      const v = useAppStore.getState().sessions.find((x) => x.sessionId === sessionId);
+      if (!v) return resolve(null);
+      if (v.status.state === "exited") return resolve(v.status.code);
+      setTimeout(check, 500);
+    };
+    check();
+  });
+}
+
 function emptySweep(): AuditSweep {
   return {
     status: "idle",
+    steps: { fetch: true, packages: true, tests: true },
+    phase: null,
+    fetchIds: [],
     ids: [],
+    testIds: [],
     done: 0,
+    total: 0,
     current: null,
     errors: {},
+    fetchErrors: {},
+    testResults: {},
+    testSessions: {},
     cleanBefore: {},
     fixed: {},
     committed: {},
@@ -859,8 +903,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
         route:
           opts?.navigate === false ? s.route : { page: "agents", sessionId: session.sessionId },
       }));
+      return session;
     } catch (err) {
       get().reportError(err);
+      return null;
     }
   },
 
@@ -1043,55 +1089,118 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
   },
 
-  auditAll: async () => {
+  auditAll: async (stepsIn) => {
     if (get().sweep.status === "running") return;
-    const ids = get()
-      .projects.filter((p) => p.pathExists && p.auditable && p.status !== "archived")
-      .map((p) => p.id);
-    if (ids.length === 0) {
-      get().notify("Nothing to check", "No project here uses a package manager the check supports.");
-      return;
-    }
+    const steps: HealthSteps = { fetch: true, packages: true, tests: true, ...stepsIn };
+    const live = get().projects.filter((p) => p.pathExists && p.status !== "archived");
     // Fresh git state first: the commit offer later depends on knowing
     // which projects were clean before anything was updated.
     await get().refreshGit({ force: true });
+    const fetchIds = steps.fetch
+      ? live.filter((p) => p.isGitRepo && get().git[p.id]?.remoteUrl).map((p) => p.id)
+      : [];
+    const ids = steps.packages ? live.filter((p) => p.auditable).map((p) => p.id) : [];
+    const testIds = steps.tests ? live.filter((p) => p.hasRunTargets).map((p) => p.id) : [];
+    const total = fetchIds.length + ids.length + testIds.length;
+    if (total === 0) {
+      get().notify(
+        "Nothing to check",
+        "No project here has a remote, a supported package manager, or a test command.",
+      );
+      return;
+    }
     const cleanBefore: Record<string, boolean> = {};
-    for (const id of ids) cleanBefore[id] = !(get().git[id]?.dirty ?? true);
-    set({ sweep: { ...emptySweep(), status: "running", ids, cleanBefore } });
+    for (const p of live) cleanBefore[p.id] = !(get().git[p.id]?.dirty ?? true);
+    set({
+      sweep: { ...emptySweep(), status: "running", steps, fetchIds, ids, testIds, total, cleanBefore },
+    });
 
+    const begin = (phase: keyof HealthSteps, id: string) =>
+      set((s) => ({ sweep: { ...s.sweep, phase, current: id } }));
+    const finish = () =>
+      set((s) => ({ sweep: { ...s.sweep, done: s.sweep.done + 1, current: null } }));
+    const fail = (key: "errors" | "fetchErrors", id: string, err: unknown) => {
+      const message = userMessage(parseAppError(err));
+      set((s) => ({
+        sweep: { ...s.sweep, [key]: { ...s.sweep[key], [id]: message.detail ?? message.title } },
+      }));
+    };
+    const cancelled = () => get().sweep.cancel;
+
+    // 1. Fetch: learn what is behind/ahead before judging anything.
+    for (const id of fetchIds) {
+      if (cancelled()) break;
+      begin("fetch", id);
+      try {
+        const info = await api.gitFetch(id);
+        set((s) => ({ git: { ...s.git, [id]: info } }));
+      } catch (err) {
+        fail("fetchErrors", id, err);
+      }
+      finish();
+    }
+
+    // 2. Packages.
     for (const id of ids) {
-      if (get().sweep.cancel) break;
-      set((s) => ({ sweep: { ...s.sweep, current: id } }));
+      if (cancelled()) break;
+      begin("packages", id);
       try {
         await get().runAudit(id, { quiet: true });
       } catch (err) {
-        const message = userMessage(parseAppError(err));
-        set((s) => ({
-          sweep: { ...s.sweep, errors: { ...s.sweep.errors, [id]: message.detail ?? message.title } },
-        }));
+        fail("errors", id, err);
       }
-      set((s) => ({ sweep: { ...s.sweep, done: s.sweep.done + 1, current: null } }));
+      finish();
+    }
+
+    // 3. Tests: one run session at a time, waiting for each to exit. The
+    // output stays in the sessions list for inspection.
+    for (const id of testIds) {
+      if (cancelled()) break;
+      begin("tests", id);
+      let outcome: TestOutcome = "none";
+      try {
+        const target = await api.projectTestTarget(id);
+        if (target) {
+          const session = await get().startRunSession(id, target.targetId, { navigate: false });
+          if (session) {
+            set((s) => ({
+              sweep: {
+                ...s.sweep,
+                testSessions: { ...s.sweep.testSessions, [id]: session.sessionId },
+              },
+            }));
+            const code = await waitForExit(session.sessionId);
+            outcome = code === 0 ? "passed" : "failed";
+          }
+        }
+      } catch (err) {
+        fail("errors", id, err);
+      }
+      set((s) => ({ sweep: { ...s.sweep, testResults: { ...s.sweep.testResults, [id]: outcome } } }));
+      finish();
     }
 
     const sweep = get().sweep;
-    set({ sweep: { ...sweep, status: "done", current: null } });
-    const checked = sweep.ids.slice(0, sweep.done);
-    const affected = checked.filter((id) => (get().audits[id]?.total ?? 0) > 0);
-    const fixable = affected.reduce((n, id) => n + (get().audits[id]?.fixable ?? 0), 0);
-    if (affected.length === 0) {
+    set({ sweep: { ...sweep, status: "done", phase: null, current: null } });
+    const vulnerable = ids.filter((id) => (get().audits[id]?.total ?? 0) > 0).length;
+    const failed = Object.values(sweep.testResults).filter((r) => r === "failed").length;
+    const behind = fetchIds.filter((id) => (get().git[id]?.behind ?? 0) > 0).length;
+    if (vulnerable + failed + behind === 0) {
       get().notify(
-        "All packages look fine",
-        `${checked.length} project${checked.length === 1 ? "" : "s"} checked, no known vulnerabilities.`,
+        "Health check: all good",
+        `${sweep.done} check${sweep.done === 1 ? "" : "s"} done, nothing needs attention.`,
         { variant: "success" },
       );
     } else {
-      get().notify(
-        `${affected.length} project${affected.length === 1 ? " has" : "s have"} vulnerable packages`,
-        fixable > 0
-          ? `${fixable} can be updated safely - see the summary on the projects page.`
-          : "See the summary on the projects page.",
-        { variant: "attention", ttl: 8000, onClick: () => get().setRoute({ page: "list" }) },
-      );
+      const parts: string[] = [];
+      if (vulnerable) parts.push(`${vulnerable} with vulnerable packages`);
+      if (failed) parts.push(`${failed} with failing tests`);
+      if (behind) parts.push(`${behind} behind the remote`);
+      get().notify("Health check: things to look at", `${parts.join(", ")} - see the projects page.`, {
+        variant: "attention",
+        ttl: 8000,
+        onClick: () => get().setRoute({ page: "list" }),
+      });
     }
   },
 
@@ -1238,13 +1347,17 @@ export const useAppStore = create<AppStore>((set, get) => ({
           set((s) => ({ projects: s.projects.map((p) => (p.id === updated.id ? updated : p)) })),
         )
         .catch(() => {});
-      get().notify(
-        passed ? "All checks passed" : "Some checks failed",
-        passed
-          ? `${view.projectLabel} is verified.`
-          : `${view.projectLabel}: look at the output, or ask the agent to fix it.`,
-        { variant: passed ? "success" : "error", ttl: 8000, sessionId: view.sessionId, onClick: openSession },
-      );
+      // During a health check the summary panel reports verdicts instead.
+      const inSweep = get().sweep.status === "running" && get().sweep.phase === "tests";
+      if (!inSweep) {
+        get().notify(
+          passed ? "All checks passed" : "Some checks failed",
+          passed
+            ? `${view.projectLabel} is verified.`
+            : `${view.projectLabel}: look at the output, or ask the agent to fix it.`,
+          { variant: passed ? "success" : "error", ttl: 8000, sessionId: view.sessionId, onClick: openSession },
+        );
+      }
     } else if (code !== null && code !== 0) {
       get().notify(`${view.agentLabel} exited (code ${code})`, view.projectLabel, {
         variant: "error",
