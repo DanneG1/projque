@@ -261,6 +261,7 @@ pub(crate) fn add_project_at(state: &AppState, path: std::path::PathBuf) -> Resu
             last_cleanup: None,
             last_audit: None,
             experiment: None,
+            approved_commands: Vec::new(),
         };
         projects.push(new.clone());
         Ok(new)
@@ -1578,7 +1579,29 @@ pub async fn run_session_start(
             .iter()
             .find(|t| t.target_id == target_id)
             .ok_or_else(|| AppError::RunTargetNotFound { target: target_id.clone() })?;
-        let (runner, args) = run::argv_for(target);
+        let (runner, args) = match target_id.strip_prefix(run::custom::PREFIX) {
+            // Project-defined command: re-read the file now, and refuse
+            // unless this exact program+args was approved for this project.
+            Some(cmd_id) => {
+                let cmd = run::custom::load(&dir)
+                    .into_iter()
+                    .find(|c| c.id == cmd_id)
+                    .ok_or_else(|| AppError::RunTargetNotFound { target: target_id.clone() })?;
+                let (projects, _) = state.projects();
+                let approved = projects
+                    .iter()
+                    .find(|p| p.id == project_id)
+                    .map(|p| p.approved_commands.contains(&cmd.hash))
+                    .unwrap_or(false);
+                if !approved {
+                    return Err(AppError::InvalidInput {
+                        detail: format!("\"{}\" has not been approved for this project yet", cmd.label),
+                    });
+                }
+                (cmd.program, cmd.args)
+            }
+            None => run::argv_for(target),
+        };
         let (settings, _) = state.settings();
         let program = which::resolve_program(&runner, &settings.path_additions)
             .ok_or_else(|| AppError::ProgramNotFound { program: runner.clone() })?;
@@ -2255,6 +2278,70 @@ pub async fn project_outdated(
         let dir = state.resolve_dir(&id)?;
         let (settings, _) = state.settings();
         crate::audit::outdated(&dir, &settings.path_additions)
+    })
+    .await
+}
+
+// ---------------------------------------------------------------------------
+// Project-defined commands (projque.json)
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CustomCommandView {
+    #[serde(flatten)]
+    pub command: run::custom::CustomCommand,
+    pub approved: bool,
+}
+
+#[tauri::command]
+pub async fn project_custom_commands(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<Vec<CustomCommandView>, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        let (projects, _) = state.projects();
+        let approved = projects
+            .iter()
+            .find(|p| p.id == id)
+            .map(|p| p.approved_commands.clone())
+            .unwrap_or_default();
+        Ok(run::custom::load(&dir)
+            .into_iter()
+            .map(|command| CustomCommandView { approved: approved.contains(&command.hash), command })
+            .collect())
+    })
+    .await
+}
+
+/// Approve (or revoke) one project-defined command by its fingerprint. The
+/// fingerprint must belong to a command in the file right now.
+#[tauri::command]
+pub async fn project_command_approve(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    hash: String,
+    approved: bool,
+) -> Result<ProjectView, AppError> {
+    let state = state.inner().clone();
+    run_blocking(move || {
+        let dir = state.resolve_dir(&id)?;
+        if !run::custom::load(&dir).iter().any(|c| c.hash == hash) {
+            return Err(AppError::InvalidInput { detail: "that command is not in projque.json".into() });
+        }
+        let updated = state.update_projects(|projects| {
+            let project = projects
+                .iter_mut()
+                .find(|p| p.id == id)
+                .ok_or_else(|| AppError::ProjectNotFound { id: id.clone() })?;
+            project.approved_commands.retain(|h| h != &hash);
+            if approved {
+                project.approved_commands.push(hash.clone());
+            }
+            Ok(project.clone())
+        })?;
+        Ok(project::view(&updated))
     })
     .await
 }

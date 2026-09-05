@@ -7,6 +7,7 @@ import { AuditPanel } from "./AuditPanel";
 import { DiskRow } from "./DiskPanel";
 import { EnvPanel } from "./EnvPanel";
 import { OutdatedPanel } from "./OutdatedPanel";
+import { CustomCommandsPanel } from "./CustomCommandsPanel";
 import { Icon } from "./Icon";
 import styles from "./SetupPanel.module.css";
 
@@ -155,6 +156,8 @@ export function SetupPanel({ project }: { project: ProjectView }) {
       <AuditPanel project={project} />
 
       <OutdatedPanel project={project} />
+
+      <CustomCommandsPanel projectId={project.id} />
 
       <DiskRow projectId={project.id} />
 

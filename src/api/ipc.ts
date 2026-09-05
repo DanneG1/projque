@@ -13,6 +13,7 @@ import type {
   EnvStatus,
   OutdatedReport,
   TranscriptMeta,
+  CustomCommand,
   BranchList,
   CommitPreflight,
   DebtInfo,
@@ -224,6 +225,10 @@ export const api = {
     invoke<ProjectView>("project_mark_verified", { id, passed }),
   projectDeployInfo: (id: string) => invoke<DeployInfo>("project_deploy_info", { id }),
   projectDebt: (id: string) => invoke<DebtInfo>("project_debt", { id }),
+  projectCustomCommands: (id: string) =>
+    invoke<CustomCommand[]>("project_custom_commands", { id }),
+  projectCommandApprove: (id: string, hash: string, approved: boolean) =>
+    invoke<ProjectView>("project_command_approve", { id, hash, approved }),
   projectOutdated: (id: string) => invoke<OutdatedReport>("project_outdated", { id }),
   projectAuditSupport: (id: string) => invoke<AuditSupport>("project_audit_support", { id }),
   projectAuditRun: (id: string) =>

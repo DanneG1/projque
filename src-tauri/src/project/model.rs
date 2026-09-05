@@ -43,6 +43,9 @@ pub struct Project {
     /// "Try an idea safely" in progress: the try branch and where to return.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub experiment: Option<Experiment>,
+    /// Fingerprints of projque.json commands the user has approved.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub approved_commands: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

@@ -121,6 +121,8 @@ pub fn detect_update_target(dir: &Path) -> Option<RunTarget> {
     })
 }
 
+pub mod custom;
+
 /// Every launchable target including the test and audit-fix targets, for
 /// launch-time validation of a frontend-supplied id.
 pub fn all_targets(dir: &Path) -> Vec<RunTarget> {
@@ -133,6 +135,9 @@ pub fn all_targets(dir: &Path) -> Vec<RunTarget> {
     }
     if let Some(t) = detect_update_target(dir) {
         targets.push(t);
+    }
+    for cmd in custom::load(dir) {
+        targets.push(custom::target_for(&cmd));
     }
     targets
 }

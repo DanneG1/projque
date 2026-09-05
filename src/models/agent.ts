@@ -47,6 +47,16 @@ export interface ErrorExplanation {
   excerpt: string;
 }
 
+/** A command a project defines in projque.json; runs only once approved. */
+export interface CustomCommand {
+  id: string;
+  label: string;
+  program: string;
+  args: string[];
+  hash: string;
+  approved: boolean;
+}
+
 export interface RunTarget {
   targetId: string;
   label: string;

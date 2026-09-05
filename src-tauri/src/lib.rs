@@ -119,6 +119,8 @@ pub fn run() {
             commands::transcript_delete,
             commands::transcripts_open_folder,
             commands::project_outdated,
+            commands::project_custom_commands,
+            commands::project_command_approve,
             commands::doctor_status,
             commands::doctor_fix,
             commands::ideas_list,
