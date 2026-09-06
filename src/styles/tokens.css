@@ -1,15 +1,26 @@
-/* ProjQue design tokens - circa-2010 Mac aesthetic (refined Aqua / Lion era):
-   hairline borders, top-lit gradients, glossy soft controls - recolored to
-   the brand mark: raspberry→orange→gold gradient on a dark plum ground.
-   The accent is the logo's raspberry; neutrals carry a faint warm/plum cast.
-   Existing token names are preserved so components need no churn. */
-:root {
+/* ProjQue design tokens. The base look ("Classic") is a circa-2010 Mac
+   aesthetic (refined Aqua / Lion era): hairline borders, top-lit gradients,
+   glossy soft controls - recolored to the brand mark: raspberry→orange→gold
+   gradient on a dark plum ground. The accent is the logo's raspberry;
+   neutrals carry a faint warm/plum cast.
+
+   Light/dark is `data-theme` (always resolved to an explicit value by
+   utils/appearance.ts, so there is no media-query copy of the dark set).
+   The selectable styles in styles.css override these per `data-style`.
+   Both selectors also match a scoped `[data-style][data-theme]` element so
+   the Settings style picker can preview every style inside one page. */
+:root,
+[data-style][data-theme="light"] {
   color-scheme: light;
   /* surfaces */
   --bg: #eeecee;
   --bg-raised: #ffffff;
   --bg-raised-2: #fbfafb;
   --bg-sunken: #e9e5e8;
+  /* the app ground; styles may paint a gradient wallpaper here */
+  --wallpaper: var(--bg);
+  /* opaque terminal ground (styles with translucent surfaces set it) */
+  --term-bg: var(--bg-sunken);
 
   /* toolbar gradient + chrome */
   --tb-top: #fefdfe;
@@ -17,6 +28,7 @@
   --tb-border: #b8b1b6;
 
   /* hairlines */
+  --bw: 1px;
   --border: #d7d2d6;
   --border-soft: #eae5e9;
   --inset-hi: rgba(255, 255, 255, 0.8);
@@ -41,6 +53,9 @@
   --btn-bot: #eae6e9;
   --btn-border: #bbb4b9;
   --btn-text: #2b282a;
+  --btn-shadow: inset 0 1px 0 var(--inset-hi), 0 1px 1px rgba(0, 0, 0, 0.05);
+  --btn-shadow-active: inset 0 1px 2px rgba(0, 0, 0, 0.14);
+  --btn-primary-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 1px 1px rgba(0, 0, 0, 0.1);
 
   /* semantic */
   --danger: #e23a20;
@@ -64,58 +79,27 @@
   --font-mono: "Menlo", "Monaco", "SF Mono", ui-monospace, Consolas, monospace;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.09);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.09);
+  --shadow-card-hover: 0 3px 10px rgba(0, 0, 0, 0.12);
   --shadow-pop: 0 6px 20px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.12);
   --shadow-window: 0 14px 40px -12px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.14);
+  /* backdrop-filter for surfaces that float over content (menus, dialogs,
+     toasts, the header); "none" everywhere but the glass style */
+  --surface-blur: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --bg: #2a1c26;
-    --bg-raised: #382839;
-    --bg-raised-2: #3b2a3b;
-    --bg-sunken: #221420;
-    --tb-top: #402c3c;
-    --tb-bot: #2c1d29;
-    --tb-border: #140a12;
-    --border: #1f1220;
-    --border-soft: #423045;
-    --inset-hi: rgba(255, 255, 255, 0.06);
-    --text: #efeaee;
-    --text-muted: #a8a0a6;
-    --text-faint: #746c72;
-    --accent: #f2467e;
-    --accent-top: #ff4d84;
-    --accent-bot: #fc6a1a;
-    --accent-border: #8f1f42;
-    --accent-weak: #f2467e22;
-    --brand-gradient: linear-gradient(90deg, #f90661 0%, #fc5a1e 55%, #fcc000 100%);
-    --btn-top: #4c3849;
-    --btn-bot: #3b2a38;
-    --btn-border: #1c101c;
-    --btn-text: #efeaee;
-    --danger: #f25a42;
-    --star: #f0b929;
-    --warning-bg: #3a3320;
-    --warning-border: #5c522f;
-    --status-done: #a29aa0;
-    --status-archived: #7f7880;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.4);
-    --shadow-window: 0 16px 44px -12px rgba(0, 0, 0, 0.6);
-  }
-}
-
-:root[data-theme="dark"] {
+:root[data-theme="dark"],
+[data-style][data-theme="dark"] {
   color-scheme: dark;
   --bg: #2a1c26;
   --bg-raised: #382839;
   --bg-raised-2: #3b2a3b;
   --bg-sunken: #221420;
+  --wallpaper: var(--bg);
+  --term-bg: var(--bg-sunken);
   --tb-top: #402c3c;
   --tb-bot: #2c1d29;
   --tb-border: #140a12;
+  --bw: 1px;
   --border: #1f1220;
   --border-soft: #423045;
   --inset-hi: rgba(255, 255, 255, 0.06);
@@ -126,20 +110,35 @@
   --accent-top: #ff4d84;
   --accent-bot: #fc6a1a;
   --accent-border: #8f1f42;
+  --accent-text: #ffffff;
   --accent-weak: #f2467e22;
   --brand-gradient: linear-gradient(90deg, #f90661 0%, #fc5a1e 55%, #fcc000 100%);
   --btn-top: #4c3849;
   --btn-bot: #3b2a38;
   --btn-border: #1c101c;
   --btn-text: #efeaee;
+  --btn-shadow: inset 0 1px 0 var(--inset-hi), 0 1px 1px rgba(0, 0, 0, 0.05);
+  --btn-shadow-active: inset 0 1px 2px rgba(0, 0, 0, 0.14);
+  --btn-primary-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 1px 1px rgba(0, 0, 0, 0.1);
   --danger: #f25a42;
   --star: #f0b929;
   --warning-bg: #3a3320;
   --warning-border: #5c522f;
+  --status-idea: #8d62d1;
+  --status-active: #37a24a;
+  --status-paused: #d38a1a;
+  --status-maintenance: #3d92c4;
   --status-done: #a29aa0;
   --status-archived: #7f7880;
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-xs: 5px;
+  --font: -apple-system, "Helvetica Neue", "Lucida Grande", "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Menlo", "Monaco", "SF Mono", ui-monospace, Consolas, monospace;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-card-hover: 0 3px 10px rgba(0, 0, 0, 0.45);
   --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-window: 0 16px 44px -12px rgba(0, 0, 0, 0.6);
+  --surface-blur: none;
 }

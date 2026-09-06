@@ -3,7 +3,7 @@
   align-items: center;
   gap: 6px;
   background: var(--bg-raised);
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: 999px;
   padding: 4px 11px;
   color: var(--text-faint);
@@ -31,7 +31,7 @@
   font-family: var(--font-mono);
   font-size: 10.5px;
   color: var(--text-faint);
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: 4px;
   padding: 0 4px;
   background: var(--bg-sunken);

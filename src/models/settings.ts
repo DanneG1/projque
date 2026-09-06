@@ -1,5 +1,9 @@
 export type Theme = "system" | "light" | "dark";
 
+/** Visual style on top of light/dark. Mirrors `STYLES` in settings/mod.rs. */
+export type Style = "classic" | "glass" | "flat" | "brutalist" | "neumorphic" | "terminal";
+export const STYLES: Style[] = ["classic", "glass", "flat", "brutalist", "neumorphic", "terminal"];
+
 export interface ToolConfig {
   type: string;
   command?: string;
@@ -11,6 +15,7 @@ export interface DisplaySettings {
   theme: Theme;
   /** "system" | "en" | "sv" */
   language: string;
+  style: Style;
 }
 
 export interface NotificationSettings {

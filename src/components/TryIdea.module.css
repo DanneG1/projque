@@ -7,10 +7,11 @@
   font-size: 12.5px;
   color: var(--btn-text);
   background: linear-gradient(var(--btn-top), var(--btn-bot));
-  border: 1px solid var(--btn-border);
+  border: var(--bw) solid var(--btn-border);
   border-radius: 99px;
   padding: 5px 12px;
   cursor: pointer;
+  box-shadow: var(--btn-shadow);
 }
 
 .launch:hover {
@@ -93,7 +94,7 @@
 }
 
 .input {
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--text);

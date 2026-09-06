@@ -112,7 +112,7 @@
 
 .input,
 .keyInput {
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: var(--radius-xs);
   background: var(--bg-raised);
   color: var(--text);

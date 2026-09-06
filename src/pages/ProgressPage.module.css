@@ -20,7 +20,7 @@
 }
 
 .card {
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-raised);
   box-shadow: var(--shadow);
@@ -68,7 +68,7 @@
 
 .heatmapWrap {
   overflow-x: auto;
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-raised);
   padding: 10px 12px;
@@ -303,7 +303,7 @@
   align-items: center;
   gap: 10px;
   width: 100%;
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   background: var(--bg-raised);
   font: inherit;
   font-size: 12.5px;

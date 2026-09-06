@@ -10,8 +10,10 @@
 }
 
 .toast {
+  -webkit-backdrop-filter: var(--surface-blur);
+  backdrop-filter: var(--surface-blur);
   background: var(--bg-raised);
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-left: 3px solid var(--danger);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-pop);

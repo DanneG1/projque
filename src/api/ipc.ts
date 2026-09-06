@@ -45,14 +45,22 @@ import type {
   RunTarget,
   ScanResult,
   Settings,
+  Style,
   Theme,
 } from "../models";
+
+export type DisplayPatch = {
+  showArchived?: boolean;
+  theme?: Theme;
+  language?: string;
+  style?: Style;
+};
 
 export const api = {
   appConfigStatus: () => invoke<ConfigStatus>("app_config_status"),
   appOpenConfigDir: () => invoke<void>("app_open_config_dir"),
   settingsGet: () => invoke<Settings>("settings_get"),
-  settingsSetDisplay: (patch: { showArchived?: boolean; theme?: Theme; language?: string }) =>
+  settingsSetDisplay: (patch: DisplayPatch) =>
     invoke<Settings>("settings_set_display", patch),
   settingsSetNotifications: (patch: {
     system?: boolean;

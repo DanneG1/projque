@@ -18,7 +18,7 @@
 /* ---------------------------------------------------------- left rail */
 
 .rail {
-  border-right: 1px solid var(--border);
+  border-right: var(--bw) solid var(--border);
   background: var(--bg-raised-2);
   padding: 12px 10px;
   overflow-y: auto;
@@ -186,7 +186,7 @@
 .newBranch input {
   flex: 1;
   min-width: 0;
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--text);
@@ -266,7 +266,7 @@
 }
 
 .mergeGroup select {
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--text);
@@ -290,7 +290,7 @@
   text-transform: uppercase;
   padding: 1px 7px;
   border-radius: 99px;
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   color: var(--text-muted);
 }
 
@@ -342,7 +342,7 @@
 /* ---------------------------------------------------------- diff pane */
 
 .diff {
-  border-left: 1px solid var(--border);
+  border-left: var(--bw) solid var(--border);
   padding: 12px 14px;
   overflow-y: auto;
   min-width: 0;
@@ -379,7 +379,7 @@
   .diff {
     grid-column: 1 / 3;
     border-left: none;
-    border-top: 1px solid var(--border);
+    border-top: var(--bw) solid var(--border);
     max-height: 45vh;
   }
 }
@@ -390,7 +390,7 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-faint);
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: 99px;
   padding: 0 5px;
 }

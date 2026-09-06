@@ -6,6 +6,7 @@ import { TerminalPane } from "../components/agent/TerminalPane";
 import { Toasts } from "../components/Toasts";
 import { Icon } from "../components/Icon";
 import type { AgentSessionView, SessionPulse } from "../models";
+import { applyAppearance } from "../utils/appearance";
 import styles from "./SessionWindow.module.css";
 
 /** A detached window showing exactly one session. Same store, same
@@ -16,6 +17,7 @@ export function SessionWindow({ sessionId }: { sessionId: string }) {
   const session = useAppStore((s) => s.sessions.find((v) => v.sessionId === sessionId));
   const initialized = useAppStore((s) => s.initialized);
   const theme = useAppStore((s) => s.settings?.display.theme ?? "system");
+  const style = useAppStore((s) => s.settings?.display.style ?? "classic");
 
   useEffect(() => {
     void (async () => {
@@ -61,11 +63,7 @@ export function SessionWindow({ sessionId }: { sessionId: string }) {
     };
   }, [sessionId]);
 
-  useEffect(() => {
-    if (theme === "system") delete document.documentElement.dataset.theme;
-    else document.documentElement.dataset.theme = theme;
-    window.dispatchEvent(new Event("projque:themechange"));
-  }, [theme]);
+  useEffect(() => applyAppearance(theme, style), [theme, style]);
 
   if (!initialized) return null;
   if (!session) {

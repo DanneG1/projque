@@ -4,12 +4,14 @@
 }
 
 .menu {
+  -webkit-backdrop-filter: var(--surface-blur);
+  backdrop-filter: var(--surface-blur);
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
   z-index: 40;
   background: var(--bg-raised);
-  border: 1px solid var(--tb-border);
+  border: var(--bw) solid var(--tb-border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-pop);
   padding: 5px;

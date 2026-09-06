@@ -83,17 +83,32 @@ pub struct DisplaySettings {
     /// "system" | "en" | "sv" - the UI language (translation lives in the frontend).
     #[serde(default = "default_language")]
     pub language: String,
+    /// Visual style (one of `STYLES`); the token sets live in the frontend.
+    #[serde(default = "default_style")]
+    pub style: String,
 }
 
 fn default_language() -> String {
     "system".into()
 }
 
+fn default_style() -> String {
+    "classic".into()
+}
+
 pub const LANGUAGES: &[&str] = &["system", "en", "sv"];
+
+/// Selectable UI styles. Light/dark is `Theme`; this is the look on top of it.
+pub const STYLES: &[&str] = &["classic", "glass", "flat", "brutalist", "neumorphic", "terminal"];
 
 impl Default for DisplaySettings {
     fn default() -> Self {
-        Self { show_archived: false, theme: Theme::default(), language: default_language() }
+        Self {
+            show_archived: false,
+            theme: Theme::default(),
+            language: default_language(),
+            style: default_style(),
+        }
     }
 }
 

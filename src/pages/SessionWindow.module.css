@@ -10,7 +10,7 @@
   align-items: center;
   gap: 10px;
   padding: 6px 12px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--bw) solid var(--border);
   background: linear-gradient(var(--tb-top), color-mix(in srgb, var(--tb-bot) 55%, var(--tb-top)));
   font-size: 12.5px;
 }

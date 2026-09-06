@@ -35,7 +35,7 @@
 }
 
 .card {
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-raised);
   box-shadow: var(--shadow);

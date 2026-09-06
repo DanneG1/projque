@@ -11,7 +11,7 @@
 }
 
 .file {
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--bg-raised);
@@ -54,7 +54,7 @@
 .status {
   font-size: 11px;
   color: var(--text-muted);
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: 99px;
   padding: 1px 8px;
   white-space: nowrap;

@@ -27,6 +27,7 @@ import { ConfigRecoveryBanner } from "./components/ConfigRecoveryBanner";
 import { InboxButton, InboxPanel } from "./components/Inbox";
 import { Toasts } from "./components/Toasts";
 import styles from "./App.module.css";
+import { applyAppearance } from "./utils/appearance";
 
 export default function App() {
   const route = useAppStore((s) => s.route);
@@ -34,6 +35,7 @@ export default function App() {
   const init = useAppStore((s) => s.init);
   const initialized = useAppStore((s) => s.initialized);
   const theme = useAppStore((s) => s.settings?.display.theme ?? "system");
+  const style = useAppStore((s) => s.settings?.display.style ?? "classic");
 
   const refreshGit = useAppStore((s) => s.refreshGit);
   const runningSessions = useAppStore(
@@ -149,23 +151,7 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [route, setRoute]);
 
-  useEffect(() => {
-    if (theme === "system") {
-      delete document.documentElement.dataset.theme;
-    } else {
-      document.documentElement.dataset.theme = theme;
-    }
-    // Notify any open terminals to recolor (manager self-subscribes) without
-    // importing the terminal module here - that would recreate a circular
-    // chunk dependency that leaves manager's bindings in the TDZ.
-    window.dispatchEvent(new Event("projque:themechange"));
-    if (theme === "system") {
-      const media = window.matchMedia("(prefers-color-scheme: dark)");
-      const onChange = () => window.dispatchEvent(new Event("projque:themechange"));
-      media.addEventListener("change", onChange);
-      return () => media.removeEventListener("change", onChange);
-    }
-  }, [theme]);
+  useEffect(() => applyAppearance(theme, style), [theme, style]);
 
   if (!initialized) return null;
 

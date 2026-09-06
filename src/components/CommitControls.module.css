@@ -3,7 +3,7 @@
   flex-direction: column;
   gap: 8px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-raised-2);
 }
@@ -38,7 +38,7 @@
 
 .message {
   flex: 1;
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--text);
@@ -103,7 +103,7 @@
   line-height: 1.45;
   border-radius: var(--radius-sm);
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
 }
 
 .warn > span {

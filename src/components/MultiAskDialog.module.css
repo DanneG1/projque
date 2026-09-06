@@ -9,8 +9,10 @@
 }
 
 .dialog {
+  -webkit-backdrop-filter: var(--surface-blur);
+  backdrop-filter: var(--surface-blur);
   background: var(--bg-raised);
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-pop);
   padding: 18px 22px;
@@ -31,7 +33,7 @@
 }
 
 .text {
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--text);
@@ -81,7 +83,7 @@
 }
 
 .filter {
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: var(--radius-xs);
   background: var(--bg);
   color: var(--text);

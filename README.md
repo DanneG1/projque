@@ -98,9 +98,14 @@ Two pretty-printed JSON files, safe to hand-edit and non-critical if lost (resca
   "editor":   { "type": "vscode" },
   "terminal": { "type": "macos-terminal" },
   "agent":    { "type": "claude" },
-  "display":  { "showArchived": false, "theme": "system" }
+  "display":  { "showArchived": false, "theme": "system", "style": "classic" }
 }
 ```
+
+`theme` is `system`, `light` or `dark`. `style` is the look on top of that, also
+pickable in Settings: `classic` (glossy Mac), `glass` (frosted, translucent),
+`flat`, `brutalist`, `neumorphic` (soft) or `terminal` (monospaced, phosphor
+green).
 
 Advanced, file-only options: `"command"`/`"args"` on any tool override the catalog entry (run as argv, never through a shell), and `"pathAdditions": ["/some/bin"]` extends the search path for launcher programs - useful because GUI-launched apps don't inherit your shell's PATH.
 

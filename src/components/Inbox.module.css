@@ -12,6 +12,8 @@
 }
 
 .panel {
+  -webkit-backdrop-filter: var(--surface-blur);
+  backdrop-filter: var(--surface-blur);
   position: fixed;
   top: 46px;
   right: 12px;
@@ -20,7 +22,7 @@
   display: flex;
   flex-direction: column;
   background: var(--bg-raised);
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-pop);
   z-index: 90;

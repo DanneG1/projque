@@ -22,7 +22,7 @@
 }
 
 .branchInput {
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--text);
@@ -41,7 +41,7 @@
 }
 
 .mergeLabel select {
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--text);

@@ -54,7 +54,9 @@ function themeFromTokens() {
     tokens.getPropertyValue(name).trim() || fallback;
   const accent = val("--accent", "#f2467e");
   return {
-    background: val("--bg-sunken", "#251e24"),
+    // --term-bg is always opaque; styles with translucent surfaces set it
+    // apart from --bg-sunken (xterm does not composite over the page).
+    background: val("--term-bg", "") || val("--bg-sunken", "#251e24"),
     foreground: val("--text", "#efeaee"),
     cursor: accent,
     selectionBackground: accent + "55",

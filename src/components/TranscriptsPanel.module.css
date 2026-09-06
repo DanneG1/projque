@@ -3,7 +3,7 @@
   flex-direction: column;
   gap: 8px;
   background: var(--bg-raised);
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-card), inset 0 1px 0 var(--inset-hi);
   padding: 14px 16px;

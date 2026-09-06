@@ -9,8 +9,10 @@
 }
 
 .dialog {
+  -webkit-backdrop-filter: var(--surface-blur);
+  backdrop-filter: var(--surface-blur);
   background: var(--bg-raised);
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 20px 24px;

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { api } from "../api/ipc";
+import { api, type DisplayPatch } from "../api/ipc";
 import { parseAppError, userMessage, type AppError } from "../api/errors";
 import { computeActivity } from "../utils/activity";
 import { collectCelebrations } from "../utils/celebrate";
@@ -18,7 +18,6 @@ import type {
   ScanResult,
   SessionPulse,
   Settings,
-  Theme,
 } from "../models";
 
 export type Route =
@@ -273,7 +272,7 @@ interface AppStore {
   setQuitPrompt: (count: number | null) => void;
   confirmQuit: () => Promise<void>;
   setRoute: (route: Route) => void;
-  setDisplay: (patch: { showArchived?: boolean; theme?: Theme; language?: string }) => Promise<void>;
+  setDisplay: (patch: DisplayPatch) => Promise<void>;
   openConfigDir: () => Promise<void>;
   reportError: (err: unknown) => AppError;
   notify: (title: string, detail?: string, opts?: NotifyOptions) => void;

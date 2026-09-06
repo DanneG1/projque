@@ -9,7 +9,7 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-muted);
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--bw) solid var(--border);
   padding-bottom: 4px;
 }
 

@@ -7,7 +7,7 @@
   font-weight: 500;
   color: var(--text-muted);
   background: var(--bg-raised);
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: 99px;
   padding: 4px 11px;
   cursor: pointer;
@@ -29,7 +29,7 @@
 .points {
   font-size: 10.5px;
   color: var(--text-faint);
-  border-left: 1px solid var(--border);
+  border-left: var(--bw) solid var(--border);
   padding-left: 6px;
   font-variant-numeric: tabular-nums;
 }

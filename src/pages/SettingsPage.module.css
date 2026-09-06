@@ -39,7 +39,7 @@
   font-family: var(--font-mono);
   font-size: 12px;
   background: var(--bg-sunken);
-  border: 1px solid var(--border);
+  border: var(--bw) solid var(--border);
   border-radius: var(--radius-sm);
   padding: 6px 10px;
   user-select: text;
@@ -51,4 +51,134 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+/* ---- style picker ---- */
+.styleGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.styleTile {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  padding: 6px;
+  text-align: left;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg-raised);
+  border: var(--bw) solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+}
+
+.styleTile:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+.styleTile[data-active] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-weak), var(--shadow-card);
+}
+
+.styleName {
+  font-weight: 600;
+  font-size: 12.5px;
+  margin-top: 4px;
+}
+
+.styleBlurb {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+/* The mock: painted only with tokens, which the tile's data-style re-scopes.
+   Everything is sized in px so the styles' radius/border/shadow differences
+   are what you see, not layout drift. */
+.preview {
+  height: 92px;
+  border-radius: calc(var(--radius) * 0.6);
+  background: var(--wallpaper);
+  border: 1px solid var(--border-soft);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font);
+  color: var(--text);
+}
+
+.pHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 7px;
+  background:
+    var(--brand-gradient) left bottom / 100% 2px no-repeat,
+    linear-gradient(var(--tb-top), var(--tb-bot));
+  border-bottom: var(--bw) solid var(--tb-border);
+  box-shadow: inset 0 1px 0 var(--inset-hi);
+}
+
+.pBrand {
+  width: 34px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--text);
+  opacity: 0.85;
+}
+
+.pBtn {
+  width: 22px;
+  height: 11px;
+  border-radius: var(--radius-xs);
+  background: linear-gradient(var(--btn-top), var(--btn-bot));
+  border: var(--bw) solid var(--btn-border);
+  box-shadow: var(--btn-shadow);
+}
+
+.pCard {
+  margin: 8px 9px 0;
+  padding: 7px 8px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 8px;
+  align-items: center;
+  background: var(--bg-raised);
+  border: var(--bw) solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card), inset 0 1px 0 var(--inset-hi);
+}
+
+.pTitle {
+  height: 7px;
+  width: 60%;
+  border-radius: 3px;
+  background: var(--text);
+}
+
+.pText {
+  grid-row: 2;
+  height: 5px;
+  width: 85%;
+  border-radius: 3px;
+  background: var(--text-faint);
+}
+
+.pPrimary {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 5px 7px;
+  color: var(--accent-text);
+  background: linear-gradient(var(--accent-top), var(--accent-bot));
+  border: var(--bw) solid var(--accent-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--btn-primary-shadow);
 }

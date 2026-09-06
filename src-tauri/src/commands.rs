@@ -60,12 +60,18 @@ pub async fn settings_set_display(
     show_archived: Option<bool>,
     theme: Option<Theme>,
     language: Option<String>,
+    style: Option<String>,
 ) -> Result<Settings, AppError> {
     let state = state.inner().clone();
     run_blocking(move || {
         if let Some(l) = language.as_deref() {
             if !crate::settings::LANGUAGES.contains(&l) {
                 return Err(AppError::InvalidInput { detail: "unknown language".into() });
+            }
+        }
+        if let Some(st) = style.as_deref() {
+            if !crate::settings::STYLES.contains(&st) {
+                return Err(AppError::InvalidInput { detail: "unknown style".into() });
             }
         }
         state.update_settings(|s| {
@@ -77,6 +83,9 @@ pub async fn settings_set_display(
             }
             if let Some(l) = language {
                 s.display.language = l;
+            }
+            if let Some(st) = style {
+                s.display.style = st;
             }
         })
     })

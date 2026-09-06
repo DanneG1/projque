@@ -1,7 +1,7 @@
 .sidebar {
   width: 224px;
   flex-shrink: 0;
-  border-right: 1px solid var(--border);
+  border-right: var(--bw) solid var(--border);
   background: linear-gradient(var(--bg-raised-2), var(--bg-sunken));
   overflow-y: auto;
   padding: 7px;

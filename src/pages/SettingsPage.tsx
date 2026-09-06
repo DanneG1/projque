@@ -1,6 +1,8 @@
 import { useAppStore } from "../store/useAppStore";
 import { DiskOverview } from "../components/DiskPanel";
-import type { CatalogEntry, Theme } from "../models";
+import type { CatalogEntry, Style, Theme } from "../models";
+import { STYLES } from "../models";
+import { resolveTheme } from "../utils/appearance";
 import { DoctorPanel } from "../components/DoctorPanel";
 import { LANGUAGES, useT } from "../i18n";
 import styles from "./SettingsPage.module.css";
@@ -10,6 +12,16 @@ const THEMES: { value: Theme; label: string }[] = [
   { value: "light", label: "Light" },
   { value: "dark", label: "Dark" },
 ];
+
+/** Label + one line on what the style is, as shown under each preview. */
+const STYLE_INFO: Record<Style, { label: string; blurb: string }> = {
+  classic: { label: "Classic", blurb: "Glossy Mac controls, hairlines, soft gradients" },
+  glass: { label: "Glass", blurb: "Frosted, translucent panels over a colour wash" },
+  flat: { label: "Flat", blurb: "Solid surfaces, crisp borders, no decoration" },
+  brutalist: { label: "Brutalist", blurb: "Thick borders, hard shadows, no rounding" },
+  neumorphic: { label: "Soft", blurb: "One ground, controls pressed out of it" },
+  terminal: { label: "Terminal", blurb: "Monospaced, square, phosphor on black" },
+};
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
@@ -140,6 +152,12 @@ export function SettingsPage() {
             ))}
           </select>
         </label>
+        <div className={styles.row}>{t("Style")}</div>
+        <StylePicker
+          value={settings.display.style ?? "classic"}
+          theme={settings.display.theme}
+          onChange={(style) => setDisplay({ style })}
+        />
       </section>
 
       <section className={styles.section}>
@@ -240,5 +258,54 @@ function ToolSelect(props: {
         ))}
       </select>
     </label>
+  );
+}
+
+/** One preview tile per style. Each tile carries data-style/data-theme like
+ *  the document root does, so the tokens in tokens.css + styles.css re-scope
+ *  to the tile and the mock inside renders in that style for real. */
+function StylePicker({
+  value,
+  theme,
+  onChange,
+}: {
+  value: Style;
+  theme: Theme;
+  onChange: (style: Style) => void;
+}) {
+  const t = useT();
+  const resolved = resolveTheme(theme);
+  return (
+    <div className={styles.styleGrid} role="radiogroup" aria-label={t("Style")}>
+      {STYLES.map((style) => {
+        const info = STYLE_INFO[style];
+        const active = style === value;
+        return (
+          <button
+            key={style}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            className={styles.styleTile}
+            data-active={active || undefined}
+            onClick={() => onChange(style)}
+          >
+            <div className={styles.preview} data-style={style} data-theme={resolved}>
+              <div className={styles.pHeader}>
+                <span className={styles.pBrand} />
+                <span className={styles.pBtn} />
+              </div>
+              <div className={styles.pCard}>
+                <span className={styles.pTitle} />
+                <span className={styles.pText} />
+                <span className={styles.pPrimary}>Aa</span>
+              </div>
+            </div>
+            <div className={styles.styleName}>{t(info.label)}</div>
+            <div className={styles.styleBlurb}>{t(info.blurb)}</div>
+          </button>
+        );
+      })}
+    </div>
   );
 }
