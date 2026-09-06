@@ -26,8 +26,9 @@ pub struct Project {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub production_url: Option<String>,
     /// Free-form labels ("client", "hobby", "tool") for filtering. Validated
-    /// in project_update: lowercase, short, letters/digits/dash only.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    /// in project_update: lowercase, short, letters/digits/dash only. Always
+    /// serialized (the frontend indexes it) - an empty list is `[]`.
+    #[serde(default)]
     pub tags: Vec<String>,
     /// Last "Run tests" outcome, stamped by the backend when a test run
     /// session exits. Presence = the project has been checked at least once.

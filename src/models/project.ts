@@ -18,8 +18,9 @@ export interface ProjectView {
   descriptionSource: DescriptionSource;
   roadmapFile?: string;
   productionUrl?: string;
-  /** Free-form labels for filtering (lowercase, short). */
-  tags: string[];
+  /** Free-form labels for filtering (lowercase, short). Older config files
+   *  may omit it - readers treat a missing list as empty. */
+  tags?: string[];
   lastVerified?: Verification;
   lastCleanup?: Cleanup;
   lastAudit?: AuditStamp;

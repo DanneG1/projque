@@ -28,7 +28,7 @@ export function useSortedProjects(): ProjectView[] {
       visible = visible.filter((p) => p.status === filter);
     }
     if (tagFilter) {
-      visible = visible.filter((p) => p.tags.includes(tagFilter));
+      visible = visible.filter((p) => (p.tags ?? []).includes(tagFilter));
     }
     const q = query.trim().toLowerCase();
     if (q) {
@@ -36,11 +36,11 @@ export function useSortedProjects(): ProjectView[] {
       const tagQuery = q.startsWith("#") ? q.slice(1) : null;
       visible = visible.filter((p) =>
         tagQuery !== null
-          ? p.tags.some((t) => t.includes(tagQuery))
+          ? (p.tags ?? []).some((t) => t.includes(tagQuery))
           : p.name.toLowerCase().includes(q) ||
             (p.resolvedDescription ?? "").toLowerCase().includes(q) ||
             p.path.toLowerCase().includes(q) ||
-            p.tags.some((t) => t.includes(q)),
+            (p.tags ?? []).some((t) => t.includes(q)),
       );
     }
     const lastActivity = (p: ProjectView) => git[p.id]?.lastCommit?.timestamp ?? 0;

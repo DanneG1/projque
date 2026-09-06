@@ -98,7 +98,7 @@ export function ProjectCard({
           </span>
         )}
         <StatusBadge status={project.status} />
-        <TagChips tags={project.tags} />
+        <TagChips tags={project.tags ?? []} />
         {project.experiment && (
           <span className={styles.verified} title={`Trying an idea on ${project.experiment.branch}: ${project.experiment.label}`}>
             🔥 trying

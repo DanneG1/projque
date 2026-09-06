@@ -36,7 +36,7 @@ export function TagBar() {
   const tagFilter = useAppStore((s) => s.tagFilter);
   const setTagFilter = useAppStore((s) => s.setTagFilter);
   const counts = new Map<string, number>();
-  for (const p of projects) for (const t of p.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
+  for (const p of projects) for (const t of p.tags ?? []) counts.set(t, (counts.get(t) ?? 0) + 1);
   if (counts.size === 0) return null;
   const tags = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   return (

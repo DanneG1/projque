@@ -177,7 +177,7 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
         )}
         <div className={styles.metaRow}>
           <span className={styles.metaLabel}>{t("Tags")}</span>
-          <TagEditor projectId={project.id} tags={project.tags} />
+          <TagEditor projectId={project.id} tags={project.tags ?? []} />
         </div>
         <div className={styles.metaRow}>
           <span className={styles.metaLabel}>{t("Production")}</span>
