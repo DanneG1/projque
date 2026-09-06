@@ -6,8 +6,13 @@ import styles from "./SavedPrompts.module.css";
 
 /** The user's own reusable prompts, next to the built-in guided actions.
  *  A prompt containing `{input}` asks for a description first. */
+const NO_PROMPTS: SavedPrompt[] = [];
+
 export function SavedPrompts({ projectId }: { projectId: string }) {
-  const prompts = useAppStore((s) => s.settings?.prompts ?? []);
+  // Select the stable reference; defaulting inside the selector would hand
+  // zustand a fresh array every render and loop forever.
+  const savedPrompts = useAppStore((s) => s.settings?.prompts);
+  const prompts = savedPrompts ?? NO_PROMPTS;
   const savePrompt = useAppStore((s) => s.savePrompt);
   const deletePrompt = useAppStore((s) => s.deletePrompt);
   const startAgentSession = useAppStore((s) => s.startAgentSession);

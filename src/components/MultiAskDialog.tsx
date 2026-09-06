@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
+import type { SavedPrompt } from "../models";
 import { useAppStore } from "../store/useAppStore";
 import { Icon } from "./Icon";
 import styles from "./MultiAskDialog.module.css";
+
+const NO_PROMPTS: SavedPrompt[] = [];
 
 const MAX = 8;
 
@@ -11,7 +14,10 @@ export function MultiAskDialog() {
   const open = useAppStore((s) => s.multiAskOpen);
   const setOpen = useAppStore((s) => s.setMultiAskOpen);
   const projects = useAppStore((s) => s.projects);
-  const prompts = useAppStore((s) => s.settings?.prompts ?? []);
+  // Select the stable reference; defaulting inside the selector would hand
+  // zustand a fresh array every render and loop forever.
+  const savedPrompts = useAppStore((s) => s.settings?.prompts);
+  const prompts = savedPrompts ?? NO_PROMPTS;
   const startMany = useAppStore((s) => s.startAgentsInProjects);
   const [picked, setPicked] = useState<string[]>([]);
   const [text, setText] = useState("");
