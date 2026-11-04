@@ -6,3 +6,6 @@ src-tauri/gen/schemas/
 *.local
 .vscode/*
 !.vscode/extensions.json
+
+# Personal idea notes (ProjQue idea capture writes here)
+/IDEAS.md

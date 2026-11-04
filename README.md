@@ -1,6 +1,27 @@
-# ProjQue
+<p align="center">
+  <img src="assets/projque-logo-icon.png" alt="ProjQue logo" width="128">
+</p>
 
-> **Your local project shelf.** Keep track of what you're building, see where you left off, and jump back into any project instantly.
+<h1 align="center">ProjQue</h1>
+
+<p align="center">
+  <strong>All your projects on one shelf. All your terminals in one window.</strong><br>
+  A local-first desktop hub for people with too many side projects and too many terminal tabs.
+</p>
+
+---
+
+You have a dozen projects in a dozen states. One is half-built, one is waiting on a dependency update, one has an agent working on it right now, and one you haven't touched since spring. Normally that means hunting for folders, retyping `cd`, and losing track of which terminal tab belongs to what.
+
+ProjQue puts it all in one place:
+
+- 🗂️ **Every project, at a glance** - status, branch, uncommitted changes, last commit and roadmap on one card per project. Filter, tag, favorite, and see straight away what needs you.
+- 🖥️ **Many terminals, one calm window** - run dev servers and coding agents (Claude Code, Codex, Aider, ...) side by side in a split view of up to four live terminals, across different projects. Pop any session out into its own window and dock it back with one click.
+- ⚡ **Jump straight back in** - one click opens a project in your editor, file manager, terminal or browser, or starts it. `⌘1`-`⌘9` jump to your favorites, `⌘K` captures an idea before it slips away.
+- 🧭 **Familiar, not reinvented** - real terminals, real git words (commit, push, branch), and *your* editor, *your* shell and *your* agent CLI. ProjQue organizes the tools you already use instead of replacing them.
+- 🔒 **Yours, offline** - no account, no cloud, no telemetry. Your config is two plain JSON files on your own disk.
+
+## What's inside
 
 ProjQue is a local-first, fully offline desktop app for developers juggling many local projects. It shows every project in one place - status, description, current branch, working-tree state, last commit, roadmap - with quick actions to jump back in, plus safe git controls (fetch, fast-forward pull, branch switching - never anything destructive):
 
